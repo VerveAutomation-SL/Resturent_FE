@@ -1,33 +1,34 @@
-import { createFileRoute, Navigate, Outlet } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
-import apiClient from '@/api/client'
-import type { User } from '@/types'
-import { AdminSidebar } from '@/components/admin/AdminSidebar'
+import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import apiClient from "@/api/client";
+import type { User } from "@/types";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import Cookies from "js-cookie";
 
-export const Route = createFileRoute('/admin')({
+export const Route = createFileRoute("/admin")({
   component: AdminLayout,
-})
+});
 
 function AdminLayout() {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('pos_user')
-    const token = localStorage.getItem('pos_token')
-    
+    const storedUser = Cookies.get("pos_user");
+    const token = Cookies.get("pos_token");
+
     if (storedUser && token) {
       try {
-        const parsedUser = JSON.parse(storedUser)
-        setUser(parsedUser)
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
       } catch (error) {
-        console.error('Failed to parse stored user:', error)
-        localStorage.removeItem('pos_user')
-        localStorage.removeItem('pos_token')
+        console.error("Failed to parse stored user:", error);
+        Cookies.remove("pos_user");
+        Cookies.remove("pos_token");
       }
     }
-    setIsLoading(false)
-  }, [])
+    setIsLoading(false);
+  }, []);
 
   // Show loading while checking auth
   if (isLoading) {
@@ -38,25 +39,29 @@ function AdminLayout() {
           <p className="text-muted-foreground">Loading Admin Panel...</p>
         </div>
       </div>
-    )
+    );
   }
 
   // Check authentication
   if (!apiClient.isAuthenticated() || !user) {
-    return <Navigate to="/login" />
+    return <Navigate to="/login" />;
   }
 
   // Check admin role
-  if (user.role !== 'admin') {
+  if (user.role !== "admin") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-destructive mb-2">Access Denied</h1>
-          <p className="text-muted-foreground mb-4">You don't have admin privileges.</p>
+          <h1 className="text-2xl font-bold text-destructive mb-2">
+            Access Denied
+          </h1>
+          <p className="text-muted-foreground mb-4">
+            You don't have admin privileges.
+          </p>
           <Navigate to="/" />
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -66,5 +71,5 @@ function AdminLayout() {
         <Outlet />
       </main>
     </div>
-  )
+  );
 }

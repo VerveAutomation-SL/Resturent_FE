@@ -23,13 +23,15 @@ import type {
   OrderFilters,
   ProductFilters,
   TableFilters,
+  OrderStatus,
 } from '@/types';
+import Cookies from 'js-cookie';
 
 class APIClient {
   private client: AxiosInstance;
 
   constructor() {
-    const apiUrl = import.meta.env?.VITE_API_URL || 'http://localhost:8080/api/v1';
+    const apiUrl = import.meta.env?.VITE_API_URL || 'http://localhost:3001/api';
     console.log('🔧 API Client baseURL:', apiUrl);
     console.log('🔧 Environment VITE_API_URL:', import.meta.env?.VITE_API_URL);
     
@@ -44,7 +46,7 @@ class APIClient {
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('pos_token');
+        const token = Cookies.get('pos_token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -60,8 +62,8 @@ class APIClient {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          localStorage.removeItem('pos_token');
-          localStorage.removeItem('pos_user');
+          Cookies.remove('pos_token');
+          Cookies.remove('pos_user');
           // Redirect to login page
           window.location.href = '/login';
         }
@@ -87,7 +89,7 @@ class APIClient {
   async login(credentials: LoginRequest): Promise<APIResponse<LoginResponse>> {
     return this.request({
       method: 'POST',
-      url: '/auth/login',
+      url: '/users/login',
       data: credentials,
     });
   }
@@ -250,7 +252,7 @@ class APIClient {
   async getIncomeReport(period: 'today' | 'week' | 'month' | 'year' = 'today'): Promise<APIResponse<any>> {
     return this.request({
       method: 'GET',
-      url: '/admin/reports/income',
+      url: '/admin/dashboard/income-report',
       params: { period },
     });
   }
@@ -412,17 +414,18 @@ class APIClient {
   }
 
   // Utility methods
-  setAuthToken(token: string): void {
-    localStorage.setItem('pos_token', token);
+  setAuthToken(accessToken: string): void {
+    Cookies.set('pos_token', accessToken);
   }
 
   clearAuth(): void {
-    localStorage.removeItem('pos_token');
-    localStorage.removeItem('pos_user');
+    Cookies.remove('pos_token');
+    Cookies.remove('pos_user');
   }
 
   getAuthToken(): string | null {
-    return localStorage.getItem('pos_token');
+    const token = Cookies.get('pos_token');
+    return token === undefined ? null : token;
   }
 
   isAuthenticated(): boolean {

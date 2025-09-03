@@ -40,8 +40,8 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  token: string;
-  user: User;
+    accessToken: string;
+    user: User;
 }
 
 // Category Types
@@ -108,7 +108,15 @@ export interface Order {
   items?: OrderItem[];
   payments?: Payment[];
 }
-
+export enum OrderStatus {
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  PREPARING = 'preparing',
+  READY = 'ready',
+  SERVED = 'served',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+}
 export interface OrderItem {
   id: string;
   order_id: string;
@@ -116,7 +124,7 @@ export interface OrderItem {
   quantity: number;
   unit_price?: number;
   price?: number;
-  status: 'confirmed' | 'preparing' | 'served' | 'completed' | 'cancelled';
+  status: OrderStatus;
   created_at: string;
   updated_at: string;
   product?: Product;
@@ -191,10 +199,20 @@ export interface Cart {
 
 // Dashboard Types
 export interface DashboardStats {
-  today_orders: number;
-  today_revenue: number;
-  active_orders: number;
-  occupied_tables: number;
+  activeOrders: number;
+  detailed: any;
+  occupiedTables: number;
+  todaysOrders: {
+    comparisonText: string;
+    count: number;
+    percentageChange: number;
+  }
+  todaysRevenue: {
+    comparisonText: string;
+    amount: number;
+    percentageChange: number;
+    formattedAmount: string;
+  }
 }
 
 export interface SalesReportItem {

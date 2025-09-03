@@ -1,55 +1,66 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import apiClient from '@/api/client'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { 
-  DollarSign, 
-  ShoppingCart, 
-  Users, 
-  Table, 
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import apiClient from "@/api/client";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  DollarSign,
+  ShoppingCart,
+  Users,
+  Table,
   TrendingUp,
   Plus,
   Settings,
-  BarChart3
-} from 'lucide-react'
+  BarChart3,
+} from "lucide-react";
 
 interface IncomeBreakdownItem {
-  period: string
-  orders: number
-  gross: number
-  tax: number
-  net: number
+  period: string;
+  orders: number;
+  gross: number;
+  tax: number;
+  net: number;
 }
 
 export function AdminDashboard() {
-  const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month'>('today')
+  const [selectedPeriod, setSelectedPeriod] = useState<
+    "today" | "week" | "month"
+  >("today");
 
   // Fetch dashboard stats
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['dashboardStats'],
-    queryFn: () => apiClient.getDashboardStats().then(res => res.data)
-  })
+    queryKey: ["dashboardStats"],
+    queryFn: () => apiClient.getDashboardStats().then((res) => res.data),
+  });
 
   // Fetch income report
   const { data: income, isLoading: incomeLoading } = useQuery({
-    queryKey: ['incomeReport', selectedPeriod],
-    queryFn: () => apiClient.getIncomeReport(selectedPeriod).then(res => res.data)
-  })
+    queryKey: ["incomeReport", selectedPeriod],
+    queryFn: () =>
+      apiClient.getIncomeReport(selectedPeriod).then((res) => res.data),
+  });
+
+  console.log("income report:", income);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount)
-  }
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount);
+  };
 
   if (statsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
-    )
+    );
   }
 
   return (
@@ -62,7 +73,7 @@ export function AdminDashboard() {
             Manage your restaurant operations and monitor performance
           </p>
         </div>
-        <div className="flex gap-2">
+        {/* <div className="flex gap-2">
           <Button variant="outline" size="sm">
             <Settings className="w-4 h-4 mr-2" />
             Settings
@@ -71,33 +82,41 @@ export function AdminDashboard() {
             <BarChart3 className="w-4 h-4 mr-2" />
             Reports
           </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Today's Orders
+            </CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.today_orders || 0}</div>
+            <div className="text-2xl font-bold">
+              {stats?.todaysOrders.count ?? 0}
+            </div>
             <p className="text-xs text-muted-foreground">
-              +12% from yesterday
+              {stats?.todaysOrders.comparisonText ?? 0}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Today's Revenue
+            </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats?.today_revenue || 0)}</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(stats?.todaysRevenue.amount ?? 0)}
+            </div>
             <p className="text-xs text-muted-foreground">
-              +8% from yesterday
+              {stats?.todaysRevenue.comparisonText ?? 0}
             </p>
           </CardContent>
         </Card>
@@ -108,7 +127,7 @@ export function AdminDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.active_orders || 0}</div>
+            <div className="text-2xl font-bold">{stats?.activeOrders ?? 0}</div>
             <p className="text-xs text-muted-foreground">
               Currently being processed
             </p>
@@ -117,11 +136,15 @@ export function AdminDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Occupied Tables</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Occupied Tables
+            </CardTitle>
             <Table className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.occupied_tables || 0}</div>
+            <div className="text-2xl font-bold">
+              {stats?.occupiedTables ?? 0}
+            </div>
             <p className="text-xs text-muted-foreground">
               Tables currently in use
             </p>
@@ -143,24 +166,24 @@ export function AdminDashboard() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button 
-                variant={selectedPeriod === 'today' ? 'default' : 'outline'} 
+              <Button
+                variant={selectedPeriod === "today" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setSelectedPeriod('today')}
+                onClick={() => setSelectedPeriod("today")}
               >
                 Today
               </Button>
-              <Button 
-                variant={selectedPeriod === 'week' ? 'default' : 'outline'} 
+              <Button
+                variant={selectedPeriod === "week" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setSelectedPeriod('week')}
+                onClick={() => setSelectedPeriod("week")}
               >
                 Week
               </Button>
-              <Button 
-                variant={selectedPeriod === 'month' ? 'default' : 'outline'} 
+              <Button
+                variant={selectedPeriod === "month" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setSelectedPeriod('month')}
+                onClick={() => setSelectedPeriod("month")}
               >
                 Month
               </Button>
@@ -178,27 +201,35 @@ export function AdminDashboard() {
               <div className="grid gap-4 md:grid-cols-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600">
-                    {income.summary.total_orders}
+                    {income.summary.totalOrders}
                   </div>
-                  <div className="text-sm text-muted-foreground">Total Orders</div>
+                  <div className="text-sm text-muted-foreground">
+                    Total Orders
+                  </div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600">
-                    {formatCurrency(income.summary.gross_income)}
+                    {formatCurrency(income.summary.grossIncome)}
                   </div>
-                  <div className="text-sm text-muted-foreground">Gross Income</div>
+                  <div className="text-sm text-muted-foreground">
+                    Gross Income
+                  </div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-orange-600">
-                    {formatCurrency(income.summary.tax_collected)}
+                    {formatCurrency(income.summary.taxCollected)}
                   </div>
-                  <div className="text-sm text-muted-foreground">Tax Collected</div>
+                  <div className="text-sm text-muted-foreground">
+                    Tax Collected
+                  </div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-purple-600">
-                    {formatCurrency(income.summary.net_income)}
+                    {formatCurrency(income.summary.netIncome)}
                   </div>
-                  <div className="text-sm text-muted-foreground">Net Income</div>
+                  <div className="text-sm text-muted-foreground">
+                    Net Income
+                  </div>
                 </div>
               </div>
 
@@ -212,17 +243,28 @@ export function AdminDashboard() {
                     <div className="text-center">Tax</div>
                     <div className="text-center">Net</div>
                   </div>
-                  {income.breakdown.slice(0, 10).map((item: IncomeBreakdownItem, index: number) => (
-                    <div key={index} className="grid grid-cols-5 gap-4 p-4 border-t text-sm">
-                      <div className="font-medium">
-                        {new Date(item.period).toLocaleDateString()}
+                  {income.breakdown
+                    .slice(0, 10)
+                    .map((item: IncomeBreakdownItem, index: number) => (
+                      <div
+                        key={index}
+                        className="grid grid-cols-5 gap-4 p-4 border-t text-sm"
+                      >
+                        <div className="font-medium">
+                          {new Date(item.period).toLocaleDateString()}
+                        </div>
+                        <div className="text-center">{item.orders}</div>
+                        <div className="text-center">
+                          {formatCurrency(item.gross)}
+                        </div>
+                        <div className="text-center">
+                          {formatCurrency(item.tax)}
+                        </div>
+                        <div className="text-center font-medium">
+                          {formatCurrency(item.net)}
+                        </div>
                       </div>
-                      <div className="text-center">{item.orders}</div>
-                      <div className="text-center">{formatCurrency(item.gross)}</div>
-                      <div className="text-center">{formatCurrency(item.tax)}</div>
-                      <div className="text-center font-medium">{formatCurrency(item.net)}</div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               )}
             </div>
@@ -240,7 +282,9 @@ export function AdminDashboard() {
           <CardHeader className="text-center">
             <Plus className="h-8 w-8 mx-auto text-blue-600" />
             <CardTitle className="text-lg">Manage Menu</CardTitle>
-            <CardDescription>Add, edit, or remove menu items and categories</CardDescription>
+            <CardDescription>
+              Add, edit, or remove menu items and categories
+            </CardDescription>
           </CardHeader>
         </Card>
 
@@ -248,7 +292,9 @@ export function AdminDashboard() {
           <CardHeader className="text-center">
             <Table className="h-8 w-8 mx-auto text-green-600" />
             <CardTitle className="text-lg">Manage Tables</CardTitle>
-            <CardDescription>Configure dining tables and seating arrangements</CardDescription>
+            <CardDescription>
+              Configure dining tables and seating arrangements
+            </CardDescription>
           </CardHeader>
         </Card>
 
@@ -256,7 +302,9 @@ export function AdminDashboard() {
           <CardHeader className="text-center">
             <Users className="h-8 w-8 mx-auto text-purple-600" />
             <CardTitle className="text-lg">Manage Staff</CardTitle>
-            <CardDescription>Add, edit staff accounts and manage permissions</CardDescription>
+            <CardDescription>
+              Add, edit staff accounts and manage permissions
+            </CardDescription>
           </CardHeader>
         </Card>
 
@@ -264,10 +312,12 @@ export function AdminDashboard() {
           <CardHeader className="text-center">
             <BarChart3 className="h-8 w-8 mx-auto text-orange-600" />
             <CardTitle className="text-lg">View Reports</CardTitle>
-            <CardDescription>Detailed analytics and performance reports</CardDescription>
+            <CardDescription>
+              Detailed analytics and performance reports
+            </CardDescription>
           </CardHeader>
         </Card>
       </div>
     </div>
-  )
+  );
 }
