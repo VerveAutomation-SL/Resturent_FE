@@ -68,7 +68,6 @@ export const createTableSchema = z.object({
   table_number: requiredStringSchema.min(1, 'Table number is required'),
   seats: z.number().min(1, 'Table must have at least 1 seat').max(20, 'Maximum 20 seats per table'),
   status: tableStatusSchema.default('available'),
-  location: z.string().optional(),
 })
 
 export const updateTableSchema = createTableSchema.partial().extend({

@@ -45,9 +45,6 @@ export function AdminDashboard() {
     queryFn: () =>
       apiClient.getIncomeReport(selectedPeriod).then((res) => res.data),
   });
-
-  console.log("income report:", income);
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",

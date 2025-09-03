@@ -395,22 +395,22 @@ class APIClient {
   async getAdminTables(params?: { page?: number, limit?: number, search?: string, status?: string }): Promise<APIResponse<DiningTable[]>> {
     return this.request({ 
       method: 'GET', 
-      url: '/admin/tables',
+      url: '/tables',
       params 
     });
   }
 
   // Admin-specific table management
   async createTable(tableData: any): Promise<APIResponse<DiningTable>> {
-    return this.request({ method: 'POST', url: '/admin/tables', data: tableData });
+    return this.request({ method: 'POST', url: '/tables', data: tableData });
   }
 
   async updateTable(id: string, tableData: any): Promise<APIResponse<DiningTable>> {
-    return this.request({ method: 'PUT', url: `/admin/tables/${id}`, data: tableData });
+    return this.request({ method: 'PUT', url: `/tables/${id}`, data: tableData });
   }
 
   async deleteTable(id: string): Promise<APIResponse> {
-    return this.request({ method: 'DELETE', url: `/admin/tables/${id}` });
+    return this.request({ method: 'DELETE', url: `/tables/${id}` });
   }
 
   // Utility methods

@@ -1,5 +1,5 @@
-import React from 'react'
-import { Control, FieldPath, FieldValues } from 'react-hook-form'
+import React from "react";
+import { Control, FieldPath, FieldValues } from "react-hook-form";
 import {
   FormControl,
   FormDescription,
@@ -7,27 +7,27 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
-import { Loader2 } from 'lucide-react'
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Loader2 } from "lucide-react";
 
 // Generic form field wrapper
 interface FormFieldWrapperProps<T extends FieldValues> {
-  control: Control<T>
-  name: FieldPath<T>
-  label: string
-  description?: string
-  children: React.ReactNode
+  control: Control<T>;
+  name: FieldPath<T>;
+  label: string;
+  description?: string;
+  children: React.ReactNode;
 }
 
 export function FormFieldWrapper<T extends FieldValues>({
@@ -44,26 +44,24 @@ export function FormFieldWrapper<T extends FieldValues>({
       render={() => (
         <FormItem>
           <FormLabel>{label}</FormLabel>
-          <FormControl>
-            {children}
-          </FormControl>
+          <FormControl>{children}</FormControl>
           {description && <FormDescription>{description}</FormDescription>}
           <FormMessage />
         </FormItem>
       )}
     />
-  )
+  );
 }
 
 // Text Input Field
 interface TextInputFieldProps<T extends FieldValues> {
-  control: Control<T>
-  name: FieldPath<T>
-  label: string
-  placeholder?: string
-  description?: string
-  type?: 'text' | 'email' | 'password' | 'tel'
-  autoComplete?: string
+  control: Control<T>;
+  name: FieldPath<T>;
+  label: string;
+  placeholder?: string;
+  description?: string;
+  type?: "text" | "email" | "password" | "tel";
+  autoComplete?: string;
 }
 
 export function TextInputField<T extends FieldValues>({
@@ -72,7 +70,7 @@ export function TextInputField<T extends FieldValues>({
   label,
   placeholder,
   description,
-  type = 'text',
+  type = "text",
   autoComplete,
 }: TextInputFieldProps<T>) {
   return (
@@ -95,19 +93,19 @@ export function TextInputField<T extends FieldValues>({
         </FormItem>
       )}
     />
-  )
+  );
 }
 
 // Number Input Field
 interface NumberInputFieldProps<T extends FieldValues> {
-  control: Control<T>
-  name: FieldPath<T>
-  label: string
-  placeholder?: string
-  description?: string
-  min?: number
-  max?: number
-  step?: number
+  control: Control<T>;
+  name: FieldPath<T>;
+  label: string;
+  placeholder?: string;
+  description?: string;
+  min?: number;
+  max?: number;
+  step?: number;
 }
 
 export function NumberInputField<T extends FieldValues>({
@@ -143,17 +141,17 @@ export function NumberInputField<T extends FieldValues>({
         </FormItem>
       )}
     />
-  )
+  );
 }
 
 // Price Input Field (specialized number field)
 interface PriceInputFieldProps<T extends FieldValues> {
-  control: Control<T>
-  name: FieldPath<T>
-  label: string
-  placeholder?: string
-  description?: string
-  currency?: string
+  control: Control<T>;
+  name: FieldPath<T>;
+  label: string;
+  placeholder?: string;
+  description?: string;
+  currency?: string;
 }
 
 export function PriceInputField<T extends FieldValues>({
@@ -183,7 +181,9 @@ export function PriceInputField<T extends FieldValues>({
                 step="0.01"
                 className="pl-8"
                 {...field}
-                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                onChange={(e) =>
+                  field.onChange(parseFloat(e.target.value) || 0)
+                }
               />
             </div>
           </FormControl>
@@ -192,23 +192,23 @@ export function PriceInputField<T extends FieldValues>({
         </FormItem>
       )}
     />
-  )
+  );
 }
 
 // Select Field
 interface SelectOption {
-  value: string
-  label: string
-  disabled?: boolean
+  value: string;
+  label: string;
+  disabled?: boolean;
 }
 
 interface SelectFieldProps<T extends FieldValues> {
-  control: Control<T>
-  name: FieldPath<T>
-  label: string
-  placeholder?: string
-  description?: string
-  options: SelectOption[]
+  control: Control<T>;
+  name: FieldPath<T>;
+  label: string;
+  placeholder?: string;
+  description?: string;
+  options: SelectOption[];
 }
 
 export function SelectField<T extends FieldValues>({
@@ -234,8 +234,8 @@ export function SelectField<T extends FieldValues>({
             </FormControl>
             <SelectContent>
               {options.map((option) => (
-                <SelectItem 
-                  key={option.value} 
+                <SelectItem
+                  key={option.value}
                   value={option.value}
                   disabled={option.disabled}
                 >
@@ -249,17 +249,17 @@ export function SelectField<T extends FieldValues>({
         </FormItem>
       )}
     />
-  )
+  );
 }
 
 // Textarea Field
 interface TextareaFieldProps<T extends FieldValues> {
-  control: Control<T>
-  name: FieldPath<T>
-  label: string
-  placeholder?: string
-  description?: string
-  rows?: number
+  control: Control<T>;
+  name: FieldPath<T>;
+  label: string;
+  placeholder?: string;
+  description?: string;
+  rows?: number;
 }
 
 export function TextareaField<T extends FieldValues>({
@@ -278,26 +278,22 @@ export function TextareaField<T extends FieldValues>({
         <FormItem>
           <FormLabel>{label}</FormLabel>
           <FormControl>
-            <Textarea
-              placeholder={placeholder}
-              rows={rows}
-              {...field}
-            />
+            <Textarea placeholder={placeholder} rows={rows} {...field} />
           </FormControl>
           {description && <FormDescription>{description}</FormDescription>}
           <FormMessage />
         </FormItem>
       )}
     />
-  )
+  );
 }
 
 // Switch Field
 interface SwitchFieldProps<T extends FieldValues> {
-  control: Control<T>
-  name: FieldPath<T>
-  label: string
-  description?: string
+  control: Control<T>;
+  name: FieldPath<T>;
+  label: string;
+  description?: string;
 }
 
 export function SwitchField<T extends FieldValues>({
@@ -317,26 +313,29 @@ export function SwitchField<T extends FieldValues>({
             {description && <FormDescription>{description}</FormDescription>}
           </div>
           <FormControl>
-            <Switch
-              checked={field.value}
-              onCheckedChange={field.onChange}
-            />
+            <Switch checked={field.value} onCheckedChange={field.onChange} />
           </FormControl>
         </FormItem>
       )}
     />
-  )
+  );
 }
 
 // Submit Button with loading state
 interface FormSubmitButtonProps {
-  isLoading?: boolean
-  loadingText?: string
-  children: React.ReactNode
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
-  size?: 'default' | 'sm' | 'lg' | 'icon'
-  className?: string
-  disabled?: boolean
+  isLoading?: boolean;
+  loadingText?: string;
+  children: React.ReactNode;
+  variant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
+  size?: "default" | "sm" | "lg" | "icon";
+  className?: string;
+  disabled?: boolean;
 }
 
 export function FormSubmitButton({
@@ -365,33 +364,31 @@ export function FormSubmitButton({
         children
       )}
     </Button>
-  )
+  );
 }
 
 // POS-specific role select options
 export const roleOptions: SelectOption[] = [
-  { value: 'admin', label: 'Administrator' },
-  { value: 'manager', label: 'Manager' },
-  { value: 'server', label: 'Server' },
-  { value: 'counter', label: 'Counter/Checkout' },
-  { value: 'kitchen', label: 'Kitchen Staff' },
-]
+  { value: "admin", label: "Administrator" },
+  { value: "manager", label: "Manager" },
+  { value: "server", label: "Server" },
+  { value: "counter", label: "Counter/Checkout" },
+  { value: "kitchen", label: "Kitchen Staff" },
+];
 
 // POS-specific status options
 export const productStatusOptions: SelectOption[] = [
-  { value: 'active', label: 'Active' },
-  { value: 'inactive', label: 'Inactive' },
-]
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+];
 
 export const orderTypeOptions: SelectOption[] = [
-  { value: 'dine-in', label: 'Dine In' },
-  { value: 'take-away', label: 'Take Away' },
-  { value: 'delivery', label: 'Delivery' },
-]
+  { value: "dine-in", label: "Dine In" },
+  { value: "take-away", label: "Take Away" },
+  { value: "delivery", label: "Delivery" },
+];
 
 export const tableStatusOptions: SelectOption[] = [
-  { value: 'available', label: 'Available' },
-  { value: 'occupied', label: 'Occupied' },
-  { value: 'reserved', label: 'Reserved' },
-  { value: 'maintenance', label: 'Under Maintenance' },
-]
+  { value: "available", label: "Available" },
+  { value: "occupied", label: "Occupied" },
+];

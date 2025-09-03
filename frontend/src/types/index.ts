@@ -80,7 +80,7 @@ export interface DiningTable {
   table_number: string;
   capacity: number;
   location?: string;
-  status: boolean;
+  status: 'available' | 'occupied';
   created_at: string;
   updated_at: string;
 }
