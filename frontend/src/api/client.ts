@@ -125,19 +125,10 @@ class APIClient {
     });
   }
 
-  async getCategories(activeOnly = true): Promise<APIResponse<Category[]>> {
-    return this.request({
-      method: 'GET',
-      url: '/categories',
-      params: { active_only: activeOnly },
-    });
-  }
-
-  async getProductsByCategory(categoryId: string, availableOnly = true): Promise<APIResponse<Product[]>> {
+  async getProductsByCategory(categoryId: string): Promise<APIResponse<Product[]>> {
     return this.request({
       method: 'GET',
       url: `/categories/${categoryId}/products`,
-      params: { available_only: availableOnly },
     });
   }
 
@@ -347,18 +338,18 @@ class APIClient {
 
   // Admin-specific category management  
   async createCategory(categoryData: any): Promise<APIResponse<Category>> {
-    return this.request({ method: 'POST', url: '/admin/categories', data: categoryData });
+    return this.request({ method: 'POST', url: '/categories', data: categoryData });
   }
 
   async updateCategory(id: string, categoryData: any): Promise<APIResponse<Category>> {
-    return this.request({ method: 'PUT', url: `/admin/categories/${id}`, data: categoryData });
+    return this.request({ method: 'PUT', url: `/categories/${id}`, data: categoryData });
   }
 
   async deleteCategory(id: string): Promise<APIResponse> {
-    return this.request({ method: 'DELETE', url: `/admin/categories/${id}` });
+    return this.request({ method: 'DELETE', url: `/categories/${id}` });
   }
 
-  // Admin products endpoint with pagination
+  // products endpoint with pagination
   async getAdminProducts(params?: { page?: number, per_page?: number, limit?: number, search?: string, category_id?: string }): Promise<APIResponse<Product[]>> {
     // Normalize params (handle both per_page and limit)
     const normalizedParams = {
@@ -370,24 +361,23 @@ class APIClient {
     
     return this.request({ 
       method: 'GET', 
-      url: '/admin/products',
+      url: '/products',
       params: normalizedParams
     });
   }
 
   // Admin categories endpoint with pagination
-  async getAdminCategories(params?: { page?: number, per_page?: number, limit?: number, search?: string, active_only?: boolean }): Promise<APIResponse<Category[]>> {
+  async getCategories(params?: { page?: number, per_page?: number, limit?: number, search?: string, active_only?: boolean }): Promise<APIResponse<Category[]>> {
     // Normalize params (handle both per_page and limit)
     const normalizedParams = {
       page: params?.page,
       per_page: params?.per_page || params?.limit,
       search: params?.search,
-      active_only: params?.active_only
     }
     
     return this.request({ 
       method: 'GET', 
-      url: '/admin/categories',
+      url: '/categories',
       params: normalizedParams
     });
   }

@@ -54,7 +54,6 @@ export const createCategorySchema = z.object({
   name: requiredStringSchema.min(2, 'Category name must be at least 2 characters'),
   description: z.string().optional(),
   image_url: z.string().url().optional().or(z.literal('')),
-  sort_order: z.number().min(0).default(0),
 })
 
 export const updateCategorySchema = createCategorySchema.partial().extend({

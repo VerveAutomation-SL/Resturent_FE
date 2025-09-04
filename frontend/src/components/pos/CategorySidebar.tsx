@@ -1,20 +1,18 @@
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Grid3x3, Loader2 } from 'lucide-react'
-import type { Category } from '@/types'
+import { Grid3x3, Loader2 } from "lucide-react";
+import type { Category } from "@/types";
 
 interface CategorySidebarProps {
-  categories: Category[]
-  selectedCategory: string
-  onCategorySelect: (categoryId: string) => void
-  isLoading: boolean
+  categories: Category[];
+  selectedCategory: string;
+  onCategorySelect: (categoryId: string) => void;
+  isLoading: boolean;
 }
 
-export function CategorySidebar({ 
-  categories, 
-  selectedCategory, 
-  onCategorySelect, 
-  isLoading 
+export function CategorySidebar({
+  categories,
+  selectedCategory,
+  onCategorySelect,
+  isLoading,
 }: CategorySidebarProps) {
   if (isLoading) {
     return (
@@ -23,7 +21,7 @@ export function CategorySidebar({
           <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -41,11 +39,11 @@ export function CategorySidebar({
         <div className="space-y-2">
           {/* All Categories Option */}
           <button
-            onClick={() => onCategorySelect('')}
+            onClick={() => onCategorySelect("")}
             className={`w-full flex items-center justify-between p-3 rounded-lg text-left transition-all ${
-              selectedCategory === ''
-                ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                : 'hover:bg-gray-50 text-gray-700'
+              selectedCategory === ""
+                ? "bg-blue-50 text-blue-700 border border-blue-200"
+                : "hover:bg-gray-50 text-gray-700"
             }`}
           >
             <div className="flex items-center gap-3">
@@ -54,9 +52,6 @@ export function CategorySidebar({
               </div>
               <span className="font-medium">All Categories</span>
             </div>
-            <Badge variant="outline" className="text-xs">
-              All
-            </Badge>
           </button>
 
           {/* Individual Categories */}
@@ -66,15 +61,15 @@ export function CategorySidebar({
               onClick={() => onCategorySelect(category.id)}
               className={`w-full flex items-center justify-between p-3 rounded-lg text-left transition-all ${
                 selectedCategory === category.id
-                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                  : 'hover:bg-gray-50 text-gray-700'
+                  ? "bg-blue-50 text-blue-700 border border-blue-200"
+                  : "hover:bg-gray-50 text-gray-700"
               }`}
             >
               <div className="flex items-center gap-3">
                 {/* Category Color Indicator */}
-                <div 
+                <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-medium"
-                  style={{ backgroundColor: category.color || '#6B7280' }}
+                  style={{ backgroundColor: category.color || "#6B7280" }}
                 >
                   {category.name.charAt(0).toUpperCase()}
                 </div>
@@ -87,9 +82,6 @@ export function CategorySidebar({
                   )}
                 </div>
               </div>
-              <Badge variant="outline" className="text-xs">
-                {category.sort_order}
-              </Badge>
             </button>
           ))}
         </div>
@@ -112,6 +104,5 @@ export function CategorySidebar({
         </div>
       </div>
     </div>
-  )
+  );
 }
-
