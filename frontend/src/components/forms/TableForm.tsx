@@ -137,8 +137,8 @@ export function TableForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <NumberInputField
                 control={form.control}
-                name="seats"
-                label="Number of Seats"
+                name="capacity"
+                label="Table Capacity"
                 min={1}
                 max={20}
                 description="Maximum seating capacity"

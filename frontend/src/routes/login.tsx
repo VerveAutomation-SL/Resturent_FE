@@ -337,16 +337,16 @@ function LoginPage() {
                   <div className="grid gap-2">
                     {[
                       {
-                        email: "admin",
-                        role: "Admin",
+                        email: "kalpa@restaurant.com",
+                        role: "admin",
                         icon: Settings,
                         bg: "bg-red-50 text-red-700 border-red-100",
                         desc: "👑 Full system access",
-                        password: "admin123",
+                        password: "kalpa123",
                       },
                       {
                         email: "manager1",
-                        role: "Manager",
+                        role: "manager",
                         icon: BarChart3,
                         bg: "bg-blue-50 text-blue-700 border-blue-100",
                         desc: "📊 Management & reports",
@@ -354,7 +354,7 @@ function LoginPage() {
                       },
                       {
                         email: "kitchen1",
-                        role: "Kitchen",
+                        role: "kitchen",
                         icon: ChefHat,
                         bg: "bg-orange-50 text-orange-700 border-orange-100",
                         desc: "👨‍🍳 Order preparation",

@@ -143,7 +143,7 @@ export function AdminTableManagement() {
 
   // Delete handler
   const handleDeleteTable = (table: DiningTable) => {
-    const tableStatus = (table as any).status;
+    const tableStatus = table.status;
     if (tableStatus === "occupied") {
       toastHelpers.warning(
         "Cannot Delete Table",
@@ -179,16 +179,6 @@ export function AdminTableManagement() {
         return {
           icon: <Users className="h-3 w-3" />,
           className: "bg-blue-100 text-blue-800 hover:bg-blue-200",
-        };
-      case "reserved":
-        return {
-          icon: <Clock className="h-3 w-3" />,
-          className: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
-        };
-      case "maintenance":
-        return {
-          icon: <AlertCircle className="h-3 w-3" />,
-          className: "bg-red-100 text-red-800 hover:bg-red-200",
         };
       default:
         return {
