@@ -75,6 +75,7 @@ class APIClient {
   // Helper method to handle API responses
   private async request<T>(config: AxiosRequestConfig): Promise<T> {
     try {
+      console.log(`➡️ ${config.method?.toUpperCase()} ${config.url}`, config);
       const response: AxiosResponse<T> = await this.client.request(config);
       return response.data;
     } catch (error) {
@@ -304,22 +305,22 @@ class APIClient {
   async getUsers(): Promise<APIResponse<User[]>> {
     return this.request({
       method: 'GET',
-      url: '/admin/users',
+      url: '/users',
     });
   }
 
   async createUser(userData: any): Promise<APIResponse<User>> {
     return this.request({
       method: 'POST',
-      url: '/admin/users',
+      url: '/users',
       data: userData,
     });
   }
 
   async updateUser(id: string, userData: any): Promise<APIResponse<User>> {
     return this.request({
-      method: 'PATCH',
-      url: `/admin/users/${id}`,
+      method: 'PUT',
+      url: `/users/${id}`,
       data: userData,
     });
   }
@@ -327,7 +328,7 @@ class APIClient {
   async deleteUser(id: string): Promise<APIResponse> {
     return this.request({
       method: 'DELETE',
-      url: `/admin/users/${id}`,
+      url: `/users/${id}`,
     });
   }
 

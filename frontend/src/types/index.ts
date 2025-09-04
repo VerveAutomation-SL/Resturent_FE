@@ -26,10 +26,8 @@ export interface User {
   name: string;
   email: string;
   phone: string;
-  first_name: string;
-  last_name: string;
-  role: 'admin' | 'manager' | 'staff';
-  is_active: boolean;
+  role: 'admin' | 'manager' | 'counter';
+  status: 'active' | 'inactive';
   created_at: string;
   updated_at: string;
 }

@@ -8,26 +8,27 @@ export const positiveNumberSchema = z.number().min(0, 'Must be a positive number
 export const priceSchema = z.number().min(0.01, 'Price must be greater than 0')
 
 // User/Staff related schemas
-export const userRoles = ['admin', 'manager', 'server', 'counter', 'kitchen'] as const
+export const userRoles = ['admin', 'manager', 'counter'] as const
 export const userRoleSchema = z.enum(userRoles)
 
+export const userStatusValues = ['active', 'inactive'] as const
+export const userStatusSchema = z.enum(userStatusValues)
+
 export const createUserSchema = z.object({
-  username: requiredStringSchema.min(3, 'Username must be at least 3 characters'),
+  name: requiredStringSchema.min(3, 'Name must be at least 3 characters'),
   email: emailSchema,
   password: passwordSchema,
-  first_name: requiredStringSchema,
-  last_name: requiredStringSchema,
   role: userRoleSchema,
+  status: userStatusSchema.default('active'),
 })
 
 export const updateUserSchema = z.object({
   id: z.string().or(z.number()),
-  username: requiredStringSchema.min(3, 'Username must be at least 3 characters').optional(),
+  name: requiredStringSchema.min(3, 'Name must be at least 3 characters').optional(),
   email: emailSchema.optional(),
-  password: passwordSchema.optional(),
-  first_name: requiredStringSchema.optional(),
-  last_name: requiredStringSchema.optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters').or(z.literal('')).optional(),
   role: userRoleSchema.optional(),
+  status: userStatusSchema.optional(),
 })
 
 // Product related schemas
@@ -61,7 +62,7 @@ export const updateCategorySchema = createCategorySchema.partial().extend({
 })
 
 // Table related schemas
-export const tableStatusValues = ['available', 'occupied', 'reserved', 'maintenance'] as const
+export const tableStatusValues = ['available', 'occupied'] as const
 export const tableStatusSchema = z.enum(tableStatusValues)
 
 export const createTableSchema = z.object({
@@ -75,10 +76,10 @@ export const updateTableSchema = createTableSchema.partial().extend({
 })
 
 // Order related schemas
-export const orderTypeValues = ['dine-in', 'take-away', 'delivery'] as const
+export const orderTypeValues = ['dine_in', 'takeout', 'delivery'] as const
 export const orderTypeSchema = z.enum(orderTypeValues)
 
-export const orderStatusValues = ['pending', 'confirmed', 'preparing', 'ready', 'served', 'cancelled'] as const
+export const orderStatusValues = ['confirmed', 'preparing', 'served', 'completed', 'cancelled'] as const
 export const orderStatusSchema = z.enum(orderStatusValues)
 
 export const orderItemSchema = z.object({
