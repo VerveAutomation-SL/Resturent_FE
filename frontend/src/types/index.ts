@@ -69,6 +69,21 @@ export interface Product {
   created_at: string;
   updated_at: string;
   category?: Category;
+  ingredients?: ProductIngredient[];
+}
+
+export interface Ingredient {
+  id: string;
+  name: string;
+  unit?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProductIngredient {
+  ingredient_id: string;
+  quantity_required: number;
+  ingredient?: Ingredient;
 }
 
 // Table Types

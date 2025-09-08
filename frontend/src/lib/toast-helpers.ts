@@ -104,6 +104,13 @@ export const toastHelpers = {
     )
   },
 
+  productDeleted: (productName: string) => {
+    return toastHelpers.success(
+      "Product Deleted",
+      `"${productName}" has been removed from the menu.`
+    )
+  },
+
   categoryUpdated: (categoryName: string) => {
     return toastHelpers.success(
       "Category Updated", 

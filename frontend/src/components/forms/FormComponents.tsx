@@ -181,9 +181,14 @@ export function PriceInputField<T extends FieldValues>({
                 step="0.01"
                 className="pl-8"
                 {...field}
-                onChange={(e) =>
-                  field.onChange(parseFloat(e.target.value) || 0)
-                }
+                value={field.value ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  // If empty, keep as empty string so the input can be cleared;
+                  // otherwise pass a number to react-hook-form so zod receives a number.
+                  const parsed = raw === "" ? "" : Number(raw);
+                  field.onChange(parsed);
+                }}
               />
             </div>
           </FormControl>
@@ -376,11 +381,6 @@ export const roleOptions: SelectOption[] = [
 
 // POS-specific status options
 export const userStatusOptions: SelectOption[] = [
-  { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive" },
-];
-
-export const productStatusOptions: SelectOption[] = [
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
 ];

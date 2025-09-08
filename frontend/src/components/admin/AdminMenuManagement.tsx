@@ -15,7 +15,6 @@ import {
   Table,
   Grid3X3,
   DollarSign,
-  Clock,
 } from "lucide-react";
 import apiClient from "@/api/client";
 import { toastHelpers } from "@/lib/toast-helpers";
@@ -111,7 +110,7 @@ export function AdminMenuManagement() {
           per_page: productsPagination.pageSize,
           search: debouncedSearch || undefined,
         })
-        .then((res: any) => res.data),
+        .then((res: any) => res.data.products),
   });
 
   // Fetch categories with pagination
@@ -391,13 +390,6 @@ export function AdminMenuManagement() {
                               >
                                 <DollarSign className="w-3 h-3 mr-1" />
                                 {product.price}
-                              </Badge>
-                              <Badge
-                                variant="outline"
-                                className="text-blue-600"
-                              >
-                                <Clock className="w-3 h-3 mr-1" />
-                                {product.preparation_time}min
                               </Badge>
                             </div>
                           </div>

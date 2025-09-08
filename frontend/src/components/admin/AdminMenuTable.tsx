@@ -5,10 +5,10 @@ import {
   getSortedRowModel,
   SortingState,
   useReactTable,
-} from "@tanstack/react-table"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+} from "@tanstack/react-table";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -16,7 +16,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import {
   ArrowUpDown,
   ArrowUp,
@@ -25,18 +25,16 @@ import {
   Trash2,
   Package,
   DollarSign,
-  Clock,
-  Image,
-  Tag
-} from "lucide-react"
-import type { Product, Category } from "@/types"
+  Tag,
+} from "lucide-react";
+import type { Product, Category } from "@/types";
 
 interface AdminMenuTableProps {
-  data: Product[]
-  categories: Category[]
-  onEdit: (product: Product) => void
-  onDelete: (product: Product) => void
-  isLoading?: boolean
+  data: Product[];
+  categories: Category[];
+  onEdit: (product: Product) => void;
+  onDelete: (product: Product) => void;
+  isLoading?: boolean;
 }
 
 export function AdminMenuTable({
@@ -44,34 +42,34 @@ export function AdminMenuTable({
   categories,
   onEdit,
   onDelete,
-  isLoading = false
+  isLoading = false,
 }: AdminMenuTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([])
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const getCategoryName = (categoryId: string | null) => {
-    if (!categoryId) return "No Category"
-    const category = categories.find(cat => cat.id === categoryId)
-    return category?.name || "Unknown Category"
-  }
+    if (!categoryId) return "No Category";
+    const category = categories.find((cat) => cat.id === categoryId);
+    return category?.name || "Unknown Category";
+  };
 
   const getCategoryColor = (categoryId: string | null) => {
-    if (!categoryId) return "bg-gray-100 text-gray-800"
-    const category = categories.find(cat => cat.id === categoryId)
-    return category?.color || "bg-gray-100 text-gray-800"
-  }
+    if (!categoryId) return "bg-gray-100 text-gray-800";
+    const category = categories.find((cat) => cat.id === categoryId);
+    return category?.color || "bg-gray-100 text-gray-800";
+  };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount)
-  }
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount);
+  };
 
   const columns: ColumnDef<Product>[] = [
     {
       accessorKey: "name",
       header: ({ column }) => {
-        const isSorted = column.getIsSorted()
+        const isSorted = column.getIsSorted();
         return (
           <Button
             variant="ghost"
@@ -88,16 +86,16 @@ export function AdminMenuTable({
               <ArrowUpDown className="ml-2 h-4 w-4" />
             )}
           </Button>
-        )
+        );
       },
       cell: ({ row }) => {
-        const product = row.original
+        const product = row.original;
         return (
           <div className="flex items-center space-x-3">
             <div className="flex-shrink-0">
               {product.image_url ? (
-                <img 
-                  src={product.image_url} 
+                <img
+                  src={product.image_url}
                   alt={product.name}
                   className="h-12 w-12 rounded-lg object-cover"
                 />
@@ -108,21 +106,19 @@ export function AdminMenuTable({
               )}
             </div>
             <div>
-              <div className="font-medium text-gray-900">
-                {product.name}
-              </div>
+              <div className="font-medium text-gray-900">{product.name}</div>
               <div className="text-sm text-gray-500 line-clamp-1">
                 {product.description || "No description"}
               </div>
             </div>
           </div>
-        )
+        );
       },
     },
     {
       accessorKey: "category_id",
       header: ({ column }) => {
-        const isSorted = column.getIsSorted()
+        const isSorted = column.getIsSorted();
         return (
           <Button
             variant="ghost"
@@ -139,23 +135,19 @@ export function AdminMenuTable({
               <ArrowUpDown className="ml-2 h-4 w-4" />
             )}
           </Button>
-        )
+        );
       },
       cell: ({ getValue }) => {
-        const categoryId = getValue() as string | null
-        const categoryName = getCategoryName(categoryId)
-        const categoryColor = getCategoryColor(categoryId)
-        return (
-          <Badge className={categoryColor}>
-            {categoryName}
-          </Badge>
-        )
+        const categoryId = getValue() as string | null;
+        const categoryName = getCategoryName(categoryId);
+        const categoryColor = getCategoryColor(categoryId);
+        return <Badge className={categoryColor}>{categoryName}</Badge>;
       },
     },
     {
       accessorKey: "price",
       header: ({ column }) => {
-        const isSorted = column.getIsSorted()
+        const isSorted = column.getIsSorted();
         return (
           <Button
             variant="ghost"
@@ -172,96 +164,37 @@ export function AdminMenuTable({
               <ArrowUpDown className="ml-2 h-4 w-4" />
             )}
           </Button>
-        )
+        );
       },
       cell: ({ getValue }) => {
-        const price = getValue() as number
+        const price = getValue() as number;
         return (
           <div className="font-medium text-green-600">
             {formatCurrency(price)}
           </div>
-        )
-      },
-    },
-    {
-      accessorKey: "preparation_time",
-      header: ({ column }) => {
-        const isSorted = column.getIsSorted()
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="h-8 px-2 lg:px-3"
-          >
-            <Clock className="mr-2 h-4 w-4" />
-            Prep Time
-            {isSorted === "asc" ? (
-              <ArrowUp className="ml-2 h-4 w-4" />
-            ) : isSorted === "desc" ? (
-              <ArrowDown className="ml-2 h-4 w-4" />
-            ) : (
-              <ArrowUpDown className="ml-2 h-4 w-4" />
-            )}
-          </Button>
-        )
-      },
-      cell: ({ getValue }) => {
-        const time = getValue() as number
-        return (
-          <div className="text-gray-900">
-            {time}min
-          </div>
-        )
+        );
       },
     },
     {
       accessorKey: "is_available",
       header: "Availability",
       cell: ({ getValue }) => {
-        const isAvailable = getValue() as boolean
+        const isAvailable = getValue() as boolean;
         return (
           <Badge variant={isAvailable ? "default" : "secondary"}>
-            <div className={`w-2 h-2 rounded-full mr-2 ${isAvailable ? 'bg-green-400' : 'bg-red-400'}`} />
+            <div
+              className={`w-2 h-2 rounded-full mr-2 ${isAvailable ? "bg-green-400" : "bg-red-400"}`}
+            />
             {isAvailable ? "Available" : "Out of Stock"}
           </Badge>
-        )
-      },
-    },
-    {
-      accessorKey: "sort_order",
-      header: ({ column }) => {
-        const isSorted = column.getIsSorted()
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="h-8 px-2 lg:px-3"
-          >
-            Order
-            {isSorted === "asc" ? (
-              <ArrowUp className="ml-2 h-4 w-4" />
-            ) : isSorted === "desc" ? (
-              <ArrowDown className="ml-2 h-4 w-4" />
-            ) : (
-              <ArrowUpDown className="ml-2 h-4 w-4" />
-            )}
-          </Button>
-        )
-      },
-      cell: ({ getValue }) => {
-        const order = getValue() as number
-        return (
-          <div className="text-gray-600">
-            #{order}
-          </div>
-        )
+        );
       },
     },
     {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => {
-        const product = row.original
+        const product = row.original;
         return (
           <div className="flex items-center space-x-2">
             <Button
@@ -283,10 +216,10 @@ export function AdminMenuTable({
               <span className="sr-only lg:not-sr-only lg:ml-2">Delete</span>
             </Button>
           </div>
-        )
+        );
       },
     },
-  ]
+  ];
 
   const table = useReactTable({
     data,
@@ -297,7 +230,7 @@ export function AdminMenuTable({
     state: {
       sorting,
     },
-  })
+  });
 
   return (
     <div className="w-full">
@@ -316,7 +249,7 @@ export function AdminMenuTable({
                             header.getContext()
                           )}
                     </TableHead>
-                  )
+                  );
                 })}
               </TableRow>
             ))}
@@ -341,20 +274,28 @@ export function AdminMenuTable({
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
                   <div className="flex flex-col items-center justify-center space-y-2">
                     <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
                       <Package className="w-6 h-6 text-gray-400" />
                     </div>
                     <p className="text-gray-500">No products found</p>
-                    <p className="text-sm text-gray-400">Try adjusting your search or add a new product</p>
+                    <p className="text-sm text-gray-400">
+                      Try adjusting your search or add a new product
+                    </p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -363,5 +304,5 @@ export function AdminMenuTable({
         </Table>
       </div>
     </div>
-  )
+  );
 }

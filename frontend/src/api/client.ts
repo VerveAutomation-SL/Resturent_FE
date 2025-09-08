@@ -25,6 +25,7 @@ import type {
   ProductFilters,
   TableFilters,
   OrderStatus,
+  Ingredient,
 } from '@/types';
 import Cookies from 'js-cookie';
 
@@ -325,15 +326,52 @@ class APIClient {
 
   // Admin-specific product management
   async createProduct(productData: any): Promise<APIResponse<Product>> {
-    return this.request({ method: 'POST', url: '/admin/products', data: productData });
+    return this.request({ method: 'POST', url: '/products', data: productData });
   }
 
   async updateProduct(id: string, productData: any): Promise<APIResponse<Product>> {
-    return this.request({ method: 'PUT', url: `/admin/products/${id}`, data: productData });
+    return this.request({ method: 'PUT', url: `/products/${id}`, data: productData });
   }
 
   async deleteProduct(id: string): Promise<APIResponse> {
-    return this.request({ method: 'DELETE', url: `/admin/products/${id}` });
+    return this.request({ method: 'DELETE', url: `/products/${id}` });
+  }
+
+  // Ingredients
+  async getIngredients(): Promise<APIResponse<Ingredient[]>> {
+    return this.request({ method: 'GET', url: '/ingredients' });
+  }
+
+  // Upload image to backend (matches your upload route)
+  async uploadImage(file: File): Promise<APIResponse<any>> {
+    const formData = new FormData();
+    formData.append('image', file); // Field name matches your multer config
+
+    try {
+      console.log(`➡️ POST /upload/image`, { fileName: file.name, fileSize: file.size });
+      const response = await this.client.post('/upload/image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        // Optional: Add upload progress tracking
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            console.log(`📤 Upload progress: ${percentCompleted}%`);
+          }
+        },
+      });
+      console.log('Upload response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Upload error:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('Error response:', error.response?.data);
+        console.error('Error status:', error.response?.status);
+        throw new Error(error.response?.data?.message || `Upload failed: ${error.response?.status} ${error.response?.statusText}` || error.message);
+      }
+      throw error;
+    }
   }
 
   // Admin-specific category management  

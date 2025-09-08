@@ -32,17 +32,28 @@ export const updateUserSchema = z.object({
 })
 
 // Product related schemas
-export const productStatusValues = ['active', 'inactive'] as const
-export const productStatusSchema = z.enum(productStatusValues)
-
 export const createProductSchema = z.object({
   name: requiredStringSchema.min(2, 'Product name must be at least 2 characters'),
   description: z.string().optional(),
   price: priceSchema,
   category_id: z.string().or(z.number()).transform(val => Number(val)),
-  image_url: z.string().url().optional().or(z.literal('')),
-  status: productStatusSchema.default('active'),
-  preparation_time: z.number().min(0).max(120).default(5), // minutes
+  // image_url may be omitted, empty, a valid URL, or a data URL (uploaded image)
+  image_url: z
+    .union([
+      z.string().url(),
+      z.string().regex(/^data:.+;base64,.+$/),
+      z.literal(''),
+    ])
+    .optional(),
+  is_available: z.boolean().default(true),
+  ingredients: z
+    .array(
+      z.object({
+        ingredient_id: z.string().or(z.number()).transform((val) => Number(val)),
+        quantity_required: z.number().min(0, 'Quantity must be at least 0'),
+      })
+    )
+    .optional(),
 })
 
 export const updateProductSchema = createProductSchema.partial().extend({
