@@ -55,9 +55,10 @@ function LoginPage() {
       console.log("Login success:", response);
       console.log("Current API URL:", import.meta.env.VITE_API_URL);
       if (response.success && response.data) {
+        // Set auth token - expiry will be extracted from JWT token
         apiClient.setAuthToken(response.data.accessToken);
-        Cookies.set("pos_user", JSON.stringify(response.data.user));
-        console.log("Auth token set, redirecting to home...");
+        // No need to manually store user data - it will be extracted from JWT token
+        console.log("Auth token set with JWT expiry, redirecting to home...");
         setTimeout(() => {
           router.navigate({ to: "/" });
         }, 100);

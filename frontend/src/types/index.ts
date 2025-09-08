@@ -26,7 +26,7 @@ export interface User {
   name: string;
   email: string;
   phone: string;
-  role: 'admin' | 'manager' | 'counter';
+  role: 'admin' | 'manager' | 'counter' | 'kitchen';
   status: 'active' | 'inactive';
   created_at: string;
   updated_at: string;

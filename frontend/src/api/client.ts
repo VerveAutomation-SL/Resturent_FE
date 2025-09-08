@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { jwtDecode } from 'jwt-decode';
 import type {
   APIResponse,
   PaginatedResponse,
@@ -62,8 +63,7 @@ class APIClient {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          Cookies.remove('pos_token');
-          Cookies.remove('pos_user');
+          this.clearAuth();
           // Redirect to login page
           window.location.href = '/login';
         }
@@ -411,7 +411,6 @@ class APIClient {
 
   clearAuth(): void {
     Cookies.remove('pos_token');
-    Cookies.remove('pos_user');
   }
 
   getAuthToken(): string | null {
@@ -420,7 +419,29 @@ class APIClient {
   }
 
   isAuthenticated(): boolean {
-    return !!this.getAuthToken();
+    const token = this.getAuthToken();
+    
+    if (!token) {
+      return false;
+    }
+    
+    try {
+      // Decode the JWT token to check expiry
+      const decodedToken = jwtDecode<{ exp: number }>(token);
+      const expiryTime = decodedToken.exp * 1000; // Convert from seconds to milliseconds
+      const currentTime = new Date().getTime();
+      
+      if (currentTime >= expiryTime) {
+        this.clearAuth();
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to decode JWT token:', error);
+      this.clearAuth();
+      return false;
+    }
   }
 }
 
