@@ -1,5 +1,4 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
 import apiClient from "@/api/client";
@@ -14,23 +13,6 @@ export const Route = createFileRoute("/")({
 function HomePage() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  // ALL HOOKS MUST BE AT THE TOP LEVEL - before any conditional returns
-  // const { isLoading: isServerVerifying, error } = useQuery({
-  //   queryKey: ["currentUser"],
-  //   queryFn: () => {
-  //     console.log("Verifying user with API URL:", import.meta.env.VITE_API_URL);
-  //     return apiClient.getCurrentUser();
-  //   },
-  //   retry: 1,
-  //   enabled: false, // Temporarily disable server verification
-  //   onError: (error) => {
-  //     console.error("getCurrentUser failed:", error);
-  //     // Clear auth and redirect to login
-  //     apiClient.clearAuth();
-  //     window.location.href = "/login";
-  //   },
-  // });
 
   useEffect(() => {
     console.log("Loading user from JWT token...");
@@ -52,7 +34,6 @@ function HomePage() {
       const decodedToken = jwtDecode<User & { exp: number; iat: number }>(
         token
       );
-      console.log("Decoded token:", decodedToken);
 
       // Check if token has expired (from JWT token itself)
       const currentTime = new Date().getTime();
@@ -65,20 +46,9 @@ function HomePage() {
         return;
       }
 
-      // Extract user information from decoded token
-      const userFromToken: User = {
-        id: decodedToken.id,
-        name: decodedToken.name,
-        email: decodedToken.email,
-        phone: decodedToken.phone || "",
-        role: decodedToken.role,
-        status: decodedToken.status,
-        created_at: decodedToken.created_at,
-        updated_at: decodedToken.updated_at,
-      };
+      console.log("Decoded token User:", decodedToken);
 
-      console.log("User from JWT:", userFromToken);
-      setUser(userFromToken);
+      setUser(decodedToken);
 
       // No need to store user separately since we get it from JWT token
     } catch (error) {

@@ -1,5 +1,5 @@
-import { createFileRoute, Navigate, useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import {
   Card,
@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import Cookies from "js-cookie";
 
 import apiClient from "@/api/client";
 import type { LoginRequest, LoginResponse, APIResponse } from "@/types";
@@ -39,11 +38,14 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  // Check if already authenticated
-  if (apiClient.isAuthenticated()) {
-    console.log("Already authenticated, redirecting to home...");
-    return <Navigate to="/" />;
-  }
+  // Redirect if already authenticated (useEffect to avoid early return -> hooks mismatch)
+  useEffect(() => {
+    if (apiClient.isAuthenticated()) {
+      console.log("Already authenticated, redirecting to home...");
+      // use router.navigate instead of rendering <Navigate /> to keep hooks stable
+      router.navigate({ to: "/" });
+    }
+  }, []);
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginRequest) => {
@@ -57,11 +59,8 @@ function LoginPage() {
       if (response.success && response.data) {
         // Set auth token - expiry will be extracted from JWT token
         apiClient.setAuthToken(response.data.accessToken);
-        // No need to manually store user data - it will be extracted from JWT token
-        console.log("Auth token set with JWT expiry, redirecting to home...");
-        setTimeout(() => {
-          router.navigate({ to: "/" });
-        }, 100);
+        // Let the page-level guard handle redirect after token is set
+        router.navigate({ to: "/" });
       } else {
         console.error("Login failed:", response.message);
         setError(response.message || "Login failed");
@@ -276,12 +275,12 @@ function LoginPage() {
                         ],
                       },
                       {
-                        email: "counter1",
+                        email: "counter@restaurant.com",
                         role: "Counter",
                         icon: CreditCard,
                         bg: "bg-gradient-to-r from-green-100 to-green-50 text-green-800 border-green-200",
                         desc: "💰 Payment processing & all orders",
-                        password: "admin123",
+                        password: "counter1@123",
                         features: [
                           "All order types",
                           "Payment processing",

@@ -406,6 +406,7 @@ class APIClient {
 
   // Utility methods
   setAuthToken(accessToken: string): void {
+    console.log("Auth token set with JWT expiry, redirecting to home...");
     Cookies.set('pos_token', accessToken);
   }
 
