@@ -34,50 +34,98 @@ import {
 import apiClient from "@/api/client";
 import { toastHelpers } from "@/lib/toast-helpers";
 import { InventoryIngredient } from "@/types";
+import StockDashboard from "./StockDashboard";
+import InventoryTab from "./InventoryTab";
+import LowStockTab from "./LowStockTab";
+import AlertsTab from "./AlertsTab";
+import StockManagementTab from "./StockManagementTab";
+import TransactionsTab from "./TransactionsTab";
+import PurchaseOrdersTab from "./PurchaseOrdersTab";
+import ReportsTab from "./ReportsTab";
+import { StockItemForm } from "../forms/StockItemForm";
 
 interface StockAlert {
   id: number;
-  ingredient_id: number;
-  ingredient_name: string;
-  alert_type: "low_stock" | "critical_stock" | "out_of_stock" | "expired";
+  item_id: number;
+  item_name: string;
+  alert_type: "low_stock" | "critical_stock" | "out_of_stock";
   message: string;
   created_at: string;
   acknowledged: boolean;
   resolved: boolean;
+  priority: "low" | "medium" | "high" | "critical";
 }
 
+// interface StockTransaction {
+//   id: number;
+//   item_id: number;
+//   item_name: string;
+//   transaction_type:
+//     | "purchase"
+//     | "usage"
+//     | "adjustment"
+//     | "transfer"
+//     | "return"
+//     | "waste";
+//   quantity: number;
+//   unit_cost?: number;
+//   total_cost?: number;
+//   reference_number?: string;
+//   notes?: string;
+//   created_by: string;
+//   created_at: string;
+// }
+
 interface InventoryStats {
-  total_ingredients: number;
-  total_value: number;
-  low_stock_count: number;
-  critical_stock_count: number;
-  out_of_stock_count: number;
-  in_stock_count: number;
+  total: number;
+  totalValue: number;
+  lowStock: number;
+  criticalStock: number;
+  outOfStock: number;
+  inStockCount: number;
 }
 
 export function AdminIngredientsManagement() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
   const [stockFilter, setStockFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<InventoryIngredient | null>(
+    null
+  );
   const [stockAdjustment, setStockAdjustment] = useState({
     id: 0,
     amount: 0,
     type: "add",
+    reason: "",
+    reference: "",
   });
 
   const queryClient = useQueryClient();
 
-  // Fetch ingredients data
-  const { data: ingredients = [], isLoading: loadingIngredients } = useQuery({
-    queryKey: ["ingredients"],
-    queryFn: () => apiClient.getIngredients().then((res) => res.data || []),
+  // Fetch all stock items (ingredients, supplies, equipment, etc.)
+  const { data: stockItems = [], isLoading: loadingStock } = useQuery({
+    queryKey: ["stock-items"],
+    queryFn: () =>
+      apiClient.getIngredients().then((res) => {
+        console.log("Fetched stock items:", res.data?.ingredients);
+        return res.data?.ingredients || [];
+      }),
   });
+
+  // Legacy ingredients data for backward compatibility
+  // const ingredients = stockItems;
 
   // Fetch inventory stats
   const { data: stats } = useQuery<InventoryStats>({
     queryKey: ["ingredient-stats"],
-    queryFn: () => apiClient.getIngredientStats().then((res) => res.data),
+    queryFn: () =>
+      apiClient.getIngredientStats().then((res) => {
+        console.log("Fetched ingredient stats:", res.data);
+        return res.data;
+      }),
   });
 
   // Fetch stock alerts
@@ -86,22 +134,26 @@ export function AdminIngredientsManagement() {
     queryFn: () => apiClient.getStockAlerts().then((res) => res.data || []),
   });
 
-  // Filter ingredients based on status and search
-  const getFilteredIngredients = (status?: string) => {
-    let filtered = ingredients;
+  // Fetch stock transactions
+  const { data: transactions = [] } = useQuery({
+    queryKey: ["stock-transactions"],
+    queryFn: () =>
+      apiClient.getStockTransactions().then((res) => res.data || []),
+  });
 
-    if (status) {
-      filtered = ingredients.filter(
-        (ing: InventoryIngredient) => ing.status === status
-      );
-    }
+  // Filter stock items based on search
+  const getFilteredItems = () => {
+    let filtered = stockItems;
 
     if (searchTerm) {
       filtered = filtered.filter(
-        (ing: InventoryIngredient) =>
-          ing.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          ing.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          ing.supplier.toLowerCase().includes(searchTerm.toLowerCase())
+        (item: InventoryIngredient) =>
+          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.supplier_contact
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          item.unit.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -128,15 +180,41 @@ export function AdminIngredientsManagement() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ingredients"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-items"] });
       queryClient.invalidateQueries({ queryKey: ["ingredient-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-transactions"] });
       toastHelpers.apiSuccess("Stock Update", "Stock updated successfully");
-      setStockAdjustment({ id: 0, amount: 0, type: "add" });
+      setStockAdjustment({
+        id: 0,
+        amount: 0,
+        type: "add",
+        reason: "",
+        reference: "",
+      });
     },
     onError: (error) => {
       toastHelpers.apiError("Stock Update", error);
     },
   });
+
+  // Create transaction mutation
+  //   const createTransactionMutation = useMutation({
+  //     mutationFn: (transaction: Partial<StockTransaction>) => {
+  //       return apiClient.createStockTransaction(transaction);
+  //     },
+  //     onSuccess: () => {
+  //       queryClient.invalidateQueries({ queryKey: ["stock-transactions"] });
+  //       queryClient.invalidateQueries({ queryKey: ["stock-items"] });
+  //       toastHelpers.apiSuccess(
+  //         "Transaction",
+  //         "Transaction recorded successfully"
+  //       );
+  //       setShowTransactionForm(false);
+  //     },
+  //     onError: (error) => {
+  //       toastHelpers.apiError("Transaction", error);
+  //     },
+  //   });
 
   // Acknowledge alert mutation
   const acknowledgeAlertMutation = useMutation({
@@ -149,508 +227,204 @@ export function AdminIngredientsManagement() {
     },
   });
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      in_stock: {
-        variant: "default" as const,
-        text: "In Stock",
-        icon: CheckCircle,
-      },
-      low_stock: {
-        variant: "secondary" as const,
-        text: "Low Stock",
-        icon: AlertTriangle,
-      },
-      critical_stock: {
-        variant: "destructive" as const,
-        text: "Critical",
-        icon: AlertCircle,
-      },
-      out_of_stock: {
-        variant: "destructive" as const,
-        text: "Out of Stock",
-        icon: XCircle,
-      },
-    };
+  // const getPriorityBadge = (priority: string) => {
+  //   const priorityConfig = {
+  //     low: { variant: "secondary" as const, text: "Low" },
+  //     medium: { variant: "default" as const, text: "Medium" },
+  //     high: { variant: "destructive" as const, text: "High" },
+  //     critical: { variant: "destructive" as const, text: "Critical" },
+  //   };
 
-    const config = statusConfig[status as keyof typeof statusConfig];
-    const IconComponent = config.icon;
+  //   const config = priorityConfig[priority as keyof typeof priorityConfig];
 
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <IconComponent className="w-3 h-3" />
-        {config.text}
-      </Badge>
-    );
-  };
+  //   return <Badge variant={config.variant}>{config.text}</Badge>;
+  // };
 
-  const DashboardTab = () => (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Ingredients
-                </p>
-                <p className="text-2xl font-bold">
-                  {stats?.total_ingredients || 0}
-                </p>
-              </div>
-              <Package className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
+  // const getStatusBadge = (status: string) => {
+  //   const statusConfig = {
+  //     in_stock: {
+  //       variant: "default" as const,
+  //       text: "In Stock",
+  //       icon: CheckCircle,
+  //     },
+  //     low_stock: {
+  //       variant: "secondary" as const,
+  //       text: "Low Stock",
+  //       icon: AlertTriangle,
+  //     },
+  //     critical_stock: {
+  //       variant: "destructive" as const,
+  //       text: "Critical",
+  //       icon: AlertCircle,
+  //     },
+  //     out_of_stock: {
+  //       variant: "destructive" as const,
+  //       text: "Out of Stock",
+  //       icon: XCircle,
+  //     },
+  //   };
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Value
-                </p>
-                <p className="text-2xl font-bold">
-                  ${stats?.total_value?.toFixed(2) || "0.00"}
-                </p>
-              </div>
-              <BarChart3 className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
+  //   const config = statusConfig[status as keyof typeof statusConfig];
+  //   const IconComponent = config.icon;
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Low Stock
-                </p>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {stats?.low_stock_count || 0}
-                </p>
-              </div>
-              <AlertTriangle className="h-8 w-8 text-yellow-600" />
-            </div>
-          </CardContent>
-        </Card>
+  //   return (
+  //     <Badge variant={config.variant} className="flex items-center gap-1">
+  //       <IconComponent className="w-3 h-3" />
+  //       {config.text}
+  //     </Badge>
+  //   );
+  // };
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Out of Stock
-                </p>
-                <p className="text-2xl font-bold text-red-600">
-                  {stats?.out_of_stock_count || 0}
-                </p>
-              </div>
-              <XCircle className="h-8 w-8 text-red-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <RefreshCw className="w-5 h-5" />
-            Quick Actions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              onClick={() => setActiveTab("inventory")}
-              variant="outline"
-              size="sm"
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              View All Inventory
-            </Button>
-            <Button
-              onClick={() => setActiveTab("low-stock")}
-              variant="outline"
-              size="sm"
-            >
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              Check Low Stock
-            </Button>
-            <Button
-              onClick={() => setActiveTab("alerts")}
-              variant="outline"
-              size="sm"
-            >
-              <AlertCircle className="w-4 h-4 mr-2" />
-              View Alerts ({alerts.filter((a) => !a.acknowledged).length})
-            </Button>
-            <Button onClick={() => setShowCreateForm(true)} size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Ingredient
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Alerts */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Alerts</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {alerts.slice(0, 5).map((alert) => (
-              <div
-                key={alert.id}
-                className="flex items-center justify-between p-3 border rounded-lg"
-              >
-                <div className="flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 text-yellow-600" />
-                  <div>
-                    <p className="font-medium">{alert.ingredient_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {alert.message}
-                    </p>
-                  </div>
-                </div>
-                {!alert.acknowledged && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => acknowledgeAlertMutation.mutate(alert.id)}
-                  >
-                    Acknowledge
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const InventoryTab = () => (
-    <div className="space-y-4">
-      {/* Search and Actions */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-          <Input
-            placeholder="Search ingredients..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline">
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
-          <Button size="sm" variant="outline">
-            <Upload className="w-4 h-4 mr-2" />
-            Import
-          </Button>
-          <Button size="sm" onClick={() => setShowCreateForm(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Ingredient
-          </Button>
-        </div>
-      </div>
-
-      {/* Ingredients Table */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Current Stock</TableHead>
-                <TableHead>Min/Max</TableHead>
-                <TableHead>Unit Cost</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {getFilteredIngredients().map(
-                (ingredient: InventoryIngredient) => (
-                  <TableRow key={ingredient.id}>
-                    <TableCell className="font-medium">
-                      {ingredient.name}
-                    </TableCell>
-                    <TableCell>{ingredient.category}</TableCell>
-                    <TableCell>
-                      {ingredient.current_stock} {ingredient.unit}
-                    </TableCell>
-                    <TableCell>
-                      {ingredient.minimum_stock} / {ingredient.maximum_stock}
-                    </TableCell>
-                    <TableCell>${ingredient.unit_cost?.toFixed(2)}</TableCell>
-                    <TableCell>{getStatusBadge(ingredient.status)}</TableCell>
-                    <TableCell>{ingredient.supplier}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <RefreshCw className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const StockManagementTab = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Bulk Stock Update</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground mb-4">
-            Upload a CSV file to update multiple ingredient stocks at once.
-          </p>
-          <div className="flex gap-3">
-            <Button variant="outline">
-              <Upload className="w-4 h-4 mr-2" />
-              Upload CSV
-            </Button>
-            <Button variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Download Template
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Quick Stock Adjustments */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Stock Adjustment</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm font-medium">Ingredient</label>
-                <select className="w-full mt-1 p-2 border rounded-md">
-                  <option value="">Select ingredient...</option>
-                  {ingredients.map((ing: InventoryIngredient) => (
-                    <option key={ing.id} value={ing.id}>
-                      {ing.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Amount</label>
-                <Input
-                  type="number"
-                  placeholder="Enter amount"
-                  value={stockAdjustment.amount}
-                  onChange={(e) =>
-                    setStockAdjustment((prev) => ({
-                      ...prev,
-                      amount: Number(e.target.value),
-                    }))
-                  }
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Action</label>
-                <select
-                  className="w-full mt-1 p-2 border rounded-md"
-                  value={stockAdjustment.type}
-                  onChange={(e) =>
-                    setStockAdjustment((prev) => ({
-                      ...prev,
-                      type: e.target.value,
-                    }))
-                  }
-                >
-                  <option value="add">Add Stock</option>
-                  <option value="subtract">Subtract Stock</option>
-                  <option value="update">Set Stock</option>
-                </select>
-              </div>
-            </div>
-            <Button
-              onClick={() => stockUpdateMutation.mutate(stockAdjustment)}
-              disabled={!stockAdjustment.id || !stockAdjustment.amount}
-            >
-              Update Stock
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  if (loadingIngredients) {
+  if (loadingStock) {
     return (
       <div className="flex items-center justify-center h-64">
         <RefreshCw className="w-8 h-8 animate-spin" />
-        <span className="ml-2">Loading ingredients...</span>
+        <span className="ml-2">Loading stock data...</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Ingredients Management
+            Stock Management System
           </h1>
           <p className="text-muted-foreground">
-            Manage your restaurant's ingredient inventory and stock levels
+            Comprehensive inventory management for ingredients, supplies,
+            equipment, and packaging
           </p>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="inventory">All Inventory</TabsTrigger>
+          <TabsTrigger value="inventory">All Stock</TabsTrigger>
           <TabsTrigger value="low-stock">Low Stock</TabsTrigger>
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
-          <TabsTrigger value="stock-mgmt">Stock Management</TabsTrigger>
+          <TabsTrigger value="stock-mgmt">Stock Mgmt</TabsTrigger>
+          <TabsTrigger value="transactions">Transactions</TabsTrigger>
+          <TabsTrigger value="purchase-orders">Orders</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
-          <DashboardTab />
+          <StockDashboard
+            alerts={alerts}
+            transactions={transactions}
+            stockItems={stockItems}
+            setActiveTab={setActiveTab}
+            setShowCreateForm={setShowCreateForm}
+            setShowTransactionForm={setShowTransactionForm}
+            acknowledgeAlertMutation={acknowledgeAlertMutation}
+          />
         </TabsContent>
 
         <TabsContent value="inventory">
-          <InventoryTab />
+          <InventoryTab
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            typeFilter={typeFilter}
+            setTypeFilter={setTypeFilter}
+            stockFilter={stockFilter}
+            setStockFilter={setStockFilter}
+            getFilteredItems={getFilteredItems}
+            setSelectedItem={setSelectedItem}
+            setShowTransactionForm={setShowTransactionForm}
+            setShowCreateForm={setShowCreateForm}
+          />
         </TabsContent>
 
         <TabsContent value="low-stock">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                Low Stock Ingredients
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <InventoryTab />
-            </CardContent>
-          </Card>
+          <LowStockTab
+            lowStockItems={getFilteredItems().filter(
+              (item) =>
+                item.quantity <= item.low_stock_threshold ||
+                item.quantity <= item.critical_stock_threshold
+            )}
+            acknowledgeAlert={(id) => acknowledgeAlertMutation.mutate(id)}
+          />
         </TabsContent>
 
         <TabsContent value="alerts">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="w-5 h-5" />
-                Stock Alerts
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {alerts.map((alert) => (
-                  <div
-                    key={alert.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <AlertCircle className="w-5 h-5 text-yellow-600" />
-                      <div>
-                        <p className="font-medium">{alert.ingredient_name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {alert.message}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(alert.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      {!alert.acknowledged && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            acknowledgeAlertMutation.mutate(alert.id)
-                          }
-                        >
-                          Acknowledge
-                        </Button>
-                      )}
-                      {alert.acknowledged && !alert.resolved && (
-                        <Badge variant="secondary">Acknowledged</Badge>
-                      )}
-                      {alert.resolved && (
-                        <Badge variant="default">Resolved</Badge>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <AlertsTab
+            alerts={alerts.map((a) => ({
+              id: a.id,
+              item: stockItems.find(
+                (s) => s.id === a.item_id
+              ) as InventoryIngredient,
+              message: a.message,
+              created_at: a.created_at,
+            }))}
+            acknowledgeAlert={(id) => acknowledgeAlertMutation.mutate(id)}
+          />
         </TabsContent>
 
         <TabsContent value="stock-mgmt">
-          <StockManagementTab />
+          <StockManagementTab
+            stockItems={stockItems}
+            stockAdjustment={stockAdjustment}
+            setStockAdjustment={setStockAdjustment}
+            stockUpdateMutation={stockUpdateMutation}
+            getFilteredItems={getFilteredItems}
+          />
+        </TabsContent>
+
+        <TabsContent value="transactions">
+          <TransactionsTab
+            transactions={transactions.map((t) => ({
+              id: t.id,
+              item: stockItems.find(
+                (s) => s.id === t.item_id
+              ) as InventoryIngredient,
+              type: t.transaction_type,
+              quantity: t.quantity,
+              user: t.created_by,
+              note: t.notes,
+              created_at: t.created_at,
+            }))}
+          />
+        </TabsContent>
+
+        <TabsContent value="purchase-orders">
+          <PurchaseOrdersTab purchaseOrders={[]} />
         </TabsContent>
 
         <TabsContent value="reports">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                Inventory Reports
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Button variant="outline" className="h-24 flex-col">
-                  <BarChart3 className="w-8 h-8 mb-2" />
-                  Stock Level Report
-                </Button>
-                <Button variant="outline" className="h-24 flex-col">
-                  <TrendingDown className="w-8 h-8 mb-2" />
-                  Usage Report
-                </Button>
-                <Button variant="outline" className="h-24 flex-col">
-                  <ShoppingCart className="w-8 h-8 mb-2" />
-                  Purchase Orders
-                </Button>
-                <Button variant="outline" className="h-24 flex-col">
-                  <AlertTriangle className="w-8 h-8 mb-2" />
-                  Reorder Suggestions
-                </Button>
-                <Button variant="outline" className="h-24 flex-col">
-                  <TrendingUp className="w-8 h-8 mb-2" />
-                  Cost Analysis
-                </Button>
-                <Button variant="outline" className="h-24 flex-col">
-                  <Package className="w-8 h-8 mb-2" />
-                  Inventory Turnover
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <ReportsTab stockItems={stockItems} />
         </TabsContent>
       </Tabs>
+
+      {/* Stock Item Create/Edit Form Modal */}
+      {showCreateForm && (
+        <div
+          className="fixed top-0 left-0 w-screen h-screen bg-black bg-opacity-50 flex items-center justify-center z-[100]"
+          style={{
+            backdropFilter: "blur(4px)",
+            margin: 0,
+            padding: 0,
+            minHeight: "100vh",
+            minWidth: "100vw",
+          }}
+        >
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
+            <StockItemForm
+              stockItem={selectedItem || undefined}
+              mode={selectedItem ? "edit" : "create"}
+              onSuccess={() => {
+                setShowCreateForm(false);
+                setSelectedItem(null);
+              }}
+              onCancel={() => {
+                setShowCreateForm(false);
+                setSelectedItem(null);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

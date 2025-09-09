@@ -43,10 +43,10 @@ const adminSections = [
     href: "/admin/counter",
   },
   {
-    id: "ingredients",
-    label: "Ingredients Management",
+    id: "stock-management",
+    label: "Stock Management",
     icon: <ChefHat className="w-5 h-5" />,
-    description: "Inventory & stock management",
+    description: "Comprehensive inventory & stock control",
     href: "/admin/ingredients",
   },
   {

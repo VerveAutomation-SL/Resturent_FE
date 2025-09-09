@@ -31,7 +31,7 @@ export function FormDemo() {
     defaultValues: {
       name: "",
       description: "",
-      price: 0,
+      price: "",
       category_id: 1,
       image_url: "",
       is_available: true,

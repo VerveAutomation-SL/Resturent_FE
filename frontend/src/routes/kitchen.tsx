@@ -86,9 +86,8 @@ function KitchenPage() {
     return <Navigate to="/login" replace />;
   }
 
-  // Check if user has kitchen access (kitchen, admin, or manager roles)
-  const hasKitchenAccess =
-    user.role === "kitchen" || user.role === "admin" || user.role === "manager";
+  // Check if user has kitchen access (admin or manager roles)
+  const hasKitchenAccess = user.role === "admin" || user.role === "manager";
 
   if (!hasKitchenAccess) {
     return (

@@ -26,7 +26,7 @@ export interface User {
   name: string;
   email: string;
   phone: string;
-  role: 'admin' | 'manager' | 'counter' | 'kitchen';
+  role: 'admin' | 'manager' | 'counter';
   status: 'active' | 'inactive';
   created_at: string;
   updated_at: string;
@@ -84,15 +84,18 @@ export interface InventoryIngredient {
   id: number;
   name: string;
   unit: string;
-  current_stock: number;
-  minimum_stock: number;
-  maximum_stock: number;
-  unit_cost: number;
+  quantity: number;
+  reserved_quantity: number;
+  low_stock_threshold: number;
+  critical_stock_threshold: number;
+  cost_per_unit: number;
   supplier: string;
-  category: string;
-  status: "in_stock" | "low_stock" | "critical_stock" | "out_of_stock";
-  last_updated: string;
-  expiry_date?: string;
+  supplier_contact: string;
+  last_restocked_at?: string | null;
+  auto_reorder: boolean;
+  reorder_quantity: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ProductIngredient {

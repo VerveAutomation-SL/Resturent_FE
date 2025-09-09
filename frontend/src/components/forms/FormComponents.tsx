@@ -231,7 +231,11 @@ export function SelectField<T extends FieldValues>({
       render={({ field }) => (
         <FormItem>
           <FormLabel>{label}</FormLabel>
-          <Select onValueChange={field.onChange} defaultValue={field.value}>
+          <Select
+            onValueChange={field.onChange}
+            value={field.value || ""}
+            defaultValue={field.value || ""}
+          >
             <FormControl>
               <SelectTrigger>
                 <SelectValue placeholder={placeholder} />
@@ -394,4 +398,21 @@ export const orderTypeOptions: SelectOption[] = [
 export const tableStatusOptions: SelectOption[] = [
   { value: "available", label: "Available" },
   { value: "occupied", label: "Occupied" },
+];
+
+export const unitOptions: SelectOption[] = [
+  { value: "kg", label: "Kilograms (kg)" },
+  { value: "g", label: "Grams (g)" },
+  { value: "lb", label: "Pounds (lb)" },
+  { value: "oz", label: "Ounces (oz)" },
+  { value: "l", label: "Liters (l)" },
+  { value: "ml", label: "Milliliters (ml)" },
+  { value: "pcs", label: "Pieces (pcs)" },
+  { value: "boxes", label: "Boxes" },
+  { value: "cans", label: "Cans" },
+  { value: "bottles", label: "Bottles" },
+  { value: "bags", label: "Bags" },
+  { value: "rolls", label: "Rolls" },
+  { value: "sheets", label: "Sheets" },
+  { value: "units", label: "Units" },
 ];

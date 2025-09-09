@@ -339,7 +339,7 @@ class APIClient {
   }
 
   // Ingredients
-  async getIngredients(): Promise<APIResponse<InventoryIngredient[]>> {
+  async getIngredients(): Promise<APIResponse<{pagination: any; ingredients: InventoryIngredient[] }>> {
     return this.request({ method: 'GET', url: '/ingredients' });
   }
 
@@ -407,6 +407,20 @@ class APIClient {
 
   async getStockAlertStatistics(): Promise<APIResponse<any>> {
     return this.request({ method: 'GET', url: '/ingredients/inventory/alerts/stats' });
+  }
+
+  // Stock transactions
+  async getStockTransactions(): Promise<APIResponse<any[]>> {
+    return this.request({ method: 'GET', url: '/stock/transactions' });
+  }
+
+  async createStockTransaction(transaction: any): Promise<APIResponse<any>> {
+    return this.request({ method: 'POST', url: '/stock/transactions', data: transaction });
+  }
+
+  // Purchase orders  
+  async getPurchaseOrders(): Promise<APIResponse<any[]>> {
+    return this.request({ method: 'GET', url: '/purchase-orders' });
   }
 
   async acknowledgeStockAlert(id: number): Promise<APIResponse> {
