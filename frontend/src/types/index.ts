@@ -80,6 +80,21 @@ export interface Ingredient {
   updated_at?: string;
 }
 
+export interface InventoryIngredient {
+  id: number;
+  name: string;
+  unit: string;
+  current_stock: number;
+  minimum_stock: number;
+  maximum_stock: number;
+  unit_cost: number;
+  supplier: string;
+  category: string;
+  status: "in_stock" | "low_stock" | "critical_stock" | "out_of_stock";
+  last_updated: string;
+  expiry_date?: string;
+}
+
 export interface ProductIngredient {
   ingredient_id: string;
   quantity_required: number;

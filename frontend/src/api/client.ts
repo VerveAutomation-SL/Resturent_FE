@@ -19,13 +19,14 @@ import type {
   DashboardStats,
   SalesReportItem,
   OrdersReportItem,
+  Ingredient,
+  InventoryIngredient,
   KitchenOrder,
   TableStatus,
   OrderFilters,
   ProductFilters,
   TableFilters,
   OrderStatus,
-  Ingredient,
 } from '@/types';
 import Cookies from 'js-cookie';
 
@@ -338,8 +339,113 @@ class APIClient {
   }
 
   // Ingredients
-  async getIngredients(): Promise<APIResponse<Ingredient[]>> {
+  async getIngredients(): Promise<APIResponse<InventoryIngredient[]>> {
     return this.request({ method: 'GET', url: '/ingredients' });
+  }
+
+  async getIngredientStats(): Promise<APIResponse<any>> {
+    return this.request({ method: 'GET', url: '/ingredients/stats' });
+  }
+
+  async getLowStockIngredients(): Promise<APIResponse<InventoryIngredient[]>> {
+    return this.request({ method: 'GET', url: '/ingredients/low-stock' });
+  }
+
+  async getCriticalStockIngredients(): Promise<APIResponse<Ingredient[]>> {
+    return this.request({ method: 'GET', url: '/ingredients/critical-stock' });
+  }
+
+  async getOutOfStockIngredients(): Promise<APIResponse<Ingredient[]>> {
+    return this.request({ method: 'GET', url: '/ingredients/out-of-stock' });
+  }
+
+  async getInStockIngredients(): Promise<APIResponse<Ingredient[]>> {
+    return this.request({ method: 'GET', url: '/ingredients/in-stock' });
+  }
+
+  async getIngredientById(id: number): Promise<APIResponse<Ingredient>> {
+    return this.request({ method: 'GET', url: `/ingredients/${id}` });
+  }
+
+  async createIngredient(data: any): Promise<APIResponse<Ingredient>> {
+    return this.request({ method: 'POST', url: '/ingredients', data });
+  }
+
+  async updateIngredient(id: number, data: any): Promise<APIResponse<Ingredient>> {
+    return this.request({ method: 'PUT', url: `/ingredients/${id}`, data });
+  }
+
+  async deleteIngredient(id: number): Promise<APIResponse> {
+    return this.request({ method: 'DELETE', url: `/ingredients/${id}` });
+  }
+
+  // Stock Management
+  async updateStock(id: number, amount: number): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: `/ingredients/stock/update/${id}`, data: { amount } });
+  }
+
+  async addStock(id: number, amount: number): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: `/ingredients/stock/add/${id}`, data: { amount } });
+  }
+
+  async subtractStock(id: number, amount: number): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: `/ingredients/stock/subtract/${id}`, data: { amount } });
+  }
+
+  async bulkUpdateStock(updates: any[]): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: '/ingredients/stock/bulk-update', data: { updates } });
+  }
+
+  // Inventory Management
+  async getInventoryTransactions(): Promise<APIResponse<any[]>> {
+    return this.request({ method: 'GET', url: '/ingredients/inventory/transactions' });
+  }
+
+  async getStockAlerts(): Promise<APIResponse<any[]>> {
+    return this.request({ method: 'GET', url: '/ingredients/inventory/alerts' });
+  }
+
+  async getStockAlertStatistics(): Promise<APIResponse<any>> {
+    return this.request({ method: 'GET', url: '/ingredients/inventory/alerts/stats' });
+  }
+
+  async acknowledgeStockAlert(id: number): Promise<APIResponse> {
+    return this.request({ method: 'PUT', url: `/ingredients/inventory/alerts/${id}/acknowledge` });
+  }
+
+  async resolveStockAlert(id: number): Promise<APIResponse> {
+    return this.request({ method: 'PUT', url: `/ingredients/inventory/alerts/${id}/resolve` });
+  }
+
+  async getInventoryReport(type?: string): Promise<APIResponse<any>> {
+    const url = type ? `/ingredients/inventory/report?type=${type}` : '/ingredients/inventory/report';
+    return this.request({ method: 'GET', url });
+  }
+
+  // Order Related Operations
+  async deductIngredientsForOrder(orderId: number, ingredients: any[]): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: '/ingredients/deduct-for-order', data: { orderId, ingredients } });
+  }
+
+  async reserveIngredients(ingredients: any[]): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: '/ingredients/reserve', data: { ingredients } });
+  }
+
+  async unreserveIngredients(ingredients: any[]): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: '/ingredients/unreserve', data: { ingredients } });
+  }
+
+  // Purchase Orders
+  async createPurchaseOrder(data: any): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: '/ingredients/purchase-orders', data });
+  }
+
+  async receivePurchaseOrderItem(itemId: number, data: any): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: `/ingredients/purchase-orders/items/${itemId}/receive`, data });
+  }
+
+  async getPurchaseOrdersForIngredient(id: number): Promise<APIResponse<any[]>> {
+    return this.request({ method: 'GET', url: `/ingredients/${id}/purchase-orders` });
   }
 
   // Upload image to backend (matches your upload route)
