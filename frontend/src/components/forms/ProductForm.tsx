@@ -102,6 +102,39 @@ export function ProductForm({
     name: "ingredients",
   });
 
+  // UI state for edit-mode bulk assignment
+  const [showAssignIngredients, setShowAssignIngredients] = useState(false);
+
+  const handleToggleAssign = (ingredientId: number) => {
+    const current = (form.getValues() as any).ingredients || [];
+    const existsIndex = current.findIndex(
+      (i: any) => String(i.ingredient_id) === String(ingredientId)
+    );
+
+    if (existsIndex >= 0) {
+      // remove
+      // find the field-array index for that ingredient id
+      const faIndex = fields.findIndex(
+        (f) =>
+          String(
+            (form.getValues() as any).ingredients?.find(
+              (it: any) => String(it.ingredient_id) === String(ingredientId)
+            )?.ingredient_id
+          ) === String(ingredientId)
+      );
+      // safer: remove by searching ingredients array index
+      const ingredientsArray: any[] =
+        (form.getValues() as any).ingredients || [];
+      const idxToRemove = ingredientsArray.findIndex(
+        (it) => String(it.ingredient_id) === String(ingredientId)
+      );
+      if (idxToRemove >= 0) remove(idxToRemove);
+    } else {
+      // append with default quantity
+      append({ ingredient_id: ingredientId.toString(), quantity_required: 1 });
+    }
+  };
+
   // Local state for per-row search input and label tracking
   const [ingredientSearch, setIngredientSearch] = useState<
     Record<string, string>
@@ -186,7 +219,7 @@ export function ProductForm({
       // Ensure numeric fields are normalized
       let payload = {
         ...data,
-        price: Number((data as any).price),
+        price: (data as any).price,
         category_id: Number((data as any).category_id),
         ingredients: (data as any).ingredients?.map((ing: any) => ({
           ingredient_id: Number(ing.ingredient_id),
@@ -303,7 +336,7 @@ export function ProductForm({
                 <label className="block text-sm font-medium text-gray-700">
                   Product Image
                 </label>
-                <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
+                <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-1 hover:border-gray-400 transition-colors">
                   <input
                     id="product-image-input"
                     type="file"
@@ -380,12 +413,13 @@ export function ProductForm({
                             if (previewUrl && previewUrl.startsWith("blob:")) {
                               URL.revokeObjectURL(previewUrl);
                             }
-                            // Set image_url to null and clear all image-related state
-                            form.setValue("image_url", null);
+                            // Clear image_url to empty string (matches schema expectations)
+                            // and clear all image-related state
+                            form.setValue("image_url", "");
                             setPreviewUrl("");
                             setSelectedFile(null);
                           }}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300 relative z-10"
                         >
                           Remove Image
                         </Button>
@@ -486,7 +520,50 @@ export function ProductForm({
                 >
                   {isLoadingIngredients ? "Loading..." : "Add Ingredient"}
                 </Button>
+                {isEditing && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowAssignIngredients((s) => !s)}
+                    className="ml-2"
+                  >
+                    {showAssignIngredients
+                      ? "Hide Assignments"
+                      : "Assign Ingredients"}
+                  </Button>
+                )}
               </div>
+
+              {isEditing && showAssignIngredients && (
+                <div className="p-4 bg-white border border-gray-200 rounded-lg mb-4">
+                  <p className="text-sm font-medium mb-2">
+                    Toggle ingredients to assign/unassign
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {ingredients.map((ing: any) => {
+                      const assigned = (
+                        (form.getValues() as any).ingredients || []
+                      ).some(
+                        (it: any) => String(it.ingredient_id) === String(ing.id)
+                      );
+                      return (
+                        <label
+                          key={ing.id}
+                          className="flex items-center gap-2 p-2 border rounded hover:bg-gray-50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={assigned}
+                            onChange={() => handleToggleAssign(ing.id)}
+                          />
+                          <span className="text-sm">{ing.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {isErrorIngredients && (
                 <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">

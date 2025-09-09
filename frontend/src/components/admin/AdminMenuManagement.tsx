@@ -205,7 +205,7 @@ export function AdminMenuManagement() {
   // Show form if creating or editing
   if (showCreateProductForm || editingProduct) {
     return (
-      <div className="p-6">
+      <div className="p-8">
         <ProductForm
           product={editingProduct || undefined}
           mode={editingProduct ? "edit" : "create"}
