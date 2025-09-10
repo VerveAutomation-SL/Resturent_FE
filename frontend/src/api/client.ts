@@ -112,7 +112,7 @@ class APIClient {
   }
 
   // Product endpoints
-  async getProducts(filters?: ProductFilters): Promise<PaginatedResponse<Product[]>> {
+  async getProducts(filters?: ProductFilters): Promise<APIResponse<{pagination: any; products: Product[]}>> {
     return this.request({
       method: 'GET',
       url: '/products',
@@ -127,7 +127,7 @@ class APIClient {
     });
   }
 
-  async getProductsByCategory(categoryId: string): Promise<APIResponse<Product[]>> {
+  async getProductsByCategory(categoryId: string): Promise<APIResponse<{pagination: any; products: Product[]}>> {
     return this.request({
       method: 'GET',
       url: `/categories/${categoryId}/products`,

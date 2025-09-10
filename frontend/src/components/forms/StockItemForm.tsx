@@ -22,22 +22,25 @@ import { InventoryIngredient } from "@/types";
 const stockItemSchema = z.object({
   name: z.string().min(1, "Name is required"),
   unit: z.string().min(1, "Unit is required"),
-  quantity: z.number().min(0, "Quantity must be 0 or greater"),
-  reserved_quantity: z
+  // Use z.coerce.number() so string input from number fields is coerced to numbers
+  quantity: z.coerce.number().min(0, "Quantity must be 0 or greater"),
+  reserved_quantity: z.coerce
     .number()
     .min(0, "Reserved quantity must be 0 or greater"),
-  low_stock_threshold: z
+  low_stock_threshold: z.coerce
     .number()
     .min(0, "Low stock threshold must be 0 or greater"),
-  critical_stock_threshold: z
+  critical_stock_threshold: z.coerce
     .number()
     .min(0, "Critical stock threshold must be 0 or greater"),
-  cost_per_unit: z.number().min(0, "Cost per unit must be 0 or greater"),
+  cost_per_unit: z.coerce.number().min(0, "Cost per unit must be 0 or greater"),
   supplier: z.string().min(1, "Supplier is required"),
   supplier_contact: z.string().min(1, "Supplier contact is required"),
   last_restocked_at: z.string().nullable().optional(),
-  auto_reorder: z.boolean().default(false),
-  reorder_quantity: z.number().min(0, "Reorder quantity must be 0 or greater"),
+  auto_reorder: z.boolean().optional().default(false),
+  reorder_quantity: z.coerce
+    .number()
+    .min(0, "Reorder quantity must be 0 or greater"),
 });
 
 type StockItemFormData = z.infer<typeof stockItemSchema>;

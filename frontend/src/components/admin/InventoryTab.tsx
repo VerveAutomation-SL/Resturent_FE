@@ -15,8 +15,8 @@ import {
   Upload,
   Plus,
   Edit,
-  RefreshCw,
-  Eye,
+  Trash2,
+  Package,
 } from "lucide-react";
 import type { InventoryIngredient } from "@/types";
 
@@ -31,6 +31,7 @@ type Props = {
   setSelectedItem: (i: InventoryIngredient | null) => void;
   setShowTransactionForm: (v: boolean) => void;
   setShowCreateForm: (v: boolean) => void;
+  onDeleteItem: (item: InventoryIngredient) => void;
 };
 
 export default function InventoryTab({
@@ -42,14 +43,15 @@ export default function InventoryTab({
   setStockFilter,
   getFilteredItems,
   setSelectedItem,
-  setShowTransactionForm,
   setShowCreateForm,
+  onDeleteItem,
 }: Props) {
+  const items = getFilteredItems();
   return (
-    <div className="space-y-4 p-6">
+    <div className="space-y-4 mt-8">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-1">
-          <div className="relative max-w-md">
+          <div className="relative max-w-lg">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
               placeholder="Search by name, supplier, unit..."
@@ -76,11 +78,19 @@ export default function InventoryTab({
           </select>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowCreateForm(true)}
+          >
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Button size="sm" variant="outline">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowCreateForm(true)}
+          >
             <Upload className="w-4 h-4 mr-2" />
             Import
           </Button>
@@ -108,54 +118,78 @@ export default function InventoryTab({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {getFilteredItems().map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    <div className="font-medium">{item.name}</div>
+              {items.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9}>
+                    <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                      <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted/60">
+                        <Package className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <div className="text-lg font-medium text-foreground">
+                        No products found
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        Try adjusting your search or add a new product
+                      </div>
+                    </div>
                   </TableCell>
-                  <TableCell>{item.unit}</TableCell>
-                  <TableCell>
-                    {item.quantity} {item.unit}
-                  </TableCell>
-                  <TableCell>
-                    {item.reserved_quantity} {item.unit}
-                  </TableCell>
-                  <TableCell>
-                    {item.low_stock_threshold} / {item.critical_stock_threshold}
-                  </TableCell>
-                  <TableCell>${item.cost_per_unit}</TableCell>
-                  <TableCell>{item.supplier}</TableCell>
-                  <TableCell>
-                    {item.last_restocked_at
-                      ? new Date(item.last_restocked_at).toLocaleDateString()
-                      : "Never"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedItem(item);
-                          setShowCreateForm(true);
-                        }}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
+                </TableRow>
+              ) : (
+                items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <div className="font-medium">{item.name}</div>
+                    </TableCell>
+                    <TableCell>{item.unit}</TableCell>
+                    <TableCell>
+                      {item.quantity} {item.unit}
+                    </TableCell>
+                    <TableCell>
+                      {item.reserved_quantity} {item.unit}
+                    </TableCell>
+                    <TableCell>
+                      {item.low_stock_threshold} /{" "}
+                      {item.critical_stock_threshold}
+                    </TableCell>
+                    <TableCell>${item.cost_per_unit}</TableCell>
+                    <TableCell>{item.supplier}</TableCell>
+                    <TableCell>
+                      {item.last_restocked_at
+                        ? new Date(item.last_restocked_at).toLocaleDateString()
+                        : "Never"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedItem(item);
+                            setShowCreateForm(true);
+                          }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onDeleteItem(item)}
+                          className="hover:bg-red-50 hover:border-red-200 hover:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                        {/* <Button
                         size="sm"
                         variant="outline"
                         onClick={() => setShowTransactionForm(true)}
                       >
                         <RefreshCw className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                      </Button> */}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

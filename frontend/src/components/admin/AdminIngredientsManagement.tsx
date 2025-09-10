@@ -1,36 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  AlertTriangle,
-  Package,
-  TrendingDown,
-  TrendingUp,
-  Plus,
-  Edit,
-  Search,
-  Download,
-  Upload,
-  BarChart3,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  RefreshCw,
-  Eye,
-  ShoppingCart,
-} from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import apiClient from "@/api/client";
 import { toastHelpers } from "@/lib/toast-helpers";
 import { InventoryIngredient } from "@/types";
@@ -112,19 +83,6 @@ export function AdminIngredientsManagement() {
       apiClient.getIngredients().then((res) => {
         console.log("Fetched stock items:", res.data?.ingredients);
         return res.data?.ingredients || [];
-      }),
-  });
-
-  // Legacy ingredients data for backward compatibility
-  // const ingredients = stockItems;
-
-  // Fetch inventory stats
-  const { data: stats } = useQuery<InventoryStats>({
-    queryKey: ["ingredient-stats"],
-    queryFn: () =>
-      apiClient.getIngredientStats().then((res) => {
-        console.log("Fetched ingredient stats:", res.data);
-        return res.data;
       }),
   });
 
@@ -227,6 +185,26 @@ export function AdminIngredientsManagement() {
     },
   });
 
+  // Remove stock mutation
+  const removeStockMutation = useMutation({
+    mutationFn: ({ id, amount }: { id: number; amount: number }) => {
+      return apiClient.subtractStock(id, amount);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["stock-items"] });
+      queryClient.invalidateQueries({ queryKey: ["ingredient-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-transactions"] });
+      toastHelpers.apiSuccess("Stock Removal", "Stock removed successfully");
+    },
+    onError: (error) => {
+      toastHelpers.apiError("Stock Removal", error);
+    },
+  });
+
+  const handleRemoveStock = (itemId: number, quantity: number) => {
+    removeStockMutation.mutate({ id: itemId, amount: quantity });
+  };
+
   // const getPriorityBadge = (priority: string) => {
   //   const priorityConfig = {
   //     low: { variant: "secondary" as const, text: "Low" },
@@ -284,6 +262,27 @@ export function AdminIngredientsManagement() {
     );
   }
 
+  function onDeleteItem(item: InventoryIngredient): void {
+    if (
+      window.confirm(
+        `Are you sure you want to delete "${item.name}"? This action cannot be undone.`
+      )
+    ) {
+      apiClient
+        .deleteIngredient(item.id)
+        .then(() => {
+          toastHelpers.apiSuccess(
+            "Delete Ingredient",
+            "Ingredient deleted successfully"
+          );
+          queryClient.invalidateQueries({ queryKey: ["stock-items"] });
+        })
+        .catch((error) => {
+          toastHelpers.apiError("Delete Ingredient", error);
+        });
+    }
+  }
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -334,6 +333,7 @@ export function AdminIngredientsManagement() {
             setSelectedItem={setSelectedItem}
             setShowTransactionForm={setShowTransactionForm}
             setShowCreateForm={setShowCreateForm}
+            onDeleteItem={onDeleteItem}
           />
         </TabsContent>
 
