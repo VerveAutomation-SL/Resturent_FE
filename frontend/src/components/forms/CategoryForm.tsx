@@ -43,12 +43,10 @@ export function CategoryForm({
         id: category.id,
         name: category.name,
         description: category.description || "",
-        image_url: category.image_url || "",
       }
     : {
         name: "",
         description: "",
-        image_url: "",
       };
 
   const form = useForm<CreateCategoryData | UpdateCategoryData>({
@@ -135,14 +133,6 @@ export function CategoryForm({
                 placeholder="Describe this category..."
                 rows={3}
                 description="Optional description for menu organization"
-              />
-
-              <TextInputField
-                control={form.control}
-                name="image_url"
-                label="Image URL"
-                placeholder="https://example.com/image.jpg"
-                description="Optional category image URL"
               />
             </div>
 

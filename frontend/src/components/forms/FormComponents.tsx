@@ -407,6 +407,7 @@ export const unitOptions: SelectOption[] = [
   { value: "oz", label: "Ounces (oz)" },
   { value: "l", label: "Liters (l)" },
   { value: "ml", label: "Milliliters (ml)" },
+  { value: "dozen", label: "Dozen (12 pcs)" },
   { value: "pcs", label: "Pieces (pcs)" },
   { value: "boxes", label: "Boxes" },
   { value: "cans", label: "Cans" },

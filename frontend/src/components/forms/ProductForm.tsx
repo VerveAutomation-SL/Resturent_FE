@@ -413,6 +413,13 @@ export function ProductForm({
                             if (previewUrl && previewUrl.startsWith("blob:")) {
                               URL.revokeObjectURL(previewUrl);
                             }
+                            // Clear the file input value to allow re-uploading the same file
+                            const fileInput = document.getElementById(
+                              "product-image-input"
+                            ) as HTMLInputElement | null;
+                            if (fileInput) {
+                              fileInput.value = "";
+                            }
                             // Clear image_url to empty string (matches schema expectations)
                             // and clear all image-related state
                             form.setValue("image_url", "");

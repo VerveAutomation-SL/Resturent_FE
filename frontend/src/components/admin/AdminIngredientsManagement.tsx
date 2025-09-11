@@ -103,6 +103,7 @@ export function AdminIngredientsManagement() {
   const getFilteredItems = () => {
     let filtered = stockItems;
 
+    // Text search (name, supplier, contact, unit)
     if (searchTerm) {
       filtered = filtered.filter(
         (item: InventoryIngredient) =>
@@ -113,6 +114,24 @@ export function AdminIngredientsManagement() {
             .includes(searchTerm.toLowerCase()) ||
           item.unit.toLowerCase().includes(searchTerm.toLowerCase())
       );
+    }
+
+    // Stock status filter (all / low_stock / critical_stock)
+    if (stockFilter && stockFilter !== "all") {
+      if (stockFilter === "low_stock") {
+        // Low stock: quantity is at or below low threshold but above critical threshold
+        filtered = filtered.filter(
+          (item: InventoryIngredient) =>
+            item.quantity <= item.low_stock_threshold &&
+            item.quantity > item.critical_stock_threshold
+        );
+      } else if (stockFilter === "critical_stock") {
+        // Critical stock: quantity is at or below critical threshold
+        filtered = filtered.filter(
+          (item: InventoryIngredient) =>
+            item.quantity <= item.critical_stock_threshold
+        );
+      }
     }
 
     return filtered;
@@ -339,11 +358,6 @@ export function AdminIngredientsManagement() {
 
         <TabsContent value="low-stock">
           <LowStockTab
-            lowStockItems={getFilteredItems().filter(
-              (item) =>
-                item.quantity <= item.low_stock_threshold ||
-                item.quantity <= item.critical_stock_threshold
-            )}
             acknowledgeAlert={(id) => acknowledgeAlertMutation.mutate(id)}
           />
         </TabsContent>

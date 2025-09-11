@@ -27,7 +27,7 @@ import {
   Receipt,
   History,
 } from "lucide-react";
-import type { Product, Category, DiningTable, Order } from "@/types";
+import type { Product, DiningTable, Order } from "@/types";
 
 interface CartItem {
   product: Product;
@@ -102,7 +102,7 @@ export function CounterInterface() {
   // Fetch available tables
   const { data: tables = [] } = useQuery({
     queryKey: ["tables"],
-    queryFn: () => apiClient.getTables().then((res) => res.data),
+    queryFn: () => apiClient.getAdminTables().then((res) => res.data?.tables),
   });
 
   // Fetch pending orders for payment processing

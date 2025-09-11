@@ -62,13 +62,6 @@ export default function InventoryTab({
           </div>
           <select
             className="px-3 py-2 border rounded-md"
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-          >
-            <option value="all">All Items</option>
-          </select>
-          <select
-            className="px-3 py-2 border rounded-md"
             value={stockFilter}
             onChange={(e) => setStockFilter(e.target.value)}
           >
@@ -126,10 +119,10 @@ export default function InventoryTab({
                         <Package className="h-6 w-6 text-muted-foreground" />
                       </div>
                       <div className="text-lg font-medium text-foreground">
-                        No products found
+                        No Stocks found
                       </div>
                       <div className="text-sm text-muted-foreground mt-1">
-                        Try adjusting your search or add a new product
+                        Try adjusting your search or add a new stock item
                       </div>
                     </div>
                   </TableCell>

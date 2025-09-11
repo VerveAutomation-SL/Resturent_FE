@@ -93,27 +93,31 @@ export function AdminTableManagement() {
           search: debouncedSearch || undefined,
           status: filterStatus !== "all" ? filterStatus : undefined,
         })
-        .then((res) => res.data),
+        .then((res) => {
+          console.log("Fetched admin tables:", res.data);
+          return res.data;
+        }),
   });
 
   // Also fetch summary stats (all tables for stats calculation)
-  const { data: allTables = [] } = useQuery({
+  const { data: allTables } = useQuery({
     queryKey: ["tables-summary"],
-    queryFn: () => apiClient.getTables().then((res) => res.data),
+    queryFn: () =>
+      apiClient.getTables().then((res) => {
+        return res.data;
+      }),
   });
 
   // Extract data and pagination info
-  const tables = Array.isArray(tablesData)
-    ? tablesData
-    : (tablesData as any)?.data || [];
+  const tables = (tablesData as any)?.tables || [];
   const paginationInfo = (tablesData as any)?.pagination || { total: 0 };
 
   // Update pagination total
   useEffect(() => {
-    if (paginationInfo.total !== undefined) {
+    if (paginationInfo.totalTables !== undefined) {
       pagination.goToPage(pagination.page);
     }
-  }, [paginationInfo.total]);
+  }, [paginationInfo.totalTables]);
 
   // Delete table mutation
   const deleteTableMutation = useMutation({
@@ -190,10 +194,9 @@ export function AdminTableManagement() {
 
   // Calculate stats from all tables (for accurate totals)
   const stats = {
-    total: allTables.length,
-    available: allTables.filter((t) => (t as any).status === "available")
-      .length,
-    occupied: allTables.filter((t) => (t as any).status === "occupied").length,
+    total: allTables?.total,
+    available: allTables?.available,
+    occupied: allTables?.occupied,
   };
 
   // Show form
@@ -445,7 +448,7 @@ export function AdminTableManagement() {
           )}
           <PaginationControlsComponent
             pagination={pagination}
-            total={paginationInfo.total || tables.length}
+            total={paginationInfo.totalTables || tables.length}
             pageSizeOptions={[6, 12, 24, 48]}
           />
         </div>

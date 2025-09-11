@@ -17,6 +17,8 @@ import {
   Users,
   Calendar,
 } from "lucide-react";
+import apiClient from "@/api/client";
+import { useQuery } from "@tanstack/react-query";
 
 type Props = {
   alerts?: any[];
@@ -37,21 +39,14 @@ export default function StockDashboard({
   setShowTransactionForm,
   acknowledgeAlertMutation,
 }: Props) {
-  // Calculate additional metrics
-  const totalItems = stockItems.length;
-  const inStockItems = stockItems.filter(
-    (item) => item.quantity > item.low_stock_threshold
-  ).length;
-  const lowStockItems = stockItems.filter(
-    (item) => item.quantity <= item.low_stock_threshold && item.quantity > 0
-  ).length;
-  const outOfStockItems = stockItems.filter(
-    (item) => item.quantity <= 0
-  ).length;
-  const totalValue = stockItems.reduce(
-    (sum, item) => sum + item.quantity * item.cost_per_unit,
-    0
-  );
+  const { data: stockStats, isLoading: statsLoading } = useQuery({
+    queryKey: ["stock-stats"],
+    queryFn: () =>
+      apiClient.getIngredientStats().then((res) => {
+        console.log("Fetched stock items:", res.data);
+        return res.data;
+      }),
+  });
 
   // Top suppliers by value
   const supplierStats = stockItems.reduce(
@@ -81,20 +76,26 @@ export default function StockDashboard({
     )
     .slice(0, 3);
 
+  // Helper to safely format percentages (avoid NaN when denominator is zero)
+  const formatPercent = (numerator: number, denominator: number) => {
+    if (!denominator || denominator === 0) return "0.0%";
+    return `${((numerator / denominator) * 100).toFixed(1)}%`;
+  };
+
   return (
     <div className="space-y-6 mt-8">
       {/* Enhanced Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   Total Items
                 </p>
-                <p className="text-2xl font-bold">{totalItems}</p>
+                <p className="text-2xl font-bold">{stockStats?.total}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {inStockItems} in stock
+                  {stockStats?.inStock} in stock
                 </p>
               </div>
               <Package className="h-8 w-8 text-blue-600" />
@@ -103,13 +104,15 @@ export default function StockDashboard({
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   Total Value
                 </p>
-                <p className="text-2xl font-bold">${totalValue.toFixed(2)}</p>
+                <p className="text-2xl font-bold">
+                  ${stockStats?.totalValue.toFixed(2)}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   <TrendingUp className="w-3 h-3 inline mr-1" />
                   Current inventory
@@ -121,14 +124,14 @@ export default function StockDashboard({
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   Low Stock Items
                 </p>
                 <p className="text-2xl font-bold text-yellow-600">
-                  {lowStockItems}
+                  {stockStats?.lowStock}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Need attention
@@ -140,14 +143,14 @@ export default function StockDashboard({
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   Out of Stock
                 </p>
                 <p className="text-2xl font-bold text-red-600">
-                  {outOfStockItems}
+                  {stockStats?.outOfStock}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Urgent restock
@@ -162,47 +165,64 @@ export default function StockDashboard({
       {/* Stock Distribution & Top Suppliers */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5" />
               Stock Distribution
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="p-4 pt-0">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                   <span className="text-sm">In Stock</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{inStockItems}</span>
-                  <Badge variant="secondary">
-                    {((inStockItems / totalItems) * 100).toFixed(1)}%
+                <div className="flex items-center gap-3 w-36 justify-end">
+                  <span className="text-sm font-medium">
+                    {stockStats?.inStock}
+                  </span>
+                  <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                    {formatPercent(
+                      stockStats?.inStock ?? 0,
+                      stockStats?.total ?? 0
+                    )}
                   </Badge>
                 </div>
               </div>
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                   <span className="text-sm">Low Stock</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{lowStockItems}</span>
-                  <Badge variant="secondary">
-                    {((lowStockItems / totalItems) * 100).toFixed(1)}%
+                <div className="flex items-center gap-3 w-36 justify-end">
+                  <span className="text-sm font-medium">
+                    {stockStats?.lowStock}
+                  </span>
+                  <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                    {formatPercent(
+                      stockStats?.lowStock ?? 0,
+                      stockStats?.total ?? 0
+                    )}
                   </Badge>
                 </div>
               </div>
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                   <span className="text-sm">Out of Stock</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{outOfStockItems}</span>
-                  <Badge variant="secondary">
-                    {((outOfStockItems / totalItems) * 100).toFixed(1)}%
+                <div className="flex items-center gap-3 w-36 justify-end">
+                  <span className="text-sm font-medium">
+                    {stockStats?.outOfStock}
+                  </span>
+                  <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                    {formatPercent(
+                      stockStats?.outOfStock ?? 0,
+                      stockStats?.total ?? 0
+                    )}
                   </Badge>
                 </div>
               </div>
@@ -211,42 +231,56 @@ export default function StockDashboard({
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
               Top Suppliers by Value
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {topSuppliers.map(([supplier, data]) => (
-                <div
-                  key={supplier}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-blue-600">
-                        {supplier.charAt(0).toUpperCase()}
-                      </span>
+          <CardContent className="p-4 pt-0">
+            <div className="space-y-2">
+              {topSuppliers.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <Users className="mx-auto h-10 w-10 text-gray-400" />
+                  <p className="mt-3 text-sm font-medium text-foreground">
+                    No suppliers found
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Add stock items with suppliers to see top suppliers by
+                    value.
+                  </p>
+                </div>
+              ) : (
+                topSuppliers.map(([supplier, data]) => (
+                  <div
+                    key={supplier}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-blue-600">
+                          {supplier.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{supplier}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {data.count} items
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">{supplier}</p>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">
+                        ${data.value.toFixed(2)}
+                      </p>
                       <p className="text-xs text-muted-foreground">
-                        {data.count} items
+                        {formatPercent(data.value, stockStats?.totalValue ?? 0)}{" "}
+                        of total
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">
-                      ${data.value.toFixed(2)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {((data.value / totalValue) * 100).toFixed(1)}% of total
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

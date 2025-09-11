@@ -27,6 +27,8 @@ import type {
   ProductFilters,
   TableFilters,
   OrderStatus,
+  TableStats,
+  InventorySummary,
 } from '@/types';
 import Cookies from 'js-cookie';
 
@@ -135,10 +137,10 @@ class APIClient {
   }
 
   // Table endpoints
-  async getTables(filters?: TableFilters): Promise<APIResponse<DiningTable[]>> {
+  async getTables(filters?: TableFilters): Promise<APIResponse<TableStats>> {
     return this.request({
       method: 'GET',
-      url: '/tables',
+      url: '/tables/stats/overview',
       params: filters,
     });
   }
@@ -343,12 +345,16 @@ class APIClient {
     return this.request({ method: 'GET', url: '/ingredients' });
   }
 
-  async getIngredientStats(): Promise<APIResponse<any>> {
+  async getIngredientStats(): Promise<APIResponse<InventorySummary>> {
     return this.request({ method: 'GET', url: '/ingredients/stats' });
   }
 
   async getLowStockIngredients(): Promise<APIResponse<InventoryIngredient[]>> {
     return this.request({ method: 'GET', url: '/ingredients/low-stock' });
+  }
+
+  async getLowStock(): Promise<APIResponse<InventoryIngredient[]>> {
+    return this.request({ method: 'GET', url: '/low-stock' });
   }
 
   async getCriticalStockIngredients(): Promise<APIResponse<Ingredient[]>> {
@@ -541,7 +547,7 @@ class APIClient {
   }
 
   // Admin tables endpoint with pagination
-  async getAdminTables(params?: { page?: number, limit?: number, search?: string, status?: string }): Promise<APIResponse<DiningTable[]>> {
+  async getAdminTables(params?: { page?: number, limit?: number, search?: string, status?: string }): Promise<APIResponse<{pagination: any; tables: DiningTable[]}>> {
     return this.request({ 
       method: 'GET', 
       url: '/tables',

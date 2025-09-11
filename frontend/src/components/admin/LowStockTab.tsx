@@ -8,19 +8,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { InventoryIngredient } from "@/types";
+import { useQuery } from "@tanstack/react-query";
+import apiClient from "@/api/client";
 
 type Props = {
-  lowStockItems: InventoryIngredient[];
   acknowledgeAlert: (id: number) => void;
 };
 
-export default function LowStockTab({
-  lowStockItems,
-  acknowledgeAlert,
-}: Props) {
+export default function LowStockTab({ acknowledgeAlert }: Props) {
+  const { data: lowStockItems, isLoading: statsLoading } = useQuery({
+    queryKey: ["low-stock-items"],
+    queryFn: () =>
+      apiClient.getLowStock().then((res) => {
+        console.log("Fetched low stock items:", res.data);
+        return res.data;
+      }),
+  });
   return (
-    <div className="p-6">
+    <div className="mt-8">
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -34,24 +39,37 @@ export default function LowStockTab({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lowStockItems.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>
-                    {item.quantity} {item.unit}
-                  </TableCell>
-                  <TableCell>{item.low_stock_threshold}</TableCell>
-                  <TableCell>{item.supplier}</TableCell>
-                  <TableCell>
-                    <button
-                      className="text-sm text-primary"
-                      onClick={() => acknowledgeAlert(item.id)}
-                    >
-                      Acknowledge
-                    </button>
+              {lowStockItems && lowStockItems.length > 0 ? (
+                lowStockItems.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>
+                      {item.quantity} {item.unit}
+                    </TableCell>
+                    <TableCell>{item.low_stock_threshold}</TableCell>
+                    <TableCell>{item.supplier}</TableCell>
+                    <TableCell>
+                      <button
+                        className="text-sm text-primary"
+                        onClick={() => acknowledgeAlert(item.id)}
+                      >
+                        Acknowledge
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8">
+                    <div className="text-muted-foreground">
+                      <p className="text-sm font-medium">No low stock items</p>
+                      <p className="text-xs">
+                        All ingredients are above their low stock thresholds
+                      </p>
+                    </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>

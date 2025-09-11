@@ -38,10 +38,23 @@ const stockItemSchema = z.object({
   supplier_contact: z.string().min(1, "Supplier contact is required"),
   last_restocked_at: z.string().nullable().optional(),
   auto_reorder: z.boolean().optional().default(false),
-  reorder_quantity: z.coerce
-    .number()
-    .min(0, "Reorder quantity must be 0 or greater"),
+  // reorder_quantity is only required when auto_reorder is true
+  reorder_quantity: z.coerce.number().optional(),
 });
+
+// Require reorder_quantity when auto_reorder is enabled
+const stockItemSchemaWithRefine = stockItemSchema.refine(
+  (data) => {
+    if (data.auto_reorder) {
+      return data.reorder_quantity !== undefined && data.reorder_quantity >= 0;
+    }
+    return true;
+  },
+  {
+    message: "Reorder quantity must be set when Auto Reorder is enabled",
+    path: ["reorder_quantity"],
+  }
+);
 
 type StockItemFormData = z.infer<typeof stockItemSchema>;
 
@@ -93,9 +106,35 @@ export function StockItemForm({
       };
 
   const form = useForm<StockItemFormData>({
-    resolver: zodResolver(stockItemSchema),
+    resolver: zodResolver(stockItemSchemaWithRefine),
     defaultValues,
   });
+
+  // Unit -> step mapping
+  const unitStepMap: Record<string, number> = {
+    pcs: 1,
+    piece: 1,
+    pieces: 1,
+    dozen: 1, // step=1 (UI shows dozens as unit; conversion to pcs should happen on server or separate flow)
+    kg: 0.001,
+    g: 1,
+    lb: 0.001,
+    oz: 0.001,
+    l: 0.001,
+    ml: 1,
+    boxes: 1,
+    cans: 1,
+    bottles: 1,
+    bags: 1,
+    rolls: 1,
+    sheets: 1,
+    units: 1,
+    default: 0.001,
+  };
+
+  const selectedUnit = form.watch("unit") || "pcs";
+  const numericStep = unitStepMap[selectedUnit] ?? unitStepMap.default;
+  const autoReorderEnabled = form.watch("auto_reorder") ?? false;
 
   // Create mutation
   const createMutation = useMutation({
@@ -246,7 +285,7 @@ export function StockItemForm({
                   name="quantity"
                   label="Current Quantity"
                   min={0}
-                  step={0.001}
+                  step={numericStep}
                   description="Current quantity in stock"
                 />
 
@@ -255,7 +294,7 @@ export function StockItemForm({
                   name="reserved_quantity"
                   label="Reserved Quantity"
                   min={0}
-                  step={0.001}
+                  step={numericStep}
                   description="Quantity reserved for pending orders"
                 />
               </div>
@@ -266,7 +305,7 @@ export function StockItemForm({
                   name="low_stock_threshold"
                   label="Low Stock Threshold"
                   min={0}
-                  step={0.001}
+                  step={numericStep}
                   description="Alert when quantity drops below this level"
                 />
 
@@ -275,7 +314,7 @@ export function StockItemForm({
                   name="critical_stock_threshold"
                   label="Critical Stock Threshold"
                   min={0}
-                  step={0.001}
+                  step={numericStep}
                   description="Critical alert when quantity drops below this level"
                 />
               </div>
@@ -298,16 +337,18 @@ export function StockItemForm({
                 description="Automatically reorder when low stock threshold is reached"
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <NumberInputField
-                  control={form.control}
-                  name="reorder_quantity"
-                  label="Reorder Quantity"
-                  min={0}
-                  step={0.001}
-                  description="Quantity to reorder when auto-reorder is triggered"
-                />
-              </div>
+              {autoReorderEnabled && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <NumberInputField
+                    control={form.control}
+                    name="reorder_quantity"
+                    label="Reorder Quantity"
+                    min={0}
+                    step={numericStep}
+                    description="Quantity to reorder when auto-reorder is triggered"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Additional Details */}

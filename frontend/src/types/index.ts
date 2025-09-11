@@ -98,6 +98,15 @@ export interface InventoryIngredient {
   updated_at: string;
 }
 
+export interface InventorySummary {
+  total: number;
+  lowStock: number;
+  criticalStock: number;
+  outOfStock: number;
+  inStock: number;
+  totalValue: number;
+}
+
 export interface ProductIngredient {
   ingredient_id: string;
   quantity_required: number;
@@ -113,6 +122,36 @@ export interface DiningTable {
   status: 'available' | 'occupied';
   created_at: string;
   updated_at: string;
+}
+
+// Summary statistics for tables (total/available/occupied and occupancy rate as a formatted string)
+export interface TableStats {
+  total: number;
+  available: number;
+  occupied: number;
+  occupancyRate: string; // e.g. "75%"
+}
+
+// Pagination shape returned by admin tables endpoint - support common key variants
+export interface TablesPagination {
+  // camelCase
+  currentPage?: number;
+  perPage?: number;
+  totalPages?: number;
+  // snake_case (some endpoints use this)
+  current_page?: number;
+  per_page?: number;
+  total_pages?: number;
+  // other common variants
+  total?: number;
+  totalTables?: number;
+  [key: string]: any;
+}
+
+// Response from admin tables endpoint
+export interface AdminTablesResponse {
+  tables: DiningTable[];
+  pagination: TablesPagination;
 }
 
 // Order Types
