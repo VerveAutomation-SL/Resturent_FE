@@ -1,33 +1,63 @@
-import { createFileRoute, Navigate, Outlet } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
-import apiClient from '@/api/client'
-import type { User } from '@/types'
-import { AdminSidebar } from '@/components/admin/AdminSidebar'
+import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { jwtDecode } from "jwt-decode";
+import apiClient from "@/api/client";
+import type { User } from "@/types";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import Cookies from "js-cookie";
 
-export const Route = createFileRoute('/admin')({
+export const Route = createFileRoute("/admin")({
   component: AdminLayout,
-})
+});
 
 function AdminLayout() {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('pos_user')
-    const token = localStorage.getItem('pos_token')
-    
-    if (storedUser && token) {
-      try {
-        const parsedUser = JSON.parse(storedUser)
-        setUser(parsedUser)
-      } catch (error) {
-        console.error('Failed to parse stored user:', error)
-        localStorage.removeItem('pos_user')
-        localStorage.removeItem('pos_token')
-      }
+    const token = Cookies.get("pos_token");
+
+    if (!token) {
+      setIsLoading(false);
+      return;
     }
-    setIsLoading(false)
-  }, [])
+
+    try {
+      // Decode JWT token to get user information
+      const decodedToken = jwtDecode<User & { exp: number; iat: number }>(
+        token
+      );
+
+      // Check if token has expired
+      const currentTime = new Date().getTime();
+      const tokenExpTime = decodedToken.exp * 1000;
+
+      if (currentTime >= tokenExpTime) {
+        apiClient.clearAuth();
+        setIsLoading(false);
+        return;
+      }
+
+      // Extract user information from decoded token
+      const userFromToken: User = {
+        id: decodedToken.id,
+        name: decodedToken.name,
+        email: decodedToken.email,
+        phone: decodedToken.phone || "",
+        role: decodedToken.role,
+        status: decodedToken.status,
+        created_at: decodedToken.created_at,
+        updated_at: decodedToken.updated_at,
+      };
+
+      setUser(userFromToken);
+    } catch (error) {
+      console.error("Failed to decode JWT token:", error);
+      apiClient.clearAuth();
+    }
+
+    setIsLoading(false);
+  }, []);
 
   // Show loading while checking auth
   if (isLoading) {
@@ -38,25 +68,29 @@ function AdminLayout() {
           <p className="text-muted-foreground">Loading Admin Panel...</p>
         </div>
       </div>
-    )
+    );
   }
 
   // Check authentication
   if (!apiClient.isAuthenticated() || !user) {
-    return <Navigate to="/login" />
+    return <Navigate to="/login" />;
   }
 
   // Check admin role
-  if (user.role !== 'admin') {
+  if (user.role !== "admin") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-destructive mb-2">Access Denied</h1>
-          <p className="text-muted-foreground mb-4">You don't have admin privileges.</p>
+          <h1 className="text-2xl font-bold text-destructive mb-2">
+            Access Denied
+          </h1>
+          <p className="text-muted-foreground mb-4">
+            You don't have admin privileges.
+          </p>
           <Navigate to="/" />
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -66,5 +100,5 @@ function AdminLayout() {
         <Outlet />
       </main>
     </div>
-  )
+  );
 }

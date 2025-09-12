@@ -5,43 +5,55 @@ export const emailSchema = z.string().email('Invalid email format')
 export const passwordSchema = z.string().min(6, 'Password must be at least 6 characters')
 export const requiredStringSchema = z.string().min(1, 'This field is required')
 export const positiveNumberSchema = z.number().min(0, 'Must be a positive number')
-export const priceSchema = z.number().min(0.01, 'Price must be greater than 0')
+export const priceSchema = z.coerce.number().min(0.01, 'Price must be greater than 0')
 
 // User/Staff related schemas
-export const userRoles = ['admin', 'manager', 'server', 'counter', 'kitchen'] as const
+export const userRoles = ['admin', 'manager', 'counter'] as const
 export const userRoleSchema = z.enum(userRoles)
 
+export const userStatusValues = ['active', 'inactive'] as const
+export const userStatusSchema = z.enum(userStatusValues)
+
 export const createUserSchema = z.object({
-  username: requiredStringSchema.min(3, 'Username must be at least 3 characters'),
+  name: requiredStringSchema.min(3, 'Name must be at least 3 characters'),
   email: emailSchema,
   password: passwordSchema,
-  first_name: requiredStringSchema,
-  last_name: requiredStringSchema,
   role: userRoleSchema,
+  status: userStatusSchema.default('active'),
 })
 
 export const updateUserSchema = z.object({
   id: z.string().or(z.number()),
-  username: requiredStringSchema.min(3, 'Username must be at least 3 characters').optional(),
+  name: requiredStringSchema.min(3, 'Name must be at least 3 characters').optional(),
   email: emailSchema.optional(),
-  password: passwordSchema.optional(),
-  first_name: requiredStringSchema.optional(),
-  last_name: requiredStringSchema.optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters').or(z.literal('')).optional(),
   role: userRoleSchema.optional(),
+  status: userStatusSchema.optional(),
 })
 
 // Product related schemas
-export const productStatusValues = ['active', 'inactive'] as const
-export const productStatusSchema = z.enum(productStatusValues)
-
 export const createProductSchema = z.object({
   name: requiredStringSchema.min(2, 'Product name must be at least 2 characters'),
   description: z.string().optional(),
   price: priceSchema,
   category_id: z.string().or(z.number()).transform(val => Number(val)),
-  image_url: z.string().url().optional().or(z.literal('')),
-  status: productStatusSchema.default('active'),
-  preparation_time: z.number().min(0).max(120).default(5), // minutes
+  // image_url may be omitted, empty, a valid URL, or a data URL (uploaded image)
+  image_url: z
+    .union([
+      z.string().url(),
+      z.string().regex(/^data:.+;base64,.+$/),
+      z.literal(''),
+    ])
+    .optional(),
+  is_available: z.boolean().default(true),
+  ingredients: z
+    .array(
+      z.object({
+        ingredient_id: z.string().or(z.number()).transform((val) => Number(val)),
+        quantity_required: z.number().min(0, 'Quantity must be at least 0'),
+      })
+    )
+    .optional(),
 })
 
 export const updateProductSchema = createProductSchema.partial().extend({
@@ -53,7 +65,6 @@ export const createCategorySchema = z.object({
   name: requiredStringSchema.min(2, 'Category name must be at least 2 characters'),
   description: z.string().optional(),
   image_url: z.string().url().optional().or(z.literal('')),
-  sort_order: z.number().min(0).default(0),
 })
 
 export const updateCategorySchema = createCategorySchema.partial().extend({
@@ -61,14 +72,13 @@ export const updateCategorySchema = createCategorySchema.partial().extend({
 })
 
 // Table related schemas
-export const tableStatusValues = ['available', 'occupied', 'reserved', 'maintenance'] as const
+export const tableStatusValues = ['available', 'occupied'] as const
 export const tableStatusSchema = z.enum(tableStatusValues)
 
 export const createTableSchema = z.object({
   table_number: requiredStringSchema.min(1, 'Table number is required'),
-  seats: z.number().min(1, 'Table must have at least 1 seat').max(20, 'Maximum 20 seats per table'),
+  capacity: z.number().min(1, 'Table must have at least 1 seat').max(20, 'Maximum 20 seats per table'),
   status: tableStatusSchema.default('available'),
-  location: z.string().optional(),
 })
 
 export const updateTableSchema = createTableSchema.partial().extend({
@@ -76,10 +86,10 @@ export const updateTableSchema = createTableSchema.partial().extend({
 })
 
 // Order related schemas
-export const orderTypeValues = ['dine-in', 'take-away', 'delivery'] as const
+export const orderTypeValues = ['dine_in', 'takeout', 'delivery'] as const
 export const orderTypeSchema = z.enum(orderTypeValues)
 
-export const orderStatusValues = ['pending', 'confirmed', 'preparing', 'ready', 'served', 'cancelled'] as const
+export const orderStatusValues = ['confirmed', 'preparing', 'served', 'completed', 'cancelled'] as const
 export const orderStatusSchema = z.enum(orderStatusValues)
 
 export const orderItemSchema = z.object({

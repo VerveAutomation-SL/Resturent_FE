@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { jwtDecode } from 'jwt-decode';
 import type {
   APIResponse,
   PaginatedResponse,
@@ -18,18 +19,24 @@ import type {
   DashboardStats,
   SalesReportItem,
   OrdersReportItem,
+  Ingredient,
+  InventoryIngredient,
   KitchenOrder,
   TableStatus,
   OrderFilters,
   ProductFilters,
   TableFilters,
+  OrderStatus,
+  TableStats,
+  InventorySummary,
 } from '@/types';
+import Cookies from 'js-cookie';
 
 class APIClient {
   private client: AxiosInstance;
 
   constructor() {
-    const apiUrl = import.meta.env?.VITE_API_URL || 'http://localhost:8080/api/v1';
+    const apiUrl = import.meta.env?.VITE_API_URL || 'http://localhost:3001/api';
     console.log('🔧 API Client baseURL:', apiUrl);
     console.log('🔧 Environment VITE_API_URL:', import.meta.env?.VITE_API_URL);
     
@@ -44,7 +51,7 @@ class APIClient {
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('pos_token');
+        const token = Cookies.get('pos_token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -60,8 +67,7 @@ class APIClient {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          localStorage.removeItem('pos_token');
-          localStorage.removeItem('pos_user');
+          this.clearAuth();
           // Redirect to login page
           window.location.href = '/login';
         }
@@ -73,6 +79,7 @@ class APIClient {
   // Helper method to handle API responses
   private async request<T>(config: AxiosRequestConfig): Promise<T> {
     try {
+      console.log(`➡️ ${config.method?.toUpperCase()} ${config.url}`, config);
       const response: AxiosResponse<T> = await this.client.request(config);
       return response.data;
     } catch (error) {
@@ -87,7 +94,7 @@ class APIClient {
   async login(credentials: LoginRequest): Promise<APIResponse<LoginResponse>> {
     return this.request({
       method: 'POST',
-      url: '/auth/login',
+      url: '/users/login',
       data: credentials,
     });
   }
@@ -107,7 +114,7 @@ class APIClient {
   }
 
   // Product endpoints
-  async getProducts(filters?: ProductFilters): Promise<PaginatedResponse<Product[]>> {
+  async getProducts(filters?: ProductFilters): Promise<APIResponse<{pagination: any; products: Product[]}>> {
     return this.request({
       method: 'GET',
       url: '/products',
@@ -122,27 +129,18 @@ class APIClient {
     });
   }
 
-  async getCategories(activeOnly = true): Promise<APIResponse<Category[]>> {
-    return this.request({
-      method: 'GET',
-      url: '/categories',
-      params: { active_only: activeOnly },
-    });
-  }
-
-  async getProductsByCategory(categoryId: string, availableOnly = true): Promise<APIResponse<Product[]>> {
+  async getProductsByCategory(categoryId: string): Promise<APIResponse<{pagination: any; products: Product[]}>> {
     return this.request({
       method: 'GET',
       url: `/categories/${categoryId}/products`,
-      params: { available_only: availableOnly },
     });
   }
 
   // Table endpoints
-  async getTables(filters?: TableFilters): Promise<APIResponse<DiningTable[]>> {
+  async getTables(filters?: TableFilters): Promise<APIResponse<TableStats>> {
     return this.request({
       method: 'GET',
-      url: '/tables',
+      url: '/tables/stats/overview',
       params: filters,
     });
   }
@@ -250,7 +248,7 @@ class APIClient {
   async getIncomeReport(period: 'today' | 'week' | 'month' | 'year' = 'today'): Promise<APIResponse<any>> {
     return this.request({
       method: 'GET',
-      url: '/admin/reports/income',
+      url: '/admin/dashboard/income-report',
       params: { period },
     });
   }
@@ -302,22 +300,22 @@ class APIClient {
   async getUsers(): Promise<APIResponse<User[]>> {
     return this.request({
       method: 'GET',
-      url: '/admin/users',
+      url: '/users',
     });
   }
 
   async createUser(userData: any): Promise<APIResponse<User>> {
     return this.request({
       method: 'POST',
-      url: '/admin/users',
+      url: '/users',
       data: userData,
     });
   }
 
   async updateUser(id: string, userData: any): Promise<APIResponse<User>> {
     return this.request({
-      method: 'PATCH',
-      url: `/admin/users/${id}`,
+      method: 'PUT',
+      url: `/users/${id}`,
       data: userData,
     });
   }
@@ -325,37 +323,197 @@ class APIClient {
   async deleteUser(id: string): Promise<APIResponse> {
     return this.request({
       method: 'DELETE',
-      url: `/admin/users/${id}`,
+      url: `/users/${id}`,
     });
   }
 
   // Admin-specific product management
   async createProduct(productData: any): Promise<APIResponse<Product>> {
-    return this.request({ method: 'POST', url: '/admin/products', data: productData });
+    return this.request({ method: 'POST', url: '/products', data: productData });
   }
 
   async updateProduct(id: string, productData: any): Promise<APIResponse<Product>> {
-    return this.request({ method: 'PUT', url: `/admin/products/${id}`, data: productData });
+    return this.request({ method: 'PUT', url: `/products/${id}`, data: productData });
   }
 
   async deleteProduct(id: string): Promise<APIResponse> {
-    return this.request({ method: 'DELETE', url: `/admin/products/${id}` });
+    return this.request({ method: 'DELETE', url: `/products/${id}` });
+  }
+
+  // Ingredients
+  async getIngredients(): Promise<APIResponse<{pagination: any; ingredients: InventoryIngredient[] }>> {
+    return this.request({ method: 'GET', url: '/ingredients' });
+  }
+
+  async getIngredientStats(): Promise<APIResponse<InventorySummary>> {
+    return this.request({ method: 'GET', url: '/ingredients/stats' });
+  }
+
+  async getLowStockIngredients(): Promise<APIResponse<InventoryIngredient[]>> {
+    return this.request({ method: 'GET', url: '/ingredients/low-stock' });
+  }
+
+  async getLowStock(): Promise<APIResponse<InventoryIngredient[]>> {
+    return this.request({ method: 'GET', url: '/low-stock' });
+  }
+
+  async getCriticalStockIngredients(): Promise<APIResponse<Ingredient[]>> {
+    return this.request({ method: 'GET', url: '/ingredients/critical-stock' });
+  }
+
+  async getOutOfStockIngredients(): Promise<APIResponse<Ingredient[]>> {
+    return this.request({ method: 'GET', url: '/ingredients/out-of-stock' });
+  }
+
+  async getInStockIngredients(): Promise<APIResponse<Ingredient[]>> {
+    return this.request({ method: 'GET', url: '/ingredients/in-stock' });
+  }
+
+  async getIngredientById(id: number): Promise<APIResponse<Ingredient>> {
+    return this.request({ method: 'GET', url: `/ingredients/${id}` });
+  }
+
+  async createIngredient(data: any): Promise<APIResponse<Ingredient>> {
+    return this.request({ method: 'POST', url: '/ingredients', data });
+  }
+
+  async updateIngredient(id: number, data: any): Promise<APIResponse<Ingredient>> {
+    return this.request({ method: 'PUT', url: `/ingredients/${id}`, data });
+  }
+
+  async deleteIngredient(id: number): Promise<APIResponse> {
+    return this.request({ method: 'DELETE', url: `/ingredients/${id}` });
+  }
+
+  // Stock Management
+  async updateStock(id: number, amount: number): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: `/ingredients/stock/update/${id}`, data: { amount } });
+  }
+
+  async addStock(id: number, amount: number): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: `/ingredients/stock/add/${id}`, data: { amount } });
+  }
+
+  async subtractStock(id: number, amount: number): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: `/ingredients/stock/subtract/${id}`, data: { amount } });
+  }
+
+  async bulkUpdateStock(updates: any[]): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: '/ingredients/stock/bulk-update', data: { updates } });
+  }
+
+  // Inventory Management
+  async getInventoryTransactions(): Promise<APIResponse<any[]>> {
+    return this.request({ method: 'GET', url: '/ingredients/inventory/transactions' });
+  }
+
+  async getStockAlerts(): Promise<APIResponse<any[]>> {
+    return this.request({ method: 'GET', url: '/ingredients/inventory/alerts' });
+  }
+
+  async getStockAlertStatistics(): Promise<APIResponse<any>> {
+    return this.request({ method: 'GET', url: '/ingredients/inventory/alerts/stats' });
+  }
+
+  // Stock transactions
+  async getStockTransactions(): Promise<APIResponse<any[]>> {
+    return this.request({ method: 'GET', url: '/stock/transactions' });
+  }
+
+  async createStockTransaction(transaction: any): Promise<APIResponse<any>> {
+    return this.request({ method: 'POST', url: '/stock/transactions', data: transaction });
+  }
+
+  // Purchase orders  
+  async getPurchaseOrders(): Promise<APIResponse<any[]>> {
+    return this.request({ method: 'GET', url: '/purchase-orders' });
+  }
+
+  async acknowledgeStockAlert(id: number): Promise<APIResponse> {
+    return this.request({ method: 'PUT', url: `/ingredients/inventory/alerts/${id}/acknowledge` });
+  }
+
+  async resolveStockAlert(id: number): Promise<APIResponse> {
+    return this.request({ method: 'PUT', url: `/ingredients/inventory/alerts/${id}/resolve` });
+  }
+
+  async getInventoryReport(type?: string): Promise<APIResponse<any>> {
+    const url = type ? `/ingredients/inventory/report?type=${type}` : '/ingredients/inventory/report';
+    return this.request({ method: 'GET', url });
+  }
+
+  // Order Related Operations
+  async deductIngredientsForOrder(orderId: number, ingredients: any[]): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: '/ingredients/deduct-for-order', data: { orderId, ingredients } });
+  }
+
+  async reserveIngredients(ingredients: any[]): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: '/ingredients/reserve', data: { ingredients } });
+  }
+
+  async unreserveIngredients(ingredients: any[]): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: '/ingredients/unreserve', data: { ingredients } });
+  }
+
+  // Purchase Orders
+  async createPurchaseOrder(data: any): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: '/ingredients/purchase-orders', data });
+  }
+
+  async receivePurchaseOrderItem(itemId: number, data: any): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: `/ingredients/purchase-orders/items/${itemId}/receive`, data });
+  }
+
+  async getPurchaseOrdersForIngredient(id: number): Promise<APIResponse<any[]>> {
+    return this.request({ method: 'GET', url: `/ingredients/${id}/purchase-orders` });
+  }
+
+  // Upload image to backend (matches your upload route)
+  async uploadImage(file: File): Promise<APIResponse<any>> {
+    const formData = new FormData();
+    formData.append('image', file); // Field name matches your multer config
+
+    try {
+      console.log(`➡️ POST /upload/image`, { fileName: file.name, fileSize: file.size });
+      const response = await this.client.post('/upload/image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        // Optional: Add upload progress tracking
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            console.log(`📤 Upload progress: ${percentCompleted}%`);
+          }
+        },
+      });
+      console.log('Upload response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Upload error:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('Error response:', error.response?.data);
+        console.error('Error status:', error.response?.status);
+        throw new Error(error.response?.data?.message || `Upload failed: ${error.response?.status} ${error.response?.statusText}` || error.message);
+      }
+      throw error;
+    }
   }
 
   // Admin-specific category management  
   async createCategory(categoryData: any): Promise<APIResponse<Category>> {
-    return this.request({ method: 'POST', url: '/admin/categories', data: categoryData });
+    return this.request({ method: 'POST', url: '/categories', data: categoryData });
   }
 
   async updateCategory(id: string, categoryData: any): Promise<APIResponse<Category>> {
-    return this.request({ method: 'PUT', url: `/admin/categories/${id}`, data: categoryData });
+    return this.request({ method: 'PUT', url: `/categories/${id}`, data: categoryData });
   }
 
   async deleteCategory(id: string): Promise<APIResponse> {
-    return this.request({ method: 'DELETE', url: `/admin/categories/${id}` });
+    return this.request({ method: 'DELETE', url: `/categories/${id}` });
   }
 
-  // Admin products endpoint with pagination
+  // products endpoint with pagination
   async getAdminProducts(params?: { page?: number, per_page?: number, limit?: number, search?: string, category_id?: string }): Promise<APIResponse<Product[]>> {
     // Normalize params (handle both per_page and limit)
     const normalizedParams = {
@@ -367,66 +525,88 @@ class APIClient {
     
     return this.request({ 
       method: 'GET', 
-      url: '/admin/products',
+      url: '/products',
       params: normalizedParams
     });
   }
 
   // Admin categories endpoint with pagination
-  async getAdminCategories(params?: { page?: number, per_page?: number, limit?: number, search?: string, active_only?: boolean }): Promise<APIResponse<Category[]>> {
+  async getCategories(params?: { page?: number, per_page?: number, limit?: number, search?: string, active_only?: boolean }): Promise<APIResponse<Category[]>> {
     // Normalize params (handle both per_page and limit)
     const normalizedParams = {
       page: params?.page,
       per_page: params?.per_page || params?.limit,
       search: params?.search,
-      active_only: params?.active_only
     }
     
     return this.request({ 
       method: 'GET', 
-      url: '/admin/categories',
+      url: '/categories',
       params: normalizedParams
     });
   }
 
   // Admin tables endpoint with pagination
-  async getAdminTables(params?: { page?: number, limit?: number, search?: string, status?: string }): Promise<APIResponse<DiningTable[]>> {
+  async getAdminTables(params?: { page?: number, limit?: number, search?: string, status?: string }): Promise<APIResponse<{pagination: any; tables: DiningTable[]}>> {
     return this.request({ 
       method: 'GET', 
-      url: '/admin/tables',
+      url: '/tables',
       params 
     });
   }
 
   // Admin-specific table management
   async createTable(tableData: any): Promise<APIResponse<DiningTable>> {
-    return this.request({ method: 'POST', url: '/admin/tables', data: tableData });
+    return this.request({ method: 'POST', url: '/tables', data: tableData });
   }
 
   async updateTable(id: string, tableData: any): Promise<APIResponse<DiningTable>> {
-    return this.request({ method: 'PUT', url: `/admin/tables/${id}`, data: tableData });
+    return this.request({ method: 'PUT', url: `/tables/${id}`, data: tableData });
   }
 
   async deleteTable(id: string): Promise<APIResponse> {
-    return this.request({ method: 'DELETE', url: `/admin/tables/${id}` });
+    return this.request({ method: 'DELETE', url: `/tables/${id}` });
   }
 
   // Utility methods
-  setAuthToken(token: string): void {
-    localStorage.setItem('pos_token', token);
+  setAuthToken(accessToken: string): void {
+    console.log("Auth token set with JWT expiry, redirecting to home...");
+    Cookies.set('pos_token', accessToken);
   }
 
   clearAuth(): void {
-    localStorage.removeItem('pos_token');
-    localStorage.removeItem('pos_user');
+    Cookies.remove('pos_token');
   }
 
   getAuthToken(): string | null {
-    return localStorage.getItem('pos_token');
+    const token = Cookies.get('pos_token');
+    return token === undefined ? null : token;
   }
 
   isAuthenticated(): boolean {
-    return !!this.getAuthToken();
+    const token = this.getAuthToken();
+    
+    if (!token) {
+      return false;
+    }
+    
+    try {
+      // Decode the JWT token to check expiry
+      const decodedToken = jwtDecode<{ exp: number }>(token);
+      const expiryTime = decodedToken.exp * 1000; // Convert from seconds to milliseconds
+      const currentTime = new Date().getTime();
+      
+      if (currentTime >= expiryTime) {
+        this.clearAuth();
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to decode JWT token:', error);
+      this.clearAuth();
+      return false;
+    }
   }
 }
 

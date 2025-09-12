@@ -23,34 +23,32 @@ export interface MetaData {
 // User Types
 export interface User {
   id: string;
-  username: string;
+  name: string;
   email: string;
-  first_name: string;
-  last_name: string;
-  role: 'admin' | 'manager' | 'cashier' | 'kitchen';
-  is_active: boolean;
+  phone: string;
+  role: 'admin' | 'manager' | 'counter';
+  status: 'active' | 'inactive';
   created_at: string;
   updated_at: string;
 }
 
 export interface LoginRequest {
-  username: string;
+  email: string;
   password: string;
 }
 
 export interface LoginResponse {
-  token: string;
-  user: User;
+    accessToken: string;
+    user: User;
 }
 
 // Category Types
 export interface Category {
   id: string;
   name: string;
+  image_url: string;
   description?: string;
   color?: string;
-  sort_order: number;
-  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -66,37 +64,109 @@ export interface Product {
   barcode?: string;
   sku?: string;
   is_available: boolean;
-  preparation_time: number;
-  sort_order: number;
+  preparation_time?: number;
+  sort_order?: number;
   created_at: string;
   updated_at: string;
   category?: Category;
+  ingredients?: ProductIngredient[];
+}
+
+export interface Ingredient {
+  id: string;
+  name: string;
+  unit?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface InventoryIngredient {
+  id: number;
+  name: string;
+  unit: string;
+  quantity: number;
+  reserved_quantity: number;
+  low_stock_threshold: number;
+  critical_stock_threshold: number;
+  cost_per_unit: number;
+  supplier: string;
+  supplier_contact: string;
+  last_restocked_at?: string | null;
+  auto_reorder: boolean;
+  reorder_quantity: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InventorySummary {
+  total: number;
+  lowStock: number;
+  criticalStock: number;
+  outOfStock: number;
+  inStock: number;
+  totalValue: number;
+}
+
+export interface ProductIngredient {
+  ingredient_id: string;
+  quantity_required: number;
+  ingredient?: Ingredient;
 }
 
 // Table Types
 export interface DiningTable {
   id: string;
   table_number: string;
-  seating_capacity: number;
+  capacity: number;
   location?: string;
-  is_occupied: boolean;
+  status: 'available' | 'occupied';
   created_at: string;
   updated_at: string;
+}
+
+// Summary statistics for tables (total/available/occupied and occupancy rate as a formatted string)
+export interface TableStats {
+  total: number;
+  available: number;
+  occupied: number;
+  occupancyRate: string; // e.g. "75%"
+}
+
+// Pagination shape returned by admin tables endpoint - support common key variants
+export interface TablesPagination {
+  // camelCase
+  currentPage?: number;
+  perPage?: number;
+  totalPages?: number;
+  // snake_case (some endpoints use this)
+  current_page?: number;
+  per_page?: number;
+  total_pages?: number;
+  // other common variants
+  total?: number;
+  totalTables?: number;
+  [key: string]: any;
+}
+
+// Response from admin tables endpoint
+export interface AdminTablesResponse {
+  tables: DiningTable[];
+  pagination: TablesPagination;
 }
 
 // Order Types
 export interface Order {
   id: string;
-  order_number: string;
+  order_number?: string;
   table_id?: string;
-  user_id?: string;
+  waiter_id?: string;
   customer_name?: string;
   order_type: 'dine_in' | 'takeout' | 'delivery';
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'served' | 'completed' | 'cancelled';
-  subtotal: number;
-  tax_amount: number;
-  discount_amount: number;
-  total_amount: number;
+  status: 'confirmed' | 'preparing' | 'served' | 'completed' | 'cancelled';
+  subtotal?: number;
+  tax_amount?: number;
+  discount_amount?: number;
+  price?: number;
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -107,16 +177,23 @@ export interface Order {
   items?: OrderItem[];
   payments?: Payment[];
 }
-
+export enum OrderStatus {
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  PREPARING = 'preparing',
+  READY = 'ready',
+  SERVED = 'served',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+}
 export interface OrderItem {
   id: string;
   order_id: string;
   product_id: string;
   quantity: number;
-  unit_price: number;
-  total_price: number;
-  special_instructions?: string;
-  status: 'pending' | 'preparing' | 'ready' | 'served';
+  unit_price?: number;
+  price?: number;
+  status: OrderStatus;
   created_at: string;
   updated_at: string;
   product?: Product;
@@ -146,18 +223,21 @@ export interface UpdateOrderStatusRequest {
 export interface Payment {
   id: string;
   order_id: string;
-  payment_method: 'cash' | 'credit_card' | 'debit_card' | 'digital_wallet';
+  invoice_id: string;
+  payment_method: 'cash' | 'card' | 'others';
   amount: number;
   reference_number?: string;
   status: 'pending' | 'completed' | 'failed' | 'refunded';
   processed_by?: string;
   processed_at?: string;
   created_at: string;
+  failure_reason?: string;
+  note?: string;
   processed_by_user?: User;
 }
 
 export interface ProcessPaymentRequest {
-  payment_method: 'cash' | 'credit_card' | 'debit_card' | 'digital_wallet';
+  payment_method: 'cash' | 'card' | 'others';
   amount: number;
   reference_number?: string;
 }
@@ -188,10 +268,20 @@ export interface Cart {
 
 // Dashboard Types
 export interface DashboardStats {
-  today_orders: number;
-  today_revenue: number;
-  active_orders: number;
-  occupied_tables: number;
+  activeOrders: number;
+  detailed: any;
+  occupiedTables: number;
+  todaysOrders: {
+    comparisonText: string;
+    count: number;
+    percentageChange: number;
+  }
+  todaysRevenue: {
+    comparisonText: string;
+    amount: number;
+    percentageChange: number;
+    formattedAmount: string;
+  }
 }
 
 export interface SalesReportItem {
