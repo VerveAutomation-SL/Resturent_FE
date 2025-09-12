@@ -1,4 +1,3 @@
-import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { InventoryIngredient } from "@/types";
@@ -15,7 +14,7 @@ type Props = {
 
 export default function AlertsTab({ alerts, acknowledgeAlert }: Props) {
   return (
-    <div className="p-6 space-y-4">
+    <div className="mt-8 space-y-4">
       {alerts.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-center text-muted-foreground">

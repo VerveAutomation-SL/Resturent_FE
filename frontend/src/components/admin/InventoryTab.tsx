@@ -23,8 +23,6 @@ import type { InventoryIngredient } from "@/types";
 type Props = {
   searchTerm: string;
   setSearchTerm: (s: string) => void;
-  typeFilter: string;
-  setTypeFilter: (s: string) => void;
   stockFilter: string;
   setStockFilter: (s: string) => void;
   getFilteredItems: () => InventoryIngredient[];
@@ -37,8 +35,6 @@ type Props = {
 export default function InventoryTab({
   searchTerm,
   setSearchTerm,
-  typeFilter,
-  setTypeFilter,
   stockFilter,
   setStockFilter,
   getFilteredItems,
@@ -49,6 +45,11 @@ export default function InventoryTab({
   const items = getFilteredItems();
   return (
     <div className="space-y-4 mt-8">
+      {20.0 > 5.0 ? (
+        <div>Condition is true</div>
+      ) : (
+        <div>Condition is false</div>
+      )}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-1">
           <div className="relative max-w-lg">
@@ -66,8 +67,9 @@ export default function InventoryTab({
             onChange={(e) => setStockFilter(e.target.value)}
           >
             <option value="all">All Items</option>
+            <option value="in_stock">In Stock</option>
             <option value="low_stock">Low Stock</option>
-            <option value="critical_stock">Critical Stock</option>
+            <option value="out_of_stock">Out of Stock</option>
           </select>
         </div>
         <div className="flex gap-2">
@@ -103,7 +105,7 @@ export default function InventoryTab({
                 <TableHead>Unit</TableHead>
                 <TableHead>Current Stock</TableHead>
                 <TableHead>Reserved</TableHead>
-                <TableHead>Low/Critical Threshold</TableHead>
+                <TableHead>Low / Out Threshold</TableHead>
                 <TableHead>Cost per Unit</TableHead>
                 <TableHead>Supplier</TableHead>
                 <TableHead>Last Restocked</TableHead>
@@ -140,10 +142,7 @@ export default function InventoryTab({
                     <TableCell>
                       {item.reserved_quantity} {item.unit}
                     </TableCell>
-                    <TableCell>
-                      {item.low_stock_threshold} /{" "}
-                      {item.critical_stock_threshold}
-                    </TableCell>
+                    <TableCell>{item.low_stock_threshold} / 0</TableCell>
                     <TableCell>${item.cost_per_unit}</TableCell>
                     <TableCell>{item.supplier}</TableCell>
                     <TableCell>

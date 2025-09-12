@@ -7,7 +7,6 @@ import { toastHelpers } from "@/lib/toast-helpers";
 import { InventoryIngredient } from "@/types";
 import StockDashboard from "./StockDashboard";
 import InventoryTab from "./InventoryTab";
-import LowStockTab from "./LowStockTab";
 import AlertsTab from "./AlertsTab";
 import StockManagementTab from "./StockManagementTab";
 import TransactionsTab from "./TransactionsTab";
@@ -19,7 +18,8 @@ interface StockAlert {
   id: number;
   item_id: number;
   item_name: string;
-  alert_type: "low_stock" | "critical_stock" | "out_of_stock";
+  // Use only three categories: in_stock, low_stock, out_of_stock
+  alert_type: "in_stock" | "low_stock" | "out_of_stock";
   message: string;
   created_at: string;
   acknowledged: boolean;
@@ -47,20 +47,10 @@ interface StockAlert {
 //   created_at: string;
 // }
 
-interface InventoryStats {
-  total: number;
-  totalValue: number;
-  lowStock: number;
-  criticalStock: number;
-  outOfStock: number;
-  inStockCount: number;
-}
-
 export function AdminIngredientsManagement() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
   const [stockFilter, setStockFilter] = useState<string>("all");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryIngredient | null>(
@@ -70,8 +60,7 @@ export function AdminIngredientsManagement() {
     id: 0,
     amount: 0,
     type: "add",
-    reason: "",
-    reference: "",
+    notes: "",
   });
 
   const queryClient = useQueryClient();
@@ -81,7 +70,7 @@ export function AdminIngredientsManagement() {
     queryKey: ["stock-items"],
     queryFn: () =>
       apiClient.getIngredients().then((res) => {
-        console.log("Fetched stock items:", res.data?.ingredients);
+        // console.log("Fetched stock items:", res.data?.ingredients);
         return res.data?.ingredients || [];
       }),
   });
@@ -89,7 +78,11 @@ export function AdminIngredientsManagement() {
   // Fetch stock alerts
   const { data: alerts = [] } = useQuery({
     queryKey: ["stock-alerts"],
-    queryFn: () => apiClient.getStockAlerts().then((res) => res.data || []),
+    queryFn: () =>
+      apiClient.getStockAlerts().then((res) => {
+        console.log("Fetched stock alerts:", res.data);
+        return res.data;
+      }),
   });
 
   // Fetch stock transactions
@@ -107,33 +100,40 @@ export function AdminIngredientsManagement() {
     if (searchTerm) {
       filtered = filtered.filter(
         (item: InventoryIngredient) =>
-          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.name.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
+          item.supplier.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
           item.supplier_contact
             .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          item.unit.toLowerCase().includes(searchTerm.toLowerCase())
+            .startsWith(searchTerm.toLowerCase()) ||
+          item.unit.toLowerCase().startsWith(searchTerm.toLowerCase())
       );
     }
 
-    // Stock status filter (all / low_stock / critical_stock)
+    // Stock status filter (all / in_stock / low_stock / out_of_stock)
     if (stockFilter && stockFilter !== "all") {
       if (stockFilter === "low_stock") {
-        // Low stock: quantity is at or below low threshold but above critical threshold
-        filtered = filtered.filter(
-          (item: InventoryIngredient) =>
-            item.quantity <= item.low_stock_threshold &&
-            item.quantity > item.critical_stock_threshold
-        );
-      } else if (stockFilter === "critical_stock") {
-        // Critical stock: quantity is at or below critical threshold
-        filtered = filtered.filter(
-          (item: InventoryIngredient) =>
-            item.quantity <= item.critical_stock_threshold
-        );
+        // Low stock: quantity is at or below low threshold but above out_of_stock threshold (0)
+        filtered = filtered.filter((item: InventoryIngredient) => {
+          const qty = Number(item.quantity ?? 0);
+          const low = Number(item.low_stock_threshold ?? 0);
+          return qty <= low && qty > 0;
+        });
+      } else if (stockFilter === "out_of_stock") {
+        // Out of stock: quantity is zero
+        filtered = filtered.filter((item: InventoryIngredient) => {
+          const qty = Number(item.quantity ?? 0);
+          return qty <= 0;
+        });
+      } else if (stockFilter === "in_stock") {
+        // In stock: quantity greater than low threshold
+        filtered = filtered.filter((item: InventoryIngredient) => {
+          const qty = Number(item.quantity ?? 0);
+          const low = Number(item.low_stock_threshold ?? 0);
+          console.log("Item:", item.name, qty, low, qty > low);
+          return qty > low;
+        });
       }
     }
-
     return filtered;
   };
 
@@ -142,18 +142,20 @@ export function AdminIngredientsManagement() {
     mutationFn: ({
       id,
       amount,
+      notes,
       type,
     }: {
       id: number;
       amount: number;
+      notes: string;
       type: string;
     }) => {
       if (type === "add") {
-        return apiClient.addStock(id, amount);
+        return apiClient.addStock(id, amount, notes);
       } else if (type === "subtract") {
-        return apiClient.subtractStock(id, amount);
+        return apiClient.subtractStock(id, amount, notes);
       } else {
-        return apiClient.updateStock(id, amount);
+        return apiClient.updateStock(id, amount, notes);
       }
     },
     onSuccess: () => {
@@ -165,8 +167,7 @@ export function AdminIngredientsManagement() {
         id: 0,
         amount: 0,
         type: "add",
-        reason: "",
-        reference: "",
+        notes: "",
       });
     },
     onError: (error) => {
@@ -206,8 +207,16 @@ export function AdminIngredientsManagement() {
 
   // Remove stock mutation
   const removeStockMutation = useMutation({
-    mutationFn: ({ id, amount }: { id: number; amount: number }) => {
-      return apiClient.subtractStock(id, amount);
+    mutationFn: ({
+      id,
+      amount,
+      notes,
+    }: {
+      id: number;
+      amount: number;
+      notes: string;
+    }) => {
+      return apiClient.subtractStock(id, amount, notes);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock-items"] });
@@ -220,57 +229,13 @@ export function AdminIngredientsManagement() {
     },
   });
 
-  const handleRemoveStock = (itemId: number, quantity: number) => {
-    removeStockMutation.mutate({ id: itemId, amount: quantity });
+  const handleRemoveStock = (
+    itemId: number,
+    quantity: number,
+    notes: string
+  ) => {
+    removeStockMutation.mutate({ id: itemId, amount: quantity, notes });
   };
-
-  // const getPriorityBadge = (priority: string) => {
-  //   const priorityConfig = {
-  //     low: { variant: "secondary" as const, text: "Low" },
-  //     medium: { variant: "default" as const, text: "Medium" },
-  //     high: { variant: "destructive" as const, text: "High" },
-  //     critical: { variant: "destructive" as const, text: "Critical" },
-  //   };
-
-  //   const config = priorityConfig[priority as keyof typeof priorityConfig];
-
-  //   return <Badge variant={config.variant}>{config.text}</Badge>;
-  // };
-
-  // const getStatusBadge = (status: string) => {
-  //   const statusConfig = {
-  //     in_stock: {
-  //       variant: "default" as const,
-  //       text: "In Stock",
-  //       icon: CheckCircle,
-  //     },
-  //     low_stock: {
-  //       variant: "secondary" as const,
-  //       text: "Low Stock",
-  //       icon: AlertTriangle,
-  //     },
-  //     critical_stock: {
-  //       variant: "destructive" as const,
-  //       text: "Critical",
-  //       icon: AlertCircle,
-  //     },
-  //     out_of_stock: {
-  //       variant: "destructive" as const,
-  //       text: "Out of Stock",
-  //       icon: XCircle,
-  //     },
-  //   };
-
-  //   const config = statusConfig[status as keyof typeof statusConfig];
-  //   const IconComponent = config.icon;
-
-  //   return (
-  //     <Badge variant={config.variant} className="flex items-center gap-1">
-  //       <IconComponent className="w-3 h-3" />
-  //       {config.text}
-  //     </Badge>
-  //   );
-  // };
 
   if (loadingStock) {
     return (
@@ -320,9 +285,9 @@ export function AdminIngredientsManagement() {
         <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="inventory">All Stock</TabsTrigger>
-          <TabsTrigger value="low-stock">Low Stock</TabsTrigger>
+          {/* <TabsTrigger value="low-stock">Low Stock</TabsTrigger> */}
+          <TabsTrigger value="stock-management">Stock Manage</TabsTrigger>
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
-          <TabsTrigger value="stock-mgmt">Stock Mgmt</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="purchase-orders">Orders</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
@@ -344,8 +309,6 @@ export function AdminIngredientsManagement() {
           <InventoryTab
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
-            typeFilter={typeFilter}
-            setTypeFilter={setTypeFilter}
             stockFilter={stockFilter}
             setStockFilter={setStockFilter}
             getFilteredItems={getFilteredItems}
@@ -356,11 +319,11 @@ export function AdminIngredientsManagement() {
           />
         </TabsContent>
 
-        <TabsContent value="low-stock">
+        {/* <TabsContent value="low-stock">
           <LowStockTab
             acknowledgeAlert={(id) => acknowledgeAlertMutation.mutate(id)}
           />
-        </TabsContent>
+        </TabsContent> */}
 
         <TabsContent value="alerts">
           <AlertsTab
@@ -376,13 +339,12 @@ export function AdminIngredientsManagement() {
           />
         </TabsContent>
 
-        <TabsContent value="stock-mgmt">
+        <TabsContent value="stock-management">
           <StockManagementTab
             stockItems={stockItems}
             stockAdjustment={stockAdjustment}
             setStockAdjustment={setStockAdjustment}
             stockUpdateMutation={stockUpdateMutation}
-            getFilteredItems={getFilteredItems}
           />
         </TabsContent>
 

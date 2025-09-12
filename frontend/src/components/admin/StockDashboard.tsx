@@ -43,7 +43,7 @@ export default function StockDashboard({
     queryKey: ["stock-stats"],
     queryFn: () =>
       apiClient.getIngredientStats().then((res) => {
-        console.log("Fetched stock items:", res.data);
+        //console.log("Fetched stock items:", res.data);
         return res.data;
       }),
   });
@@ -164,65 +164,55 @@ export default function StockDashboard({
 
       {/* Stock Distribution & Top Suppliers */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="pb-3">
+        <Card className="h-full">
+          <CardHeader className="pb-6">
             <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
-              Stock Distribution
+              <AlertTriangle className="w-5 h-5" />
+              Items Requiring Attention
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm">In Stock</span>
-                </div>
-                <div className="flex items-center gap-3 w-36 justify-end">
-                  <span className="text-sm font-medium">
-                    {stockStats?.inStock}
-                  </span>
-                  <Badge variant="secondary" className="text-xs px-2 py-0.5">
-                    {formatPercent(
-                      stockStats?.inStock ?? 0,
-                      stockStats?.total ?? 0
-                    )}
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                  <span className="text-sm">Low Stock</span>
-                </div>
-                <div className="flex items-center gap-3 w-36 justify-end">
-                  <span className="text-sm font-medium">
-                    {stockStats?.lowStock}
-                  </span>
-                  <Badge variant="secondary" className="text-xs px-2 py-0.5">
-                    {formatPercent(
-                      stockStats?.lowStock ?? 0,
-                      stockStats?.total ?? 0
-                    )}
-                  </Badge>
-                </div>
-              </div>
-
+          <CardContent className="p-4 pt-0 flex flex-col justify-between">
+            <div className="justify-between space-y-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-sm">Out of Stock</span>
+                  <span className="text-sm">Low / Out of Stock</span>
                 </div>
                 <div className="flex items-center gap-3 w-36 justify-end">
                   <span className="text-sm font-medium">
-                    {stockStats?.outOfStock}
+                    {(stockStats?.lowStock ?? 0) +
+                      (stockStats?.outOfStock ?? 0)}
+                  </span>
+                  <Badge variant="destructive" className="text-xs px-2 py-0.5">
+                    Attention
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm">Auto-Reorder Enabled</span>
+                </div>
+                <div className="flex items-center gap-3 w-36 justify-end">
+                  <span className="text-sm font-medium">
+                    {stockItems.filter((item) => item.auto_reorder).length}
                   </span>
                   <Badge variant="secondary" className="text-xs px-2 py-0.5">
-                    {formatPercent(
-                      stockStats?.outOfStock ?? 0,
-                      stockStats?.total ?? 0
-                    )}
+                    Active
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                  <span className="text-sm">Pending Alerts</span>
+                </div>
+                <div className="flex items-center gap-3 w-36 justify-end">
+                  <span className="text-sm font-medium">
+                    {alerts.filter((a) => !a.acknowledged).length}
+                  </span>
+                  <Badge variant="outline" className="text-xs px-2 py-0.5">
+                    Review
                   </Badge>
                 </div>
               </div>
@@ -230,15 +220,15 @@ export default function StockDashboard({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
+        <Card className="h-full">
+          <CardHeader className="pb-6">
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
               Top Suppliers by Value
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="space-y-2">
+          <CardContent className="p-4 pt-0 flex flex-col justify-between h-full">
+            <div className="space-y-3">
               {topSuppliers.length === 0 ? (
                 <div className="text-center py-6 text-muted-foreground">
                   <Users className="mx-auto h-10 w-10 text-gray-400" />

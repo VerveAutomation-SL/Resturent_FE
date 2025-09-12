@@ -116,7 +116,7 @@ export function StockItemForm({
     piece: 1,
     pieces: 1,
     dozen: 1, // step=1 (UI shows dozens as unit; conversion to pcs should happen on server or separate flow)
-    kg: 0.001,
+    kg: 0.01,
     g: 1,
     lb: 0.001,
     oz: 0.001,

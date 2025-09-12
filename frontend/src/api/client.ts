@@ -386,16 +386,16 @@ class APIClient {
   }
 
   // Stock Management
-  async updateStock(id: number, amount: number): Promise<APIResponse> {
-    return this.request({ method: 'POST', url: `/ingredients/stock/update/${id}`, data: { amount } });
+  async updateStock(id: number, amount: number, notes: string): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: `/ingredients/stock/update/${id}`, data: { amount, notes } });
   }
 
-  async addStock(id: number, amount: number): Promise<APIResponse> {
-    return this.request({ method: 'POST', url: `/ingredients/stock/add/${id}`, data: { amount } });
+  async addStock(id: number, amount: number, notes: string): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: `/ingredients/stock/add/${id}`, data: { amount, notes } });
   }
 
-  async subtractStock(id: number, amount: number): Promise<APIResponse> {
-    return this.request({ method: 'POST', url: `/ingredients/stock/subtract/${id}`, data: { amount } });
+  async subtractStock(id: number, amount: number, notes: string): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: `/ingredients/stock/subtract/${id}`, data: { amount, notes } });
   }
 
   async bulkUpdateStock(updates: any[]): Promise<APIResponse> {

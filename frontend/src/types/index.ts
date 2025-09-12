@@ -101,7 +101,6 @@ export interface InventoryIngredient {
 export interface InventorySummary {
   total: number;
   lowStock: number;
-  criticalStock: number;
   outOfStock: number;
   inStock: number;
   totalValue: number;

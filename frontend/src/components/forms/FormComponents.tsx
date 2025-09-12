@@ -133,7 +133,7 @@ export function NumberInputField<T extends FieldValues>({
               max={max}
               step={step}
               {...field}
-              onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+              onChange={(e) => field.onChange(parseFloat(e.target.value))}
             />
           </FormControl>
           {description && <FormDescription>{description}</FormDescription>}
