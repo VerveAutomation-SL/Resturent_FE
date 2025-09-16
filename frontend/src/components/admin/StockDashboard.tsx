@@ -8,7 +8,6 @@ import {
   XCircle,
   AlertCircle,
   Eye,
-  Plus,
   TrendingUp,
   ShoppingCart,
   Upload,
@@ -17,17 +16,15 @@ import {
   Users,
   Calendar,
 } from "lucide-react";
-import apiClient from "@/api/client";
-import { useQuery } from "@tanstack/react-query";
+import { InventorySummary } from "@/types";
 
 type Props = {
   alerts?: any[];
   transactions?: any[];
   stockItems?: any[];
   setActiveTab: (v: string) => void;
-  setShowCreateForm: (v: boolean) => void;
   setShowTransactionForm: (v: boolean) => void;
-  acknowledgeAlertMutation: any;
+  stockStats?: InventorySummary;
 };
 
 export default function StockDashboard({
@@ -35,19 +32,9 @@ export default function StockDashboard({
   transactions = [],
   stockItems = [],
   setActiveTab,
-  setShowCreateForm,
   setShowTransactionForm,
-  acknowledgeAlertMutation,
+  stockStats,
 }: Props) {
-  const { data: stockStats, isLoading: statsLoading } = useQuery({
-    queryKey: ["stock-stats"],
-    queryFn: () =>
-      apiClient.getIngredientStats().then((res) => {
-        //console.log("Fetched stock items:", res.data);
-        return res.data;
-      }),
-  });
-
   // Top suppliers by value
   const supplierStats = stockItems.reduce(
     (acc, item) => {
@@ -209,7 +196,7 @@ export default function StockDashboard({
                 </div>
                 <div className="flex items-center gap-3 w-36 justify-end">
                   <span className="text-sm font-medium">
-                    {alerts.filter((a) => !a.acknowledged).length}
+                    {alerts.filter((a) => !a.resolved).length}
                   </span>
                   <Badge variant="outline" className="text-xs px-2 py-0.5">
                     Review
@@ -284,7 +271,7 @@ export default function StockDashboard({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <Button
               onClick={() => setActiveTab("inventory")}
               variant="outline"
@@ -295,15 +282,6 @@ export default function StockDashboard({
               View All Stock
             </Button>
             <Button
-              onClick={() => setActiveTab("low-stock")}
-              variant="outline"
-              size="sm"
-              className="h-16 flex-col"
-            >
-              <AlertTriangle className="w-4 h-4 mb-2" />
-              Low Stock Items
-            </Button>
-            <Button
               onClick={() => setActiveTab("transactions")}
               variant="outline"
               size="sm"
@@ -311,14 +289,6 @@ export default function StockDashboard({
             >
               <TrendingUp className="w-4 h-4 mb-2" />
               Recent Transactions
-            </Button>
-            <Button
-              onClick={() => setShowCreateForm(true)}
-              size="sm"
-              className="h-16 flex-col"
-            >
-              <Plus className="w-4 h-4 mb-2" />
-              Add Stock Item
             </Button>
             <Button
               onClick={() => setShowTransactionForm(true)}
@@ -336,7 +306,7 @@ export default function StockDashboard({
               className="h-16 flex-col"
             >
               <AlertCircle className="w-4 h-4 mb-2" />
-              Alerts ({alerts.filter((a) => !a.acknowledged).length})
+              Alerts ({alerts.filter((a) => !a.resolved).length})
             </Button>
             <Button
               onClick={() => setActiveTab("purchase-orders")}
@@ -366,33 +336,72 @@ export default function StockDashboard({
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {alerts.slice(0, 5).map((alert) => (
-              <div
-                key={alert.id}
-                className="flex items-center justify-between p-3 border rounded-lg"
-              >
-                <div className="flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 text-yellow-600" />
-                  <div>
-                    <p className="font-medium">
-                      {alert.item_name || alert.ingredient_name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {alert.message}
-                    </p>
+            {alerts.length === 0 ? (
+              <div className="text-center py-2 text-muted-foreground">
+                <AlertCircle className="mx-auto h-10 w-10 text-gray-400" />
+                <p className="mt-3 text-sm font-medium text-foreground">
+                  No active alerts
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  You're all caught up — no alerts at the moment.
+                </p>
+              </div>
+            ) : (
+              alerts.slice(0, 5).map((alert) => (
+                <div
+                  key={alert.id}
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={() => setActiveTab("alerts")}
+                >
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-yellow-600" />
+                    <div>
+                      <p className="font-medium flex items-center gap-2">
+                        {alert.Ingredient.name || alert.ingredient_name}
+                        {alert.severity === "high" && (
+                          <Badge
+                            variant="destructive"
+                            className="text-xs px-2 py-0.5"
+                          >
+                            High
+                          </Badge>
+                        )}
+                        {alert.severity === "medium" && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs px-2 py-0.5"
+                          >
+                            Medium
+                          </Badge>
+                        )}
+                      </p>
+
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {Number(
+                          alert.current_quantity ?? alert.current_qty ?? 0
+                        )}{" "}
+                        {alert.unit || alert.item_unit || "units"} remaining
+                        {alert.alert_type === "out_of_stock"
+                          ? " - Out of stock"
+                          : " - Running low"}
+                        {alert.auto_reorder_triggered || alert.auto_reorder
+                          ? " • Auto-reorder enabled"
+                          : ""}
+                      </p>
+
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(
+                          alert.created_at || alert.updated_at
+                        ).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Click to manage →
                   </div>
                 </div>
-                {!alert.acknowledged && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => acknowledgeAlertMutation.mutate(alert.id)}
-                  >
-                    Acknowledge
-                  </Button>
-                )}
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
@@ -408,7 +417,9 @@ export default function StockDashboard({
         <CardContent>
           <div className="space-y-3">
             {transactions.slice(0, 5).map((transaction) => {
-              const item = stockItems.find((s) => s.id === transaction.item_id);
+              const item = stockItems.find(
+                (s) => s.id === transaction.ingredient_id
+              );
               return (
                 <div
                   key={transaction.id}

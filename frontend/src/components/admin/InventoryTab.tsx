@@ -45,11 +45,6 @@ export default function InventoryTab({
   const items = getFilteredItems();
   return (
     <div className="space-y-4 mt-8">
-      {20.0 > 5.0 ? (
-        <div>Condition is true</div>
-      ) : (
-        <div>Condition is false</div>
-      )}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-1">
           <div className="relative max-w-lg">
@@ -72,7 +67,7 @@ export default function InventoryTab({
             <option value="out_of_stock">Out of Stock</option>
           </select>
         </div>
-        <div className="flex gap-2">
+        {/* <div className="flex gap-2">
           <Button
             size="sm"
             variant="outline"
@@ -93,7 +88,7 @@ export default function InventoryTab({
             <Plus className="w-4 h-4 mr-2" />
             Add Ingredient
           </Button>
-        </div>
+        </div> */}
       </div>
 
       <Card>

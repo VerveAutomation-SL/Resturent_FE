@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { RefreshCw, Plus } from "lucide-react";
 import apiClient from "@/api/client";
 import { toastHelpers } from "@/lib/toast-helpers";
 import { InventoryIngredient } from "@/types";
@@ -14,18 +15,18 @@ import PurchaseOrdersTab from "./PurchaseOrdersTab";
 import ReportsTab from "./ReportsTab";
 import { StockItemForm } from "../forms/StockItemForm";
 
-interface StockAlert {
-  id: number;
-  item_id: number;
-  item_name: string;
-  // Use only three categories: in_stock, low_stock, out_of_stock
-  alert_type: "in_stock" | "low_stock" | "out_of_stock";
-  message: string;
-  created_at: string;
-  acknowledged: boolean;
-  resolved: boolean;
-  priority: "low" | "medium" | "high" | "critical";
-}
+// Stock Alert interface - keeping for future use if needed
+// interface StockAlert {
+//   id: number;
+//   item_id: number;
+//   item_name: string;
+//   // Use only three categories: in_stock, low_stock, out_of_stock
+//   alert_type: "in_stock" | "low_stock" | "out_of_stock";
+//   message: string;
+//   created_at: string;
+//   resolved: boolean;
+//   priority: "low" | "medium" | "high";
+// }
 
 // interface StockTransaction {
 //   id: number;
@@ -52,7 +53,7 @@ export function AdminIngredientsManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [stockFilter, setStockFilter] = useState<string>("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [_showTransactionForm, setShowTransactionForm] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryIngredient | null>(
     null
   );
@@ -64,6 +65,15 @@ export function AdminIngredientsManagement() {
   });
 
   const queryClient = useQueryClient();
+
+  const { data: stockStats } = useQuery({
+    queryKey: ["stock-stats"],
+    queryFn: () =>
+      apiClient.getIngredientStats().then((res) => {
+        //console.log("Fetched stock items:", res.data);
+        return res.data;
+      }),
+  });
 
   // Fetch all stock items (ingredients, supplies, equipment, etc.)
   const { data: stockItems = [], isLoading: loadingStock } = useQuery({
@@ -79,17 +89,26 @@ export function AdminIngredientsManagement() {
   const { data: alerts = [] } = useQuery({
     queryKey: ["stock-alerts"],
     queryFn: () =>
-      apiClient.getStockAlerts().then((res) => {
-        console.log("Fetched stock alerts:", res.data);
-        return res.data;
-      }),
+      apiClient
+        .getStockAlerts()
+        .then((res) => {
+          console.log("Fetched stock alerts:", res.data);
+          return res.data;
+        })
+        .catch((error) => {
+          console.error("Error fetching stock alerts:", error);
+          return [];
+        }),
   });
 
   // Fetch stock transactions
-  const { data: transactions = [] } = useQuery({
+  const { data: transactions } = useQuery({
     queryKey: ["stock-transactions"],
     queryFn: () =>
-      apiClient.getStockTransactions().then((res) => res.data || []),
+      apiClient.getInventoryTransactions().then((res) => {
+        console.log("Fetched stock transactions:", res.data?.transactions);
+        return res.data?.transactions || [];
+      }),
   });
 
   // Filter stock items based on search
@@ -160,8 +179,10 @@ export function AdminIngredientsManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock-items"] });
-      queryClient.invalidateQueries({ queryKey: ["ingredient-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-alerts"] });
       queryClient.invalidateQueries({ queryKey: ["stock-transactions"] });
+
       toastHelpers.apiSuccess("Stock Update", "Stock updated successfully");
       setStockAdjustment({
         id: 0,
@@ -194,48 +215,62 @@ export function AdminIngredientsManagement() {
   //     },
   //   });
 
-  // Acknowledge alert mutation
-  const acknowledgeAlertMutation = useMutation({
+  // Resolve alert mutation (use only active/resolved statuses)
+  const resolveAlertMutation = useMutation({
     mutationFn: (alertId: number) => {
-      return apiClient.acknowledgeStockAlert(alertId);
+      return apiClient.resolveStockAlert(alertId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock-alerts"] });
-      toastHelpers.apiSuccess("Alert", "Alert acknowledged");
-    },
-  });
-
-  // Remove stock mutation
-  const removeStockMutation = useMutation({
-    mutationFn: ({
-      id,
-      amount,
-      notes,
-    }: {
-      id: number;
-      amount: number;
-      notes: string;
-    }) => {
-      return apiClient.subtractStock(id, amount, notes);
-    },
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock-items"] });
-      queryClient.invalidateQueries({ queryKey: ["ingredient-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["stock-transactions"] });
-      toastHelpers.apiSuccess("Stock Removal", "Stock removed successfully");
+      queryClient.invalidateQueries({ queryKey: ["stock-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-alerts"] });
+      toastHelpers.apiSuccess(
+        "Alert Resolved",
+        "Alert has been successfully resolved"
+      );
     },
     onError: (error) => {
-      toastHelpers.apiError("Stock Removal", error);
+      console.error("Error resolving alert:", error);
+      toastHelpers.apiError("Alert Resolution Failed", error);
     },
   });
 
-  const handleRemoveStock = (
-    itemId: number,
-    quantity: number,
-    notes: string
-  ) => {
-    removeStockMutation.mutate({ id: itemId, amount: quantity, notes });
-  };
+  // Create ingredient mutation (moved from StockItemForm)
+  const createIngredientMutation = useMutation({
+    mutationFn: (data: any) => apiClient.createIngredient(data),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["stock-items"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-alerts"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-transactions"] });
+      toastHelpers.apiSuccess("Create", `Ingredient created successfully`);
+      setShowCreateForm(false);
+      setSelectedItem(null);
+    },
+    onError: (error) => {
+      toastHelpers.apiError("Create ingredient", error);
+    },
+  });
+
+  // Update ingredient mutation (moved from StockItemForm)
+  const updateIngredientMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      apiClient.updateIngredient(id, data),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["stock-items"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-alerts"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-transactions"] });
+
+      toastHelpers.apiSuccess("Update", `Ingredient updated successfully`);
+      setShowCreateForm(false);
+      setSelectedItem(null);
+    },
+    onError: (error) => {
+      toastHelpers.apiError("Update ingredient", error);
+    },
+  });
 
   if (loadingStock) {
     return (
@@ -255,6 +290,11 @@ export function AdminIngredientsManagement() {
       apiClient
         .deleteIngredient(item.id)
         .then(() => {
+          queryClient.invalidateQueries({ queryKey: ["stock-items"] });
+          queryClient.invalidateQueries({ queryKey: ["stock-stats"] });
+          queryClient.invalidateQueries({ queryKey: ["stock-alerts"] });
+          queryClient.invalidateQueries({ queryKey: ["stock-transactions"] });
+
           toastHelpers.apiSuccess(
             "Delete Ingredient",
             "Ingredient deleted successfully"
@@ -279,6 +319,13 @@ export function AdminIngredientsManagement() {
             equipment, and packaging
           </p>
         </div>
+        <Button
+          onClick={() => setShowCreateForm(true)}
+          className="flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Add Stock Item
+        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -290,7 +337,7 @@ export function AdminIngredientsManagement() {
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="purchase-orders">Orders</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
+          {/* <TabsTrigger value="reports">Reports</TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="dashboard">
@@ -299,9 +346,8 @@ export function AdminIngredientsManagement() {
             transactions={transactions}
             stockItems={stockItems}
             setActiveTab={setActiveTab}
-            setShowCreateForm={setShowCreateForm}
             setShowTransactionForm={setShowTransactionForm}
-            acknowledgeAlertMutation={acknowledgeAlertMutation}
+            stockStats={stockStats}
           />
         </TabsContent>
 
@@ -319,26 +365,6 @@ export function AdminIngredientsManagement() {
           />
         </TabsContent>
 
-        {/* <TabsContent value="low-stock">
-          <LowStockTab
-            acknowledgeAlert={(id) => acknowledgeAlertMutation.mutate(id)}
-          />
-        </TabsContent> */}
-
-        <TabsContent value="alerts">
-          <AlertsTab
-            alerts={alerts.map((a) => ({
-              id: a.id,
-              item: stockItems.find(
-                (s) => s.id === a.item_id
-              ) as InventoryIngredient,
-              message: a.message,
-              created_at: a.created_at,
-            }))}
-            acknowledgeAlert={(id) => acknowledgeAlertMutation.mutate(id)}
-          />
-        </TabsContent>
-
         <TabsContent value="stock-management">
           <StockManagementTab
             stockItems={stockItems}
@@ -348,29 +374,32 @@ export function AdminIngredientsManagement() {
           />
         </TabsContent>
 
-        <TabsContent value="transactions">
-          <TransactionsTab
-            transactions={transactions.map((t) => ({
-              id: t.id,
+        <TabsContent value="alerts">
+          <AlertsTab
+            alerts={alerts.map((a) => ({
+              id: a.id,
               item: stockItems.find(
-                (s) => s.id === t.item_id
+                (s) => s.id === a.ingredient_id
               ) as InventoryIngredient,
-              type: t.transaction_type,
-              quantity: t.quantity,
-              user: t.created_by,
-              note: t.notes,
-              created_at: t.created_at,
+              message: a.message,
+              created_at: a.created_at,
+              resolved: Boolean(a.resolved),
             }))}
+            resolveAlert={(id) => resolveAlertMutation.mutate(id)}
           />
+        </TabsContent>
+
+        <TabsContent value="transactions">
+          <TransactionsTab transactions={transactions} />
         </TabsContent>
 
         <TabsContent value="purchase-orders">
           <PurchaseOrdersTab purchaseOrders={[]} />
         </TabsContent>
 
-        <TabsContent value="reports">
+        {/* <TabsContent value="reports">
           <ReportsTab stockItems={stockItems} />
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
 
       {/* Stock Item Create/Edit Form Modal */}
@@ -389,10 +418,14 @@ export function AdminIngredientsManagement() {
             <StockItemForm
               stockItem={selectedItem || undefined}
               mode={selectedItem ? "edit" : "create"}
-              onSuccess={() => {
-                setShowCreateForm(false);
-                setSelectedItem(null);
-              }}
+              createHandler={(data) => createIngredientMutation.mutate(data)}
+              updateHandler={(id, data) =>
+                updateIngredientMutation.mutate({ id, data })
+              }
+              isSubmitting={
+                createIngredientMutation.isPending ||
+                updateIngredientMutation.isPending
+              }
               onCancel={() => {
                 setShowCreateForm(false);
                 setSelectedItem(null);

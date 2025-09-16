@@ -1,6 +1,5 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,7 @@ import {
   FormSubmitButton,
   unitOptions,
 } from "@/components/forms/FormComponents";
-import apiClient from "@/api/client";
+// apiClient and mutations are handled by parent component
 import { toastHelpers } from "@/lib/toast-helpers";
 import { InventoryIngredient } from "@/types";
 
@@ -30,9 +29,6 @@ const stockItemSchema = z.object({
   low_stock_threshold: z.coerce
     .number()
     .min(0, "Low stock threshold must be 0 or greater"),
-  critical_stock_threshold: z.coerce
-    .number()
-    .min(0, "Critical stock threshold must be 0 or greater"),
   cost_per_unit: z.coerce.number().min(0, "Cost per unit must be 0 or greater"),
   supplier: z.string().min(1, "Supplier is required"),
   supplier_contact: z.string().min(1, "Supplier contact is required"),
@@ -60,18 +56,28 @@ type StockItemFormData = z.infer<typeof stockItemSchema>;
 
 interface StockItemFormProps {
   stockItem?: InventoryIngredient;
-  onSuccess?: () => void;
+  onSuccess?: () => void; // kept for compatibility
   onCancel?: () => void;
   mode?: "create" | "edit";
+  // handlers injected by parent
+  createHandler?: (data: any) => void;
+  updateHandler?: (id: number, data: any) => void;
+  isSubmitting?: boolean;
 }
 
 export function StockItemForm({
   stockItem,
-  onSuccess,
   onCancel,
   mode = "create",
-}: StockItemFormProps) {
-  const queryClient = useQueryClient();
+  // New handlers passed from parent
+  createHandler,
+  updateHandler,
+  isSubmitting,
+}: StockItemFormProps & {
+  createHandler?: (data: any) => void;
+  updateHandler?: (id: number, data: any) => void;
+  isSubmitting?: boolean;
+}) {
   const isEditing = mode === "edit" && stockItem;
 
   // Default values for the form - using backend field names
@@ -82,7 +88,6 @@ export function StockItemForm({
         quantity: stockItem.quantity,
         reserved_quantity: stockItem.reserved_quantity,
         low_stock_threshold: stockItem.low_stock_threshold,
-        critical_stock_threshold: stockItem.critical_stock_threshold,
         cost_per_unit: stockItem.cost_per_unit,
         supplier: stockItem.supplier,
         supplier_contact: stockItem.supplier_contact,
@@ -96,7 +101,6 @@ export function StockItemForm({
         quantity: 0,
         reserved_quantity: 0,
         low_stock_threshold: 0,
-        critical_stock_threshold: 0,
         cost_per_unit: 0,
         supplier: "",
         supplier_contact: "",
@@ -136,43 +140,7 @@ export function StockItemForm({
   const numericStep = unitStepMap[selectedUnit] ?? unitStepMap.default;
   const autoReorderEnabled = form.watch("auto_reorder") ?? false;
 
-  // Create mutation
-  const createMutation = useMutation({
-    mutationFn: (data: StockItemFormData) => apiClient.createIngredient(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["stock-items"] });
-      queryClient.invalidateQueries({ queryKey: ["ingredients"] });
-      queryClient.invalidateQueries({ queryKey: ["ingredient-stats"] });
-      toastHelpers.apiSuccess(
-        "Create",
-        `Ingredient "${form.getValues("name")}" created successfully`
-      );
-      form.reset();
-      onSuccess?.();
-    },
-    onError: (error) => {
-      toastHelpers.apiError("Create ingredient", error);
-    },
-  });
-
-  // Update mutation
-  const updateMutation = useMutation({
-    mutationFn: (data: StockItemFormData) =>
-      apiClient.updateIngredient(stockItem!.id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["stock-items"] });
-      queryClient.invalidateQueries({ queryKey: ["ingredients"] });
-      queryClient.invalidateQueries({ queryKey: ["ingredient-stats"] });
-      toastHelpers.apiSuccess(
-        "Update",
-        `Ingredient "${form.getValues("name")}" updated successfully`
-      );
-      onSuccess?.();
-    },
-    onError: (error) => {
-      toastHelpers.apiError("Update ingredient", error);
-    },
-  });
+  // createHandler/updateHandler passed from parent will be used instead of local mutations
 
   const onSubmit = async (data: StockItemFormData) => {
     try {
@@ -183,7 +151,7 @@ export function StockItemForm({
         quantity: Number(data.quantity),
         reserved_quantity: Number(data.reserved_quantity),
         low_stock_threshold: Number(data.low_stock_threshold),
-        critical_stock_threshold: Number(data.critical_stock_threshold),
+        // critical_stock_threshold removed
         cost_per_unit: Number(data.cost_per_unit),
         supplier: data.supplier,
         supplier_contact: data.supplier_contact,
@@ -193,9 +161,9 @@ export function StockItemForm({
       };
 
       if (isEditing) {
-        updateMutation.mutate(payload);
+        if (updateHandler && stockItem) updateHandler(stockItem.id, payload);
       } else {
-        createMutation.mutate(payload);
+        if (createHandler) createHandler(payload);
       }
     } catch (error) {
       console.error("Form submission error:", error);
@@ -203,7 +171,7 @@ export function StockItemForm({
     }
   };
 
-  const isLoading = createMutation.isPending || updateMutation.isPending;
+  const isLoading = isSubmitting ?? false;
 
   return (
     <Card className="w-full max-w-4xl mx-auto shadow-lg border-0">
@@ -309,14 +277,7 @@ export function StockItemForm({
                   description="Alert when quantity drops below this level"
                 />
 
-                <NumberInputField
-                  control={form.control}
-                  name="critical_stock_threshold"
-                  label="Critical Stock Threshold"
-                  min={0}
-                  step={numericStep}
-                  description="Critical alert when quantity drops below this level"
-                />
+                {/* critical_stock_threshold removed - using only low_stock_threshold for alerts */}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -25,6 +25,7 @@ export default function StockManagementTab({
 }: Props) {
   const [itemSearch, setItemSearch] = useState<string>("");
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
+  const [alertFilter, setAlertFilter] = useState<string>("all"); // "all", "low_stock", "out_of_stock"
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Get selected item for preview
@@ -138,7 +139,7 @@ export default function StockManagementTab({
       </div> */}
 
       {/* Quick Stock Adjustment */}
-      <Card>
+      <Card data-testid="quick-stock-adjustment">
         <CardHeader>
           <CardTitle>Quick Stock Adjustment</CardTitle>
         </CardHeader>
@@ -354,69 +355,141 @@ export default function StockManagementTab({
       {/* Low Stock Alerts */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-yellow-600" />
-            Items Requiring Attention
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-600" />
+              Items Requiring Attention
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium">Filter:</label>
+              <select
+                className="text-sm border rounded-md px-2 py-1"
+                value={alertFilter}
+                onChange={(e) => setAlertFilter(e.target.value)}
+              >
+                <option value="all">All Items</option>
+                <option value="low_stock">Low Stock Only</option>
+                <option value="out_of_stock">Out of Stock Only</option>
+              </select>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {lowStockItems
-              .concat(outOfStockItems)
-              .slice(0, 5)
-              .map((item: InventoryIngredient) => {
-                const qty = Number(item.quantity || 0);
-                const isOutOfStock = qty <= 0;
-                const statusColor = isOutOfStock
-                  ? "text-red-600"
-                  : "text-yellow-600";
-                const statusBg = isOutOfStock ? "bg-red-50" : "bg-yellow-50";
-                const statusBorder = isOutOfStock
-                  ? "border-red-200"
-                  : "border-yellow-200";
-                const statusText = isOutOfStock ? "Out of Stock" : "Low Stock";
+            {(() => {
+              // Filter items based on selected filter
+              let filteredItems: InventoryIngredient[] = [];
+              if (alertFilter === "all") {
+                filteredItems = lowStockItems.concat(outOfStockItems);
+              } else if (alertFilter === "low_stock") {
+                filteredItems = lowStockItems;
+              } else if (alertFilter === "out_of_stock") {
+                filteredItems = outOfStockItems;
+              }
 
-                return (
-                  <div
-                    key={item.id}
-                    className={`flex items-center justify-between p-3 border rounded-lg ${statusBg} ${statusBorder}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <AlertTriangle className={`w-5 h-5 ${statusColor}`} />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{item.name}</p>
-                          <span
-                            className={`text-xs px-2 py-1 rounded-full ${statusColor} ${statusBg} border ${statusBorder}`}
-                          >
-                            {statusText}
-                          </span>
+              return filteredItems
+                .slice(0, 5)
+                .map((item: InventoryIngredient) => {
+                  const qty = Number(item.quantity || 0);
+                  const isOutOfStock = qty <= 0;
+                  const statusColor = isOutOfStock
+                    ? "text-red-600"
+                    : "text-yellow-600";
+                  const statusBg = isOutOfStock ? "bg-red-50" : "bg-yellow-50";
+                  const statusBorder = isOutOfStock
+                    ? "border-red-200"
+                    : "border-yellow-200";
+                  const statusText = isOutOfStock
+                    ? "Out of Stock"
+                    : "Low Stock";
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`flex items-center justify-between p-3 border rounded-lg ${statusBg} ${statusBorder}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <AlertTriangle className={`w-5 h-5 ${statusColor}`} />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{item.name}</p>
+                            <span
+                              className={`text-xs px-2 py-1 rounded-full ${statusColor} ${statusBg} border ${statusBorder}`}
+                            >
+                              {statusText}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Current: {item.quantity} {item.unit} | Min:{" "}
+                            {item.low_stock_threshold} {item.unit}
+                          </p>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          Current: {item.quantity} {item.unit} | Min:{" "}
-                          {item.low_stock_threshold} {item.unit}
-                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        {/* Show auto-reorder button for items with auto_reorder enabled (both low stock and out of stock) */}
+                        {item.auto_reorder && item.reorder_quantity && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="bg-blue-600 hover:bg-blue-700"
+                            onClick={() => {
+                              setStockAdjustment({
+                                id: item.id,
+                                amount: Number(item.reorder_quantity),
+                                type: "add",
+                                notes: `Auto-reorder: ${item.reorder_quantity} ${item.unit} (${statusText})`,
+                              });
+                              stockUpdateMutation.mutate({
+                                id: item.id,
+                                amount: Number(item.reorder_quantity),
+                                type: "add",
+                                notes: `Auto-reorder: ${item.reorder_quantity} ${item.unit} (${statusText})`,
+                              });
+                            }}
+                          >
+                            <ShoppingCart className="w-4 h-4 mr-2" />
+                            Auto-Reorder ({item.reorder_quantity} {item.unit})
+                          </Button>
+                        )}
+
+                        {/* Manual adjustments are performed via the Quick Stock Adjustment panel */}
+                        <div className="text-sm text-muted-foreground">
+                          Adjust manually via Quick Stock Adjustment
+                        </div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        Reorder
-                      </Button>
-                      {/* <Button size="sm" variant="outline">
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Adjust
-                      </Button> */}
-                    </div>
+                  );
+                });
+            })()}
+            {(() => {
+              // Check if there are no items to display based on current filter
+              let hasItemsToShow = false;
+              if (alertFilter === "all") {
+                hasItemsToShow =
+                  lowStockItems.length > 0 || outOfStockItems.length > 0;
+              } else if (alertFilter === "low_stock") {
+                hasItemsToShow = lowStockItems.length > 0;
+              } else if (alertFilter === "out_of_stock") {
+                hasItemsToShow = outOfStockItems.length > 0;
+              }
+
+              if (!hasItemsToShow) {
+                return (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <AlertTriangle className="w-12 h-12 mx-auto mb-2 text-green-500" />
+                    <p>
+                      {alertFilter === "all" &&
+                        "All items are adequately stocked!"}
+                      {alertFilter === "low_stock" &&
+                        "No low stock items found!"}
+                      {alertFilter === "out_of_stock" &&
+                        "No out of stock items found!"}
+                    </p>
                   </div>
                 );
-              })}
-            {lowStockItems.length === 0 && outOfStockItems.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <AlertTriangle className="w-12 h-12 mx-auto mb-2 text-green-500" />
-                <p>All items are adequately stocked!</p>
-              </div>
-            )}
+              }
+              return null;
+            })()}
           </div>
         </CardContent>
       </Card>

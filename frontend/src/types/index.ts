@@ -87,7 +87,6 @@ export interface InventoryIngredient {
   quantity: number;
   reserved_quantity: number;
   low_stock_threshold: number;
-  critical_stock_threshold: number;
   cost_per_unit: number;
   supplier: string;
   supplier_contact: string;

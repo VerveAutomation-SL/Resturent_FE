@@ -356,11 +356,6 @@ class APIClient {
   async getLowStock(): Promise<APIResponse<InventoryIngredient[]>> {
     return this.request({ method: 'GET', url: '/low-stock' });
   }
-
-  async getCriticalStockIngredients(): Promise<APIResponse<Ingredient[]>> {
-    return this.request({ method: 'GET', url: '/ingredients/critical-stock' });
-  }
-
   async getOutOfStockIngredients(): Promise<APIResponse<Ingredient[]>> {
     return this.request({ method: 'GET', url: '/ingredients/out-of-stock' });
   }
@@ -403,7 +398,7 @@ class APIClient {
   }
 
   // Inventory Management
-  async getInventoryTransactions(): Promise<APIResponse<any[]>> {
+  async getInventoryTransactions(): Promise<APIResponse<{pagination: any; transactions: any[] }>> {
     return this.request({ method: 'GET', url: '/ingredients/inventory/transactions' });
   }
 
