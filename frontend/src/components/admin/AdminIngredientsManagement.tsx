@@ -329,15 +329,25 @@ export function AdminIngredientsManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-8">
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="inventory">All Stock</TabsTrigger>
-          {/* <TabsTrigger value="low-stock">Low Stock</TabsTrigger> */}
-          <TabsTrigger value="stock-management">Stock Manage</TabsTrigger>
-          <TabsTrigger value="alerts">Alerts</TabsTrigger>
-          <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="purchase-orders">Orders</TabsTrigger>
-          {/* <TabsTrigger value="reports">Reports</TabsTrigger> */}
+        <TabsList className="flex w-full gap-4 px-2">
+          <TabsTrigger value="dashboard" className="flex-1">
+            Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="inventory" className="flex-1">
+            All Stock
+          </TabsTrigger>
+          {/* <TabsTrigger value="low-stock" className="flex-1">Low Stock</TabsTrigger> */}
+          <TabsTrigger value="stock-management" className="flex-1">
+            Stock Manage
+          </TabsTrigger>
+          <TabsTrigger value="alerts" className="flex-1">
+            Alerts
+          </TabsTrigger>
+          <TabsTrigger value="transactions" className="flex-1">
+            Transactions
+          </TabsTrigger>
+          {/* <TabsTrigger value="purchase-orders" className="flex-1">Orders</TabsTrigger> */}
+          {/* <TabsTrigger value="reports" className="flex-1">Reports</TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="dashboard">

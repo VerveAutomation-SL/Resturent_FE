@@ -97,6 +97,32 @@ export interface InventoryIngredient {
   updated_at: string;
 }
 
+// Inventory transaction record returned by API
+export interface Transaction {
+  id?: number;
+  ingredient_id: number;
+  Ingredient?: {
+    id?: number;
+    name?: string;
+    unit?: string;
+  };
+  User: { id?: number; name: string };
+  approved_at?: string | null;
+  approved_by?: string | null;
+  created_at: string;
+  updated_at?: string;
+  previous_quantity?: string;
+  new_quantity?: string;
+  quantity?: string;
+  notes?: string;
+  performed_by?: number | string | null;
+  reference_type?: string;
+  status?: string;
+  total_cost?: number | null;
+  transaction_date?: string;
+  transaction_type?: string;
+}
+
 export interface InventorySummary {
   total: number;
   lowStock: number;
