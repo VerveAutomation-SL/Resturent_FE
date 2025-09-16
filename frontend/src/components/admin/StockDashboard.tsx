@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   RefreshCw,
-  BarChart3,
   AlertTriangle,
   XCircle,
   AlertCircle,

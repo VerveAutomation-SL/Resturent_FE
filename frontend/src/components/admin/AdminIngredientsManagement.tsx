@@ -12,41 +12,7 @@ import AlertsTab from "./AlertsTab";
 import StockManagementTab from "./StockManagementTab";
 import TransactionsTab from "./TransactionsTab";
 import PurchaseOrdersTab from "./PurchaseOrdersTab";
-import ReportsTab from "./ReportsTab";
 import { StockItemForm } from "../forms/StockItemForm";
-
-// Stock Alert interface - keeping for future use if needed
-// interface StockAlert {
-//   id: number;
-//   item_id: number;
-//   item_name: string;
-//   // Use only three categories: in_stock, low_stock, out_of_stock
-//   alert_type: "in_stock" | "low_stock" | "out_of_stock";
-//   message: string;
-//   created_at: string;
-//   resolved: boolean;
-//   priority: "low" | "medium" | "high";
-// }
-
-// interface StockTransaction {
-//   id: number;
-//   item_id: number;
-//   item_name: string;
-//   transaction_type:
-//     | "purchase"
-//     | "usage"
-//     | "adjustment"
-//     | "transfer"
-//     | "return"
-//     | "waste";
-//   quantity: number;
-//   unit_cost?: number;
-//   total_cost?: number;
-//   reference_number?: string;
-//   notes?: string;
-//   created_by: string;
-//   created_at: string;
-// }
 
 export function AdminIngredientsManagement() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -239,7 +205,7 @@ export function AdminIngredientsManagement() {
   // Create ingredient mutation (moved from StockItemForm)
   const createIngredientMutation = useMutation({
     mutationFn: (data: any) => apiClient.createIngredient(data),
-    onSuccess: (res) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock-items"] });
       queryClient.invalidateQueries({ queryKey: ["stock-stats"] });
       queryClient.invalidateQueries({ queryKey: ["stock-alerts"] });
@@ -257,7 +223,7 @@ export function AdminIngredientsManagement() {
   const updateIngredientMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) =>
       apiClient.updateIngredient(id, data),
-    onSuccess: (res) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock-items"] });
       queryClient.invalidateQueries({ queryKey: ["stock-stats"] });
       queryClient.invalidateQueries({ queryKey: ["stock-alerts"] });

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/api/client";
 import {
@@ -18,14 +18,12 @@ import {
   CreditCard,
   DollarSign,
   Check,
-  Clock,
   Table as TableIcon,
   Search,
   Package,
   Car,
   Users,
   Receipt,
-  History,
 } from "lucide-react";
 import type { Product, DiningTable, Order } from "@/types";
 
@@ -64,6 +62,7 @@ export function CounterInterface() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderNotes, setOrderNotes] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [tableSearchTerm, setTableSearchTerm] = useState("");
 
   // Payment states
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -157,6 +156,11 @@ export function CounterInterface() {
   // Available tables (for dine-in)
   const availableTables = tables.filter(
     (table) => !table.status || table.status === "available"
+  );
+
+  // Filter tables based on search
+  const filteredTables = availableTables.filter((table) =>
+    table.table_number.toLowerCase().includes(tableSearchTerm.toLowerCase())
   );
 
   const addToCart = (product: Product) => {
@@ -264,8 +268,8 @@ export function CounterInterface() {
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Left Sidebar - Products and Orders */}
-      <div className="w-2/3 border-r border-border overflow-hidden flex flex-col">
+      {/* Left Side - Header with Tabs and Cart */}
+      <div className="w-1/2 border-r border-border overflow-hidden flex flex-col">
         {/* Header with Tabs */}
         <div className="p-4 border-b border-border bg-card">
           <div className="flex items-center justify-between mb-4">
@@ -324,139 +328,100 @@ export function CounterInterface() {
                   Delivery
                 </Button>
               </div>
-
-              {/* Search */}
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              {/* Category Filter */}
-              <div className="flex gap-2 overflow-x-auto">
-                <Button
-                  variant={selectedCategory === "all" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory("all")}
-                >
-                  All Items
-                </Button>
-                {categories.map((category) => (
-                  <Button
-                    key={category.id}
-                    variant={
-                      selectedCategory === category.id ? "default" : "outline"
-                    }
-                    size="sm"
-                    onClick={() => setSelectedCategory(category.id)}
-                  >
-                    {category.name}
-                  </Button>
-                ))}
-              </div>
             </>
           )}
         </div>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-4">
+        {/* Cart Section */}
+        <div className="flex-1 overflow-y-auto">
           {activeTab === "create" ? (
-            /* Products Grid */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredProducts.map((product) => {
-                const cartItem = cart.find(
-                  (item) => item.product.id === product.id
-                );
-                return (
-                  <Card
-                    key={product.id}
-                    className="hover:shadow-md transition-shadow"
-                  >
-                    {/* Product Image */}
-                    {product.image_url ? (
-                      <div className="relative h-32 overflow-hidden rounded-t-lg">
-                        <img
-                          src={product.image_url}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-32 w-full rounded-t-lg bg-gradient-to-r from-orange-400 to-pink-500 flex items-center justify-center">
-                        <Package className="h-12 w-12 text-white" />
-                      </div>
-                    )}
+            <div className="p-4">
+              <h3 className="font-semibold mb-3 flex items-center">
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                Order Items ({cart.length})
+              </h3>
 
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-lg leading-tight">
-                            {product.name}
-                          </CardTitle>
-                          {product.description && (
-                            <CardDescription className="text-sm mt-1">
-                              {product.description.substring(0, 60)}
-                              {product.description.length > 60 ? "..." : ""}
-                            </CardDescription>
-                          )}
+              {cart.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No items in order</p>
+                  <p className="text-sm">
+                    Add items from the menu to get started
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {cart.map((item) => (
+                    <div
+                      key={item.product.id}
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">
+                          {item.product.name}
                         </div>
-                        <div className="text-lg font-bold text-primary">
-                          {formatCurrency(product.price)}
+                        <div className="text-sm text-muted-foreground">
+                          {formatCurrency(item.product.price)} × {item.quantity}
                         </div>
                       </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="flex items-center justify-between">
-                        {product.is_available && (
-                          <div className="flex items-center gap-2">
-                            {cartItem ? (
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => removeFromCart(product.id)}
-                                >
-                                  <Minus className="h-4 w-4" />
-                                </Button>
-                                <span className="w-8 text-center font-medium">
-                                  {cartItem.quantity}
-                                </span>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => addToCart(product)}
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => addToCart(product)}
-                              >
-                                <Plus className="h-4 w-4 mr-1" />
-                                Add
-                              </Button>
-                            )}
-                          </div>
-                        )}
+                      <div className="flex items-center gap-2 ml-2">
+                        <div className="font-medium">
+                          {formatCurrency(item.product.price * item.quantity)}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFromCart(item.product.id)}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="w-6 text-center text-sm">
+                            {item.quantity}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => addToCart(item.product)}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Order Notes */}
+              {cart.length > 0 && (
+                <div className="mt-4">
+                  <label className="text-sm font-medium">Order Notes</label>
+                  <Input
+                    placeholder="Special requests or notes..."
+                    value={orderNotes}
+                    onChange={(e) => setOrderNotes(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              )}
+
+              {/* Customer Name Input for non-dine-in orders */}
+              {orderType !== "dine_in" && (
+                <div className="mt-4">
+                  <label className="text-sm font-medium">Customer Name</label>
+                  <Input
+                    placeholder="Customer name"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              )}
             </div>
           ) : (
             /* Payment Processing - Orders List */
-            <div className="space-y-4">
+            <div className="p-4 space-y-4">
               <h3 className="text-lg font-semibold mb-4">
                 Orders Ready for Payment
               </h3>
@@ -515,23 +480,189 @@ export function CounterInterface() {
             </div>
           )}
         </div>
+
+        {/* Order Summary and Actions (for Create Order tab) */}
+        {activeTab === "create" && cart.length > 0 && (
+          <div className="p-4 border-t border-border bg-card">
+            <div className="space-y-3">
+              <div className="flex justify-between text-lg font-semibold">
+                <span>Total:</span>
+                <span>{formatCurrency(getTotalAmount())}</span>
+              </div>
+
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={handleCreateOrder}
+                disabled={
+                  cart.length === 0 ||
+                  (orderType === "dine_in" && !selectedTable) ||
+                  createOrderMutation.isPending
+                }
+              >
+                {createOrderMutation.isPending ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Creating Order...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Create{" "}
+                    {orderType === "dine_in"
+                      ? "Dine-In"
+                      : orderType === "takeout"
+                        ? "Takeout"
+                        : "Delivery"}{" "}
+                    Order
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Payment Processing Interface */}
+        {activeTab === "payment" && selectedOrder && (
+          <div className="p-4 border-t border-border bg-card space-y-4">
+            <div className="border-b border-border pb-3">
+              <h3 className="font-semibold mb-3">Payment Details</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Order:</span>
+                  <span>#{selectedOrder.order_number}</span>
+                </div>
+                {selectedOrder.customer_name && (
+                  <div className="flex justify-between">
+                    <span>Customer:</span>
+                    <span>{selectedOrder.customer_name}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-semibold text-lg">
+                  <span>Total:</span>
+                  <span>{formatCurrency(selectedOrder.price ?? 0)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Payment Method
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant={paymentMethod === "cash" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPaymentMethod("cash")}
+                >
+                  <DollarSign className="w-4 h-4 mr-1" />
+                  Cash
+                </Button>
+                <Button
+                  variant={paymentMethod === "card" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPaymentMethod("card")}
+                >
+                  <CreditCard className="w-4 h-4 mr-1" />
+                  Card
+                </Button>
+                <Button
+                  variant={paymentMethod === "others" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPaymentMethod("others")}
+                  className="col-span-2"
+                >
+                  Others
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-1 block">
+                Payment Amount
+              </label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+              />
+            </div>
+
+            {paymentMethod !== "cash" && (
+              <div>
+                <label className="text-sm font-medium mb-1 block">
+                  Reference Number
+                </label>
+                <Input
+                  placeholder="Transaction reference"
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                />
+              </div>
+            )}
+
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={handleProcessPayment}
+              disabled={!paymentAmount || processPaymentMutation.isPending}
+            >
+              {processPaymentMutation.isPending ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Process Payment
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* Right Sidebar */}
-      <div className="w-1/3 flex flex-col bg-card">
+      {/* Right Side - Table Selection and Product Selection */}
+      <div className="w-1/2 flex flex-col bg-card">
         {activeTab === "create" ? (
-          /* Create Order Interface */
           <>
-            {/* Table/Customer Selection */}
-            <div className="p-4 border-b border-border">
-              {orderType === "dine_in" ? (
-                <>
-                  <h3 className="font-semibold mb-3 flex items-center">
-                    <TableIcon className="w-4 h-4 mr-2" />
-                    Select Table
-                  </h3>
-                  <div className="grid grid-cols-3 gap-2 mb-4">
-                    {availableTables.slice(0, 9).map((table) => (
+            {/* Table Selection (for dine-in) or Customer Info (for others) */}
+            {orderType === "dine_in" && (
+              <div className="p-4 border-b border-border">
+                <h3 className="font-semibold mb-3 flex items-center">
+                  <TableIcon className="w-4 h-4 mr-2" />
+                  Select Table
+                </h3>
+
+                {/* Table Search */}
+                <div className="relative mb-3">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search tables..."
+                    value={tableSearchTerm}
+                    onChange={(e) => setTableSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {filteredTables.length === 0 ? (
+                    <div className="col-span-3 text-center py-4 text-muted-foreground">
+                      <TableIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">
+                        {tableSearchTerm
+                          ? "No tables found"
+                          : "No available tables"}
+                      </p>
+                      {tableSearchTerm && (
+                        <p className="text-xs">Try adjusting your search</p>
+                      )}
+                    </div>
+                  ) : (
+                    filteredTables.map((table) => (
                       <Button
                         key={table.id}
                         variant={
@@ -539,270 +670,182 @@ export function CounterInterface() {
                         }
                         size="sm"
                         onClick={() => setSelectedTable(table)}
-                        className="h-12"
+                        className="h-14 flex flex-col items-center justify-center"
                       >
-                        {table.table_number}
-                        <span className="text-xs block">
+                        <span className="font-semibold text-sm">
+                          Table {table.table_number}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
                           {table.capacity} seats
                         </span>
                       </Button>
-                    ))}
-                  </div>
-                </>
+                    ))
+                  )}
+                </div>
+
+                {/* Customer name input for dine-in */}
+                <div className="mt-4">
+                  <Input
+                    placeholder="Customer name (optional)"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Product Selection */}
+            <div className="p-4 border-b border-border">
+              {/* Search */}
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Category Filter */}
+              <div className="flex gap-2 overflow-x-auto">
+                <Button
+                  variant={selectedCategory === "all" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCategory("all")}
+                >
+                  All Items
+                </Button>
+                {categories.map((category) => (
+                  <Button
+                    key={category.id}
+                    variant={
+                      selectedCategory === category.id ? "default" : "outline"
+                    }
+                    size="sm"
+                    onClick={() => setSelectedCategory(category.id)}
+                  >
+                    {category.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Products Grid */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {filteredProducts.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No items found</p>
+                  <p className="text-sm">
+                    {searchTerm || selectedCategory !== "all"
+                      ? "Try adjusting your search or category filter"
+                      : "No products available"}
+                  </p>
+                </div>
               ) : (
-                <div className="mb-4">
-                  <h3 className="font-semibold mb-2">Customer Information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {filteredProducts.map((product) => {
+                    const cartItem = cart.find(
+                      (item) => item.product.id === product.id
+                    );
+                    return (
+                      <Card
+                        key={product.id}
+                        className="hover:shadow-sm transition-shadow"
+                      >
+                        {/* Product Image */}
+                        {product.image_url ? (
+                          <div className="relative h-16 overflow-hidden rounded-t-lg">
+                            <img
+                              src={product.image_url}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-16 w-full rounded-t-lg bg-gradient-to-r from-orange-400 to-pink-500 flex items-center justify-center">
+                            <Package className="h-6 w-6 text-white" />
+                          </div>
+                        )}
+
+                        <CardHeader className="p-2 pb-1">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <CardTitle className="text-xs leading-tight truncate">
+                                {product.name}
+                              </CardTitle>
+                              {product.description && (
+                                <CardDescription className="text-xs mt-1 line-clamp-1">
+                                  {product.description.substring(0, 30)}
+                                  {product.description.length > 30 ? "..." : ""}
+                                </CardDescription>
+                              )}
+                            </div>
+                            <div className="text-xs font-bold text-primary ml-2">
+                              {formatCurrency(product.price)}
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-2 pt-0">
+                          <div className="flex items-center justify-between">
+                            {product.is_available && (
+                              <div className="flex items-center gap-1 w-full">
+                                {cartItem ? (
+                                  <div className="flex items-center gap-1 w-full">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => removeFromCart(product.id)}
+                                      className="h-6 w-6 p-0"
+                                    >
+                                      <Minus className="h-2 w-2" />
+                                    </Button>
+                                    <span className="w-6 text-center font-medium text-xs">
+                                      {cartItem.quantity}
+                                    </span>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => addToCart(product)}
+                                      className="h-6 w-6 p-0"
+                                    >
+                                      <Plus className="h-2 w-2" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => addToCart(product)}
+                                    className="w-full h-6 text-xs"
+                                  >
+                                    <Plus className="h-2 w-2 mr-1" />
+                                    Add
+                                  </Button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
-
-              <Input
-                placeholder={
-                  orderType === "dine_in"
-                    ? "Customer name (optional)"
-                    : "Customer name"
-                }
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-              />
             </div>
-
-            {/* Cart */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="p-4">
-                <h3 className="font-semibold mb-3 flex items-center">
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  Order Items ({cart.length})
-                </h3>
-
-                {cart.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No items in order</p>
-                    <p className="text-sm">
-                      Add items from the menu to get started
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {cart.map((item) => (
-                      <div
-                        key={item.product.id}
-                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">
-                            {item.product.name}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {formatCurrency(item.product.price)} ×{" "}
-                            {item.quantity}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 ml-2">
-                          <div className="font-medium">
-                            {formatCurrency(item.product.price * item.quantity)}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeFromCart(item.product.id)}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="w-6 text-center text-sm">
-                              {item.quantity}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => addToCart(item.product)}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Order Notes */}
-                {cart.length > 0 && (
-                  <div className="mt-4">
-                    <label className="text-sm font-medium">Order Notes</label>
-                    <Input
-                      placeholder="Special requests or notes..."
-                      value={orderNotes}
-                      onChange={(e) => setOrderNotes(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Order Summary and Actions */}
-            {cart.length > 0 && (
-              <div className="p-4 border-t border-border bg-card">
-                <div className="space-y-3">
-                  <div className="flex justify-between text-lg font-semibold">
-                    <span>Total:</span>
-                    <span>{formatCurrency(getTotalAmount())}</span>
-                  </div>
-
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={handleCreateOrder}
-                    disabled={
-                      cart.length === 0 ||
-                      (orderType === "dine_in" && !selectedTable) ||
-                      createOrderMutation.isPending
-                    }
-                  >
-                    {createOrderMutation.isPending ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                        Creating Order...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-4 h-4 mr-2" />
-                        Create{" "}
-                        {orderType === "dine_in"
-                          ? "Dine-In"
-                          : orderType === "takeout"
-                            ? "Takeout"
-                            : "Delivery"}{" "}
-                        Order
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
           </>
         ) : (
-          /* Payment Processing Interface */
-          <>
-            {selectedOrder ? (
-              <>
-                <div className="p-4 border-b border-border">
-                  <h3 className="font-semibold mb-3">Payment Details</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Order:</span>
-                      <span>#{selectedOrder.order_number}</span>
-                    </div>
-                    {selectedOrder.customer_name && (
-                      <div className="flex justify-between">
-                        <span>Customer:</span>
-                        <span>{selectedOrder.customer_name}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between font-semibold text-lg">
-                      <span>Total:</span>
-                      <span>{formatCurrency(selectedOrder.price ?? 0)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Payment Method
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant={
-                          paymentMethod === "cash" ? "default" : "outline"
-                        }
-                        size="sm"
-                        onClick={() => setPaymentMethod("cash")}
-                      >
-                        <DollarSign className="w-4 h-4 mr-1" />
-                        Cash
-                      </Button>
-                      <Button
-                        variant={
-                          paymentMethod === "card" ? "default" : "outline"
-                        }
-                        size="sm"
-                        onClick={() => setPaymentMethod("card")}
-                      >
-                        <CreditCard className="w-4 h-4 mr-1" />
-                        Card
-                      </Button>
-                      <Button
-                        variant={
-                          paymentMethod === "others" ? "default" : "outline"
-                        }
-                        size="sm"
-                        onClick={() => setPaymentMethod("others")}
-                      >
-                        Others
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">
-                      Payment Amount
-                    </label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={paymentAmount}
-                      onChange={(e) => setPaymentAmount(e.target.value)}
-                    />
-                  </div>
-
-                  {paymentMethod !== "cash" && (
-                    <div>
-                      <label className="text-sm font-medium mb-1 block">
-                        Reference Number
-                      </label>
-                      <Input
-                        placeholder="Transaction reference"
-                        value={referenceNumber}
-                        onChange={(e) => setReferenceNumber(e.target.value)}
-                      />
-                    </div>
-                  )}
-
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={handleProcessPayment}
-                    disabled={
-                      !paymentAmount || processPaymentMutation.isPending
-                    }
-                  >
-                    {processPaymentMutation.isPending ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard className="w-4 h-4 mr-2" />
-                        Process Payment
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                <div className="text-center">
-                  <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>Select an order to process payment</p>
-                </div>
-              </div>
-            )}
-          </>
+          /* Payment Tab - Show selected order details or empty state */
+          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            <div className="text-center">
+              <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>Select an order to process payment</p>
+            </div>
+          </div>
         )}
       </div>
     </div>
