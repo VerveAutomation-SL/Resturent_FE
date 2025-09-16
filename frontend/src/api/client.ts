@@ -280,7 +280,7 @@ class APIClient {
   async createCounterOrder(order: CreateOrderRequest): Promise<APIResponse<Order>> {
     return this.request({
       method: 'POST',
-      url: '/counter/orders',
+      url: '/orders',
       data: order,
     });
   }
@@ -289,7 +289,7 @@ class APIClient {
   async processCounterPayment(orderId: string, payment: ProcessPaymentRequest): Promise<APIResponse<Payment>> {
     return this.request({
       method: 'POST',
-      url: `/counter/orders/${orderId}/payments`,
+      url: `/payments/orders/${orderId}/pay`,
       data: payment,
     });
   }

@@ -196,9 +196,9 @@ export interface Order {
   updated_at: string;
   served_at?: string;
   completed_at?: string;
-  table?: DiningTable;
+  RestaurantTable?: DiningTable;
   user?: User;
-  items?: OrderItem[];
+  OrderItems?: OrderItem[];
   payments?: Payment[];
 }
 export enum OrderStatus {
@@ -235,7 +235,6 @@ export interface CreateOrderRequest {
 export interface CreateOrderItem {
   product_id: string;
   quantity: number;
-  special_instructions?: string;
 }
 
 export interface UpdateOrderStatusRequest {
@@ -276,11 +275,9 @@ export interface PaymentSummary {
   payment_count: number;
 }
 
-// Cart Types (Frontend Only)
 export interface CartItem {
   product: Product;
   quantity: number;
-  special_instructions?: string;
 }
 
 export interface Cart {
