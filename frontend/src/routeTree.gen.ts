@@ -10,17 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as KitchenRouteImport } from './routes/kitchen'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminTablesRouteImport } from './routes/admin/tables'
 import { Route as AdminStaffRouteImport } from './routes/admin/staff'
 import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
-import { Route as AdminServerRouteImport } from './routes/admin/server'
 import { Route as AdminReportsRouteImport } from './routes/admin/reports'
 import { Route as AdminMenuRouteImport } from './routes/admin/menu'
-import { Route as AdminKitchenRouteImport } from './routes/admin/kitchen'
 import { Route as AdminIngredientsRouteImport } from './routes/admin/ingredients'
 import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
 import { Route as AdminCounterRouteImport } from './routes/admin/counter'
@@ -28,11 +25,6 @@ import { Route as AdminCounterRouteImport } from './routes/admin/counter'
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const KitchenRoute = KitchenRouteImport.update({
-  id: '/kitchen',
-  path: '/kitchen',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -65,11 +57,6 @@ const AdminSettingsRoute = AdminSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminServerRoute = AdminServerRouteImport.update({
-  id: '/server',
-  path: '/server',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminReportsRoute = AdminReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -78,11 +65,6 @@ const AdminReportsRoute = AdminReportsRouteImport.update({
 const AdminMenuRoute = AdminMenuRouteImport.update({
   id: '/menu',
   path: '/menu',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminKitchenRoute = AdminKitchenRouteImport.update({
-  id: '/kitchen',
-  path: '/kitchen',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminIngredientsRoute = AdminIngredientsRouteImport.update({
@@ -104,15 +86,12 @@ const AdminCounterRoute = AdminCounterRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
-  '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
   '/admin/counter': typeof AdminCounterRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/ingredients': typeof AdminIngredientsRoute
-  '/admin/kitchen': typeof AdminKitchenRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/reports': typeof AdminReportsRoute
-  '/admin/server': typeof AdminServerRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/tables': typeof AdminTablesRoute
@@ -120,15 +99,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
   '/admin/counter': typeof AdminCounterRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/ingredients': typeof AdminIngredientsRoute
-  '/admin/kitchen': typeof AdminKitchenRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/reports': typeof AdminReportsRoute
-  '/admin/server': typeof AdminServerRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/tables': typeof AdminTablesRoute
@@ -138,15 +114,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
-  '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
   '/admin/counter': typeof AdminCounterRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/ingredients': typeof AdminIngredientsRoute
-  '/admin/kitchen': typeof AdminKitchenRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/reports': typeof AdminReportsRoute
-  '/admin/server': typeof AdminServerRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/tables': typeof AdminTablesRoute
@@ -157,15 +130,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
-    | '/kitchen'
     | '/login'
     | '/admin/counter'
     | '/admin/dashboard'
     | '/admin/ingredients'
-    | '/admin/kitchen'
     | '/admin/menu'
     | '/admin/reports'
-    | '/admin/server'
     | '/admin/settings'
     | '/admin/staff'
     | '/admin/tables'
@@ -173,15 +143,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/kitchen'
     | '/login'
     | '/admin/counter'
     | '/admin/dashboard'
     | '/admin/ingredients'
-    | '/admin/kitchen'
     | '/admin/menu'
     | '/admin/reports'
-    | '/admin/server'
     | '/admin/settings'
     | '/admin/staff'
     | '/admin/tables'
@@ -190,15 +157,12 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
-    | '/kitchen'
     | '/login'
     | '/admin/counter'
     | '/admin/dashboard'
     | '/admin/ingredients'
-    | '/admin/kitchen'
     | '/admin/menu'
     | '/admin/reports'
-    | '/admin/server'
     | '/admin/settings'
     | '/admin/staff'
     | '/admin/tables'
@@ -208,7 +172,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
-  KitchenRoute: typeof KitchenRoute
   LoginRoute: typeof LoginRoute
 }
 
@@ -219,13 +182,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/kitchen': {
-      id: '/kitchen'
-      path: '/kitchen'
-      fullPath: '/kitchen'
-      preLoaderRoute: typeof KitchenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -270,13 +226,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/server': {
-      id: '/admin/server'
-      path: '/server'
-      fullPath: '/admin/server'
-      preLoaderRoute: typeof AdminServerRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/reports': {
       id: '/admin/reports'
       path: '/reports'
@@ -289,13 +238,6 @@ declare module '@tanstack/react-router' {
       path: '/menu'
       fullPath: '/admin/menu'
       preLoaderRoute: typeof AdminMenuRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/kitchen': {
-      id: '/admin/kitchen'
-      path: '/kitchen'
-      fullPath: '/admin/kitchen'
-      preLoaderRoute: typeof AdminKitchenRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/ingredients': {
@@ -326,10 +268,8 @@ interface AdminRouteChildren {
   AdminCounterRoute: typeof AdminCounterRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminIngredientsRoute: typeof AdminIngredientsRoute
-  AdminKitchenRoute: typeof AdminKitchenRoute
   AdminMenuRoute: typeof AdminMenuRoute
   AdminReportsRoute: typeof AdminReportsRoute
-  AdminServerRoute: typeof AdminServerRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminStaffRoute: typeof AdminStaffRoute
   AdminTablesRoute: typeof AdminTablesRoute
@@ -340,10 +280,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCounterRoute: AdminCounterRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminIngredientsRoute: AdminIngredientsRoute,
-  AdminKitchenRoute: AdminKitchenRoute,
   AdminMenuRoute: AdminMenuRoute,
   AdminReportsRoute: AdminReportsRoute,
-  AdminServerRoute: AdminServerRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminStaffRoute: AdminStaffRoute,
   AdminTablesRoute: AdminTablesRoute,
@@ -355,7 +293,6 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
-  KitchenRoute: KitchenRoute,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport

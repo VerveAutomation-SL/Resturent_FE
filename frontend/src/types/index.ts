@@ -106,7 +106,7 @@ export interface Transaction {
     name?: string;
     unit?: string;
   };
-  User: { id?: number; name: string };
+  User: { id?: number; name?: string };
   approved_at?: string | null;
   approved_by?: string | null;
   created_at: string;

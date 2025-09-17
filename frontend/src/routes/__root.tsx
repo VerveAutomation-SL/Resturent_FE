@@ -1,16 +1,16 @@
-import { createRootRoute, Outlet } from '@tanstack/react-router'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import '../index.css'
+import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import "../index.css";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 1000 * 60 * 1, // 1 minute
       retry: 1,
     },
   },
-})
+});
 
 export const Route = createRootRoute({
   component: () => (
@@ -21,4 +21,4 @@ export const Route = createRootRoute({
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   ),
-})
+});

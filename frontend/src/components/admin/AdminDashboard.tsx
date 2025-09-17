@@ -16,7 +16,6 @@ import {
   Table,
   TrendingUp,
   Plus,
-  Settings,
   BarChart3,
 } from "lucide-react";
 
@@ -36,7 +35,11 @@ export function AdminDashboard() {
   // Fetch dashboard stats
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["dashboardStats"],
-    queryFn: () => apiClient.getDashboardStats().then((res) => res.data),
+    queryFn: () =>
+      apiClient.getDashboardStats().then((res) => {
+        console.log("Dashboard Stats:", res.data);
+        return res.data;
+      }),
   });
 
   // Fetch income report

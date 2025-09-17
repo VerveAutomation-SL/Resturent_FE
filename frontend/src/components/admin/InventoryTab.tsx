@@ -9,15 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Search,
-  Download,
-  Upload,
-  Plus,
-  Edit,
-  Trash2,
-  Package,
-} from "lucide-react";
+import { Search, Edit, Trash2, Package } from "lucide-react";
 import type { InventoryIngredient } from "@/types";
 
 type Props = {

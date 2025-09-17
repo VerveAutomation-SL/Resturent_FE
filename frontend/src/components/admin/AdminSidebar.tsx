@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link, useRouter, useLocation } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/ui/user-menu";
 import {
   LayoutDashboard,
-  Users,
   CreditCard,
   ChefHat,
   Settings,
@@ -27,13 +26,6 @@ const adminSections = [
     icon: <LayoutDashboard className="w-5 h-5" />,
     description: "Overview and statistics",
     href: "/admin/dashboard",
-  },
-  {
-    id: "server",
-    label: "Server Interface",
-    icon: <Users className="w-5 h-5" />,
-    description: "Server order interface",
-    href: "/admin/server",
   },
   {
     id: "counter",
