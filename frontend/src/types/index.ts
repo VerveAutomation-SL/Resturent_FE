@@ -220,18 +220,22 @@ export interface OrderItem {
   status: OrderStatus;
   created_at: string;
   updated_at: string;
-  product?: Product;
+  Product?: Product;
   notes?: string; // Alternative field name for special instructions
 }
 
 export interface CreateOrderRequest {
   table_id?: string;
-  customer_name?: string;
-  order_type: 'dine_in' | 'takeout' | 'delivery';
+  order_type: 'dine_in' | 'take_away' | 'delivery';
   items: CreateOrderItem[];
   notes?: string;
 }
 
+export interface UpdateOrderRequest {
+  order_id: string;
+  items?: CreateOrderItem[];
+  notes?: string;
+}
 export interface CreateOrderItem {
   product_id: string;
   quantity: number;
@@ -276,7 +280,7 @@ export interface PaymentSummary {
 }
 
 export interface CartItem {
-  product: Product;
+  Product: Product;
   quantity: number;
 }
 

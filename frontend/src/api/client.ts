@@ -27,6 +27,8 @@ import type {
   OrderStatus,
   TableStats,
   InventorySummary,
+  Transaction,
+  UpdateOrderRequest,
 } from '@/types';
 import Cookies from 'js-cookie';
 
@@ -191,7 +193,7 @@ class APIClient {
   async updateOrderStatus(id: string, status: OrderStatus, notes?: string): Promise<APIResponse<Order>> {
     const statusUpdate: UpdateOrderStatusRequest = { status, notes };
     return this.request({
-      method: 'PATCH',
+      method: 'PUT',
       url: `/orders/${id}/status`,
       data: statusUpdate,
     });
@@ -281,6 +283,13 @@ class APIClient {
     return this.request({
       method: 'POST',
       url: '/orders',
+      data: order,
+    });
+  }
+  async updateCounterOrder(order: UpdateOrderRequest): Promise<APIResponse<Order>> {
+    return this.request({
+      method: 'PATCH',
+      url: `/orders/${order.order_id}`,
       data: order,
     });
   }
@@ -396,7 +405,7 @@ class APIClient {
   }
 
   // Inventory Management
-  async getInventoryTransactions(): Promise<APIResponse<{pagination: any; transactions: any[] }>> {
+  async getInventoryTransactions(): Promise<APIResponse<{pagination: any; transactions: Transaction[] }>> {
     return this.request({ method: 'GET', url: '/ingredients/inventory/transactions' });
   }
 

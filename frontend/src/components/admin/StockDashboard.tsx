@@ -262,7 +262,7 @@ export default function StockDashboard({
         </Card>
       </div>
 
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <RefreshCw className="w-5 h-5" />
@@ -316,7 +316,7 @@ export default function StockDashboard({
               <ShoppingCart className="w-4 h-4 mb-2" />
               Purchase Orders
             </Button>
-            {/* <Button
+            <Button
               onClick={() => setActiveTab("reports")}
               variant="outline"
               size="sm"
@@ -324,10 +324,10 @@ export default function StockDashboard({
             >
               <BarChart3 className="w-4 h-4 mb-2" />
               Reports & Analytics
-            </Button> */}
+            </Button>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       <Card>
         <CardHeader>

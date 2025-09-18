@@ -18,14 +18,19 @@ import {
   CreditCard,
   DollarSign,
   Check,
+  CheckCircle,
   Table as TableIcon,
   Search,
   Package,
   Car,
   Users,
   Receipt,
-  X,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
+import { X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
 import type {
   Product,
   DiningTable,
@@ -33,22 +38,28 @@ import type {
   ProcessPaymentRequest,
   CreateOrderRequest,
   CartItem,
+  UpdateOrderRequest,
 } from "@/types";
+import { OrderStatus } from "@/types";
 
 export function CounterInterface() {
   // State
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [existingOrderItems, setExistingOrderItems] = useState<CartItem[]>([]); // Track existing order items separately
   const [activeTab, setActiveTab] = useState<"create" | "payment">("create");
   const [orderType, setOrderType] = useState<
-    "dine_in" | "takeout" | "delivery"
+    "dine_in" | "take_away" | "delivery"
   >("dine_in");
   const [selectedTable, setSelectedTable] = useState<DiningTable | null>(null);
-  const [showTableModal, setShowTableModal] = useState(false);
   const [tableSearchTerm, setTableSearchTerm] = useState("");
   const [orderNotes, setOrderNotes] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [currentView, setCurrentView] = useState<"tables" | "products">(
+    "tables"
+  );
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set()); // Track which orders are expanded
   const [paymentMethod, setPaymentMethod] = useState<
     "cash" | "card" | "others"
   >("cash");
@@ -62,7 +73,7 @@ export function CounterInterface() {
     queryKey: ["products"],
     queryFn: () =>
       apiClient.getProducts().then((res) => {
-        console.log(res.data);
+        // console.log(res.data);
         return res.data?.products || [];
       }),
   });
@@ -71,7 +82,6 @@ export function CounterInterface() {
     queryKey: ["categories"],
     queryFn: () =>
       apiClient.getCategories().then((res) => {
-        console.log(res.data);
         return res.data;
       }),
   });
@@ -80,30 +90,50 @@ export function CounterInterface() {
     queryKey: ["tables"],
     queryFn: () =>
       apiClient.getAdminTables().then((res) => {
-        console.log(res.data);
+        // console.log(res.data);
         return res.data?.tables || [];
       }),
   });
 
   const { data: orders } = useQuery({
-    queryKey: ["orders", "pending"],
+    queryKey: ["orders"],
     queryFn: () =>
       apiClient.getOrders({ status: "confirmed" }).then((res) => {
-        console.log(res.data);
+        console.log("Orders:", res.data);
         return res.data;
       }),
-    enabled: activeTab === "payment",
+    enabled: activeTab === "payment" || currentView === "tables",
   });
 
-  // Mutations
+  // Order Create Mutations
   const createOrderMutation = useMutation({
     mutationFn: (orderData: CreateOrderRequest) =>
       apiClient.createCounterOrder(orderData),
     onSuccess: () => {
       setCart([]);
       setSelectedTable(null);
+      setSelectedOrder(null); // Clear selected order
       setOrderNotes("");
+      setCurrentView("tables");
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["tables"] });
+    },
+  });
+
+  // order update Mutation
+  const updateOrderMutation = useMutation({
+    mutationFn: (orderData: UpdateOrderRequest) =>
+      apiClient.updateCounterOrder(orderData),
+    onSuccess: () => {
+      setCart([]);
+      setSelectedTable(null);
+      setSelectedOrder(null); // Clear selected order
+      setExistingOrderItems([]);
+      setOrderNotes("");
+      setCurrentView("tables");
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["tables"] });
+      console.log("Order updated successfully");
     },
   });
 
@@ -124,44 +154,98 @@ export function CounterInterface() {
       }
 
       setSelectedOrder(null);
+      setSelectedTable(null);
+      setCart([]);
       setPaymentAmount("");
       setReferenceNumber("");
+      setCurrentView("tables");
+      setActiveTab("create");
+      // Show success toast
+      try {
+        toast({
+          title: "Payment processed",
+          description: `Order ${vars.orderId} paid ${formatCurrency(Number(vars.paymentData.amount))}`,
+        });
+      } catch (e) {
+        console.error("Toast failed", e);
+      }
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["tables"] });
+    },
+  });
+
+  const { toast } = useToast();
+
+  const cancelOrderMutation = useMutation({
+    mutationFn: (orderId: string) =>
+      apiClient.updateOrderStatus(orderId, OrderStatus.CANCELLED),
+    onSuccess: () => {
+      setSelectedOrder(null);
+      setSelectedTable(null);
+      setCart([]);
+      setExistingOrderItems([]);
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["tables"] });
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
+      toast({
+        title: "Order cancelled",
+        description: "The order was successfully cancelled.",
+      });
+      setActiveTab("create");
+      setCurrentView("tables");
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Cancel failed",
+        description: err?.message || "Failed to cancel order",
+      });
     },
   });
 
   // Helper functions
+  const toggleOrderExpansion = (orderId: string) => {
+    setExpandedOrders((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
+
   const addToCart = (product: Product) => {
     setCart((prev) => {
-      const existingItem = prev.find((item) => item.product.id === product.id);
+      const existingItem = prev.find((item) => item.Product.id === product.id);
       if (existingItem) {
         return prev.map((item) =>
-          item.product.id === product.id
+          item.Product.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { Product: product, quantity: 1 }];
     });
   };
 
   const removeFromCart = (productId: string) => {
     setCart((prev) => {
-      const existingItem = prev.find((item) => item.product.id === productId);
+      const existingItem = prev.find((item) => item.Product.id === productId);
       if (existingItem && existingItem.quantity > 1) {
         return prev.map((item) =>
-          item.product.id === productId
+          item.Product.id === productId
             ? { ...item, quantity: item.quantity - 1 }
             : item
         );
       }
-      return prev.filter((item) => item.product.id !== productId);
+      return prev.filter((item) => item.Product.id !== productId);
     });
   };
 
   const getTotalAmount = () => {
     return cart.reduce(
-      (total, item) => total + item.product.price * item.quantity,
+      (total, item) => total + item.Product.price * item.quantity,
       0
     );
   };
@@ -182,20 +266,72 @@ export function CounterInterface() {
       table.capacity.toString().startsWith(tableSearchTerm)
   );
 
+  // Get orders for occupied tables
+  const getTableOrder = (tableId: string) => {
+    return orders?.find(
+      (order) =>
+        order.table_id === tableId || order.RestaurantTable?.id === tableId
+    );
+  };
+
   // Event handlers
   const handleTableSelect = (table: DiningTable) => {
+    const occupied = table.status === "occupied";
+    const tableOrder = getTableOrder(table.id);
+
     setSelectedTable(table);
-    setShowTableModal(false);
+    setCurrentView("products");
     setTableSearchTerm("");
+
+    // If table is occupied and has an order, load the existing items separately
+    if (occupied && tableOrder && tableOrder.OrderItems) {
+      const existingItems: any[] = tableOrder.OrderItems.map((orderItem) => {
+        return { Product: orderItem.Product, quantity: orderItem.quantity };
+      });
+      console.log("existingItems", existingItems);
+
+      setExistingOrderItems(existingItems);
+      setCart([]);
+
+      // Set the selected order for potential updates
+      setSelectedOrder(tableOrder);
+    } else {
+      // Clear both carts for new orders on available tables
+      setExistingOrderItems([]);
+      setCart([]);
+      setSelectedOrder(null);
+    }
   };
 
   const handleCreateOrder = async () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0) {
+      return toast({
+        title: "No items in cart",
+        description: "Please add items to the cart before creating an order.",
+      });
+    }
+    // If editing an existing order, call update mutation
+    if (selectedOrder) {
+      const updateData: UpdateOrderRequest = {
+        order_id: selectedOrder.id,
+        items: cart.map((item) => ({
+          product_id: item.Product.id,
+          quantity: item.quantity,
+        })),
+        notes: orderNotes,
+      };
 
+      console.log("Updating order with data:", updateData);
+
+      updateOrderMutation.mutate(updateData);
+      return;
+    }
+
+    // Otherwise create a new order
     const orderData: CreateOrderRequest = {
       order_type: orderType,
       items: cart.map((item) => ({
-        product_id: item.product.id,
+        product_id: item.Product.id,
         quantity: item.quantity,
       })),
       notes: orderNotes,
@@ -313,7 +449,7 @@ export function CounterInterface() {
     switch (type) {
       case "dine_in":
         return <Users className="w-4 h-4" />;
-      case "takeout":
+      case "take_away":
         return <Package className="w-4 h-4" />;
       case "delivery":
         return <Car className="w-4 h-4" />;
@@ -324,9 +460,9 @@ export function CounterInterface() {
 
   const getOrderTypeBadge = (type: string) => {
     const configs = {
-      dine_in: { label: "Dine-In", color: "bg-blue-100 text-blue-800" },
-      takeout: { label: "Takeout", color: "bg-green-100 text-green-800" },
-      delivery: { label: "Delivery", color: "bg-purple-100 text-purple-800" },
+      dine_in: { label: "Dine-In", color: "bg-gray-200 text-gray-900" },
+      take_away: { label: "Take Away", color: "bg-gray-300 text-gray-900" },
+      delivery: { label: "Delivery", color: "bg-gray-400 text-white" },
     };
     const config = configs[type as keyof typeof configs] || configs.dine_in;
     return <Badge className={config.color}>{config.label}</Badge>;
@@ -338,7 +474,7 @@ export function CounterInterface() {
       <div className="w-full border-r border-border overflow-hidden flex flex-col">
         {/* Header with Tabs */}
         <div className="p-4 border-b border-border bg-card">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold">Counter / Checkout</h1>
               <p className="text-muted-foreground">
@@ -368,182 +504,413 @@ export function CounterInterface() {
           {activeTab === "create" && (
             <>
               {/* Order Type Selection */}
-              <div className="flex gap-2 mb-4">
-                <Button
-                  variant={orderType === "dine_in" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setOrderType("dine_in")}
-                >
-                  <Users className="w-4 h-4 mr-1" />
-                  Dine-In
-                </Button>
-                <Button
-                  variant={orderType === "takeout" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setOrderType("takeout")}
-                >
-                  <Package className="w-4 h-4 mr-1" />
-                  Takeout
-                </Button>
-                <Button
-                  variant={orderType === "delivery" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setOrderType("delivery")}
-                >
-                  <Car className="w-4 h-4 mr-1" />
-                  Delivery
-                </Button>
+              <div className="flex justify-between mt-2">
+                {/* Hide order type buttons once a table is selected */}
+                {!selectedTable && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={orderType === "dine_in" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setOrderType("dine_in");
+                        setCurrentView("tables");
+                        setSelectedTable(null);
+                      }}
+                    >
+                      <Users className="w-4 h-4 mr-1" />
+                      Dine-In
+                    </Button>
+                    <Button
+                      variant={
+                        orderType === "take_away" ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => {
+                        setOrderType("take_away");
+                        setCurrentView("products");
+                        setSelectedTable(null);
+                      }}
+                    >
+                      <Package className="w-4 h-4 mr-1" />
+                      Take Away
+                    </Button>
+                    <Button
+                      variant={orderType === "delivery" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setOrderType("delivery");
+                        setCurrentView("products");
+                        setSelectedTable(null);
+                      }}
+                    >
+                      <Car className="w-4 h-4 mr-1" />
+                      Delivery
+                    </Button>
+                  </div>
+                )}
+
+                <div />
               </div>
             </>
           )}
         </div>
 
-        {/* Content Area - Order Items */}
+        {/* Content Area - Tables or Products based on current view */}
         {activeTab === "create" ? (
           <div className="flex-1 overflow-hidden flex flex-col">
-            {/* Product Selection */}
-            <div className="p-4 border-b border-border">
-              {/* Search */}
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              {/* Category Filter */}
-              <div className="flex gap-2 overflow-x-auto">
-                <Button
-                  variant={selectedCategory === "all" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory("all")}
-                >
-                  All Items
-                </Button>
-                {categories?.map((category) => (
-                  <Button
-                    key={category.id}
-                    variant={
-                      selectedCategory === category.id ? "default" : "outline"
-                    }
-                    size="sm"
-                    onClick={() => setSelectedCategory(category.id)}
-                  >
-                    {category.name}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Products Grid */}
-            <div className="flex-1 overflow-y-auto p-4">
-              {filteredProducts?.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No items found</p>
-                  <p className="text-sm">
-                    {searchTerm || selectedCategory !== "all"
-                      ? "Try adjusting your search or category filter"
-                      : "No products available"}
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                  {filteredProducts?.map((product) => {
-                    const cartItem = cart.find(
-                      (item) => item.product.id === product.id
-                    );
-                    return (
-                      <Card
-                        key={product.id}
-                        className="hover:shadow-lg transition-shadow aspect-square flex flex-col"
+            {currentView === "tables" ? (
+              /* Table Selection View */
+              <div className="flex-1 overflow-hidden flex flex-col">
+                <div className="p-4 border-b border-border">
+                  {/* Table Search */}
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {orderType === "dine_in" && (
+                        <Button
+                          variant={"default"}
+                          size="sm"
+                          onClick={() => {
+                            setCurrentView("tables");
+                          }}
+                        >
+                          <TableIcon className="w-4 h-4 mr-1" />
+                          Tables
+                        </Button>
+                      )}
+                      <Button
+                        variant={"outline"}
+                        size="sm"
+                        onClick={() => setCurrentView("products")}
+                        disabled={orderType === "dine_in" && !selectedTable}
                       >
-                        {/* Product Image */}
-                        {product.image_url ? (
-                          <div className="relative flex-1 overflow-hidden rounded-t-lg">
-                            <img
-                              src={product.image_url}
-                              alt={product.name}
-                              className="w-full h-full object-fit"
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex-1 w-full rounded-t-lg bg-gradient-to-r from-orange-400 to-pink-500 flex items-center justify-center">
-                            <Package className="h-8 w-8 text-white" />
-                          </div>
-                        )}
+                        <Package className="w-4 h-4 mr-1" />
+                        Products
+                      </Button>
+                    </div>
+                    <div className="flex-1 ml-3">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                          placeholder="Search tables..."
+                          value={tableSearchTerm}
+                          onChange={(e) => setTableSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-                        <CardHeader className="p-2 flex-shrink-0">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0">
-                              <CardTitle className="text-sm leading-tight truncate">
-                                {product.name}
-                              </CardTitle>
-                              {product.description && (
-                                <CardDescription className="text-xs mt-1 line-clamp-1">
-                                  {product.description.substring(0, 25)}
-                                  {product.description.length > 25 ? "..." : ""}
-                                </CardDescription>
-                              )}
-                            </div>
-                            <div className="text-sm font-bold text-primary ml-2">
-                              {formatCurrency(product.price)}
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="p-2 pt-0 flex-shrink-0 mt-auto">
-                          <div className="flex items-center justify-between">
-                            {product.is_available && (
-                              <div className="flex items-center gap-1 w-full">
-                                {cartItem ? (
-                                  <div className="flex items-center gap-1 w-full">
+                  {/* Table Status Summary */}
+                  {filteredTables && filteredTables.length > 0 && (
+                    <div className="flex gap-3 text-sm text-muted-foreground mb-2">
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 bg-green-200 border border-green-300 rounded"></div>
+                        <span>
+                          Available:{" "}
+                          {
+                            filteredTables.filter(
+                              (t) => !t.status || t.status === "available"
+                            ).length
+                          }
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 bg-red-200 border border-red-300 rounded"></div>
+                        <span>
+                          Occupied:{" "}
+                          {
+                            filteredTables.filter(
+                              (t) => t.status === "occupied"
+                            ).length
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tables Grid */}
+                <div
+                  className="flex-1 overflow-y-auto p-4"
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement | null;
+                    // if click did not originate from a table card (or inside one), clear selection
+                    if (!target || !target.closest("[data-table-card]")) {
+                      setSelectedTable(null);
+                      setExistingOrderItems([]);
+                      setCart([]);
+                      setSelectedOrder(null);
+                    }
+                  }}
+                >
+                  {filteredTables?.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <TableIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>No tables found</p>
+                      <p className="text-sm">
+                        {tableSearchTerm
+                          ? "Try adjusting your search"
+                          : "No tables available"}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {filteredTables?.map((table) => {
+                        const occupied = table.status === "occupied";
+                        const tableOrder = getTableOrder(table.id);
+
+                        return (
+                          <Card
+                            data-table-card
+                            key={table.id}
+                            className={`cursor-pointer transition-all hover:shadow-lg ${
+                              selectedTable?.id === table.id
+                                ? "ring-2 ring-black bg-gray-100"
+                                : occupied
+                                  ? "bg-gray-100 border-gray-300 hover:shadow-md hover:bg-gray-200"
+                                  : "bg-gray-100 border-gray-300 hover:shadow-md hover:bg-gray-200"
+                            }`}
+                            onClick={(ev: React.MouseEvent) => {
+                              ev.stopPropagation();
+                              handleTableSelect(table);
+                            }}
+                          >
+                            <CardContent className="p-4 text-center space-y-3">
+                              <div className="flex items-center justify-center">
+                                <TableIcon className={`w-12 h-12 text-black`} />
+                              </div>
+
+                              <div>
+                                <div className="font-semibold text-lg">
+                                  Table {table.table_number}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {table.capacity} seats
+                                </div>
+
+                                {/* Status Badge */}
+                                <div className="mt-2">
+                                  <Badge
+                                    className={
+                                      occupied
+                                        ? "bg-red-200 text-red-800 hover:bg-red-300"
+                                        : "bg-green-200 text-green-800 hover:bg-green-300"
+                                    }
+                                  >
+                                    {occupied ? "Occupied" : "Available"}
+                                  </Badge>
+                                </div>
+
+                                {/* Process Payment Button for Occupied Tables */}
+                                {occupied && tableOrder && (
+                                  <div className="mt-3">
                                     <Button
-                                      variant="outline"
                                       size="sm"
-                                      onClick={() => removeFromCart(product.id)}
-                                      className="h-6 w-6 p-0"
+                                      variant="default"
+                                      className="w-full bg-black hover:bg-gray-800 text-white"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedOrder(tableOrder);
+                                        setPaymentAmount(
+                                          (tableOrder.price ?? 0).toString()
+                                        );
+                                        setActiveTab("payment");
+                                      }}
                                     >
-                                      <Minus className="h-2 w-2" />
-                                    </Button>
-                                    <span className="w-6 text-center font-medium text-xs">
-                                      {cartItem.quantity}
-                                    </span>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => addToCart(product)}
-                                      className="h-6 w-6 p-0"
-                                    >
-                                      <Plus className="h-2 w-2" />
+                                      <CreditCard className="w-3 h-3 mr-1" />
+                                      Process Payment
                                     </Button>
                                   </div>
-                                ) : (
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={() => addToCart(product)}
-                                    className="w-full h-6 text-xs"
-                                  >
-                                    <Plus className="h-2 w-2 mr-1" />
-                                    Add
-                                  </Button>
                                 )}
                               </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              /* Product Selection View */
+              <div className="flex-1 overflow-hidden flex flex-col">
+                <div className="p-4 border-b border-border">
+                  {/* Search */}
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {orderType === "dine_in" && (
+                        <Button
+                          variant={"outline"}
+                          size="sm"
+                          onClick={() => setCurrentView("tables")}
+                        >
+                          <TableIcon className="w-4 h-4 mr-1" />
+                          Tables
+                        </Button>
+                      )}
+                      <Button
+                        variant={"default"}
+                        size="sm"
+                        onClick={() => setCurrentView("products")}
+                        disabled={orderType === "dine_in" && !selectedTable}
+                      >
+                        <Package className="w-4 h-4 mr-1" />
+                        Products
+                      </Button>
+                    </div>
+                    <div className="flex-1 ml-3">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                          placeholder="Search products..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Category Filter */}
+                  <div className="flex gap-2 overflow-x-auto">
+                    <Button
+                      variant={
+                        selectedCategory === "all" ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => setSelectedCategory("all")}
+                    >
+                      All Items
+                    </Button>
+                    {categories?.map((category) => (
+                      <Button
+                        key={category.id}
+                        variant={
+                          selectedCategory === category.id
+                            ? "default"
+                            : "outline"
+                        }
+                        size="sm"
+                        onClick={() => setSelectedCategory(category.id)}
+                      >
+                        {category.name}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Products Grid */}
+                <div className="flex-1 overflow-y-auto p-4">
+                  {filteredProducts?.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>No items found</p>
+                      <p className="text-sm">
+                        {searchTerm || selectedCategory !== "all"
+                          ? "Try adjusting your search or category filter"
+                          : "No products available"}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {filteredProducts?.map((product) => {
+                        const cartItem = cart.find(
+                          (item) => item.Product.id === product.id
+                        );
+                        return (
+                          <Card
+                            key={product.id}
+                            className="hover:shadow-lg transition-shadow aspect-square flex flex-col"
+                          >
+                            {/* Product Image */}
+                            {product.image_url ? (
+                              <div className="relative flex-1 overflow-hidden rounded-t-lg">
+                                <img
+                                  src={product.image_url}
+                                  alt={product.name}
+                                  className="w-full h-full object-fit"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = "none";
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex-1 w-full rounded-t-lg bg-gradient-to-r from-gray-400 to-gray-600 flex items-center justify-center">
+                                <Package className="h-8 w-8 text-white" />
+                              </div>
+                            )}
+
+                            <CardHeader className="p-2 flex-shrink-0">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <CardTitle className="text-sm leading-tight truncate">
+                                    {product.name}
+                                  </CardTitle>
+                                  {product.description && (
+                                    <CardDescription className="text-xs mt-1 line-clamp-1">
+                                      {product.description.substring(0, 25)}
+                                      {product.description.length > 25
+                                        ? "..."
+                                        : ""}
+                                    </CardDescription>
+                                  )}
+                                </div>
+                                <div className="text-sm font-bold text-black ml-2">
+                                  {formatCurrency(product.price)}
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="p-2 pt-0 flex-shrink-0 mt-auto">
+                              <div className="flex items-center justify-between">
+                                {product.is_available && (
+                                  <div className="flex items-center gap-1 w-full">
+                                    {cartItem ? (
+                                      <div className="flex items-center gap-1 w-full">
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() =>
+                                            removeFromCart(product.id)
+                                          }
+                                          className="h-6 w-6 p-0"
+                                        >
+                                          <Minus className="h-2 w-2" />
+                                        </Button>
+                                        <span className="w-6 text-center font-medium text-xs">
+                                          {cartItem.quantity}
+                                        </span>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => addToCart(product)}
+                                          className="h-6 w-6 p-0"
+                                        >
+                                          <Plus className="h-2 w-2" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Button
+                                        variant="default"
+                                        size="sm"
+                                        onClick={() => addToCart(product)}
+                                        className="w-full h-6 text-xs"
+                                      >
+                                        <Plus className="h-2 w-2 mr-1" />
+                                        Add
+                                      </Button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           /* Payment Tab Content */
@@ -558,49 +925,188 @@ export function CounterInterface() {
                   <p>No orders ready for payment</p>
                 </div>
               ) : (
-                orders?.map((order) => (
-                  <Card
-                    key={order.id}
-                    className={`cursor-pointer transition-all ${
-                      selectedOrder?.id === order.id
-                        ? "ring-2 ring-primary"
-                        : "hover:shadow-md"
-                    }`}
-                    onClick={() => {
-                      setSelectedOrder(order);
-                      setPaymentAmount((order.price ?? 0).toString());
-                    }}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {getOrderTypeIcon(order.order_type)}
-                          <div>
-                            <div className="font-semibold">
-                              Order #{order.order_number}
+                orders?.map((order) => {
+                  const isExpanded = expandedOrders.has(order.id);
+                  return (
+                    <Card
+                      key={order.id}
+                      className={`transition-all ${
+                        selectedOrder?.id === order.id
+                          ? "ring-2 ring-primary"
+                          : "hover:shadow-md"
+                      }`}
+                    >
+                      <CardContent className="p-4">
+                        <div
+                          className="flex items-center justify-between cursor-pointer"
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setPaymentAmount((order.price ?? 0).toString());
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            {getOrderTypeIcon(order.order_type)}
+                            <div>
+                              <div className="font-semibold">
+                                Order #{order.id}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {order.RestaurantTable?.table_number &&
+                                  `Table ${order.RestaurantTable?.table_number} • `}
+                                {order.OrderItems?.length || 0} items
+                              </div>
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                              {order.RestaurantTable?.table_number &&
-                                `Table ${order.RestaurantTable?.table_number} • `}
-                              {order.OrderItems?.length || 0} items
+                          </div>
+                          <div className="text-right flex items-center gap-2">
+                            <div>
+                              <div className="text-lg font-bold">
+                                {formatCurrency(order.price ?? 0)}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {getOrderTypeBadge(order.order_type)}
+                                <Badge variant="outline" className="text-xs">
+                                  {order.status}
+                                </Badge>
+                              </div>
                             </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleOrderExpansion(order.id);
+                              }}
+                              className="ml-2"
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="w-4 h-4" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4" />
+                              )}
+                            </Button>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-lg font-bold">
-                            {formatCurrency(order.price ?? 0)}
+
+                        {/* Expanded Details */}
+                        {isExpanded && (
+                          <div className="mt-4 pt-4 border-t border-border">
+                            <div className="space-y-3">
+                              {/* Order Information */}
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <div className="font-medium text-muted-foreground">
+                                    Order Number
+                                  </div>
+                                  <div>{order.order_number || order.id}</div>
+                                </div>
+                                <div>
+                                  <div className="font-medium text-muted-foreground">
+                                    Status
+                                  </div>
+                                  <div className="capitalize">
+                                    {order.status}
+                                  </div>
+                                </div>
+                                {order.customer_name && (
+                                  <div>
+                                    <div className="font-medium text-muted-foreground">
+                                      Customer
+                                    </div>
+                                    <div>{order.customer_name}</div>
+                                  </div>
+                                )}
+                                {order.RestaurantTable && (
+                                  <div>
+                                    <div className="font-medium text-muted-foreground">
+                                      Table
+                                    </div>
+                                    <div>
+                                      Table {order.RestaurantTable.table_number}
+                                    </div>
+                                  </div>
+                                )}
+                                <div>
+                                  <div className="font-medium text-muted-foreground">
+                                    Order Type
+                                  </div>
+                                  <div className="capitalize">
+                                    {order.order_type.replace("_", " ")}
+                                  </div>
+                                </div>
+                                {order.created_at && (
+                                  <div>
+                                    <div className="font-medium text-muted-foreground">
+                                      Created At
+                                    </div>
+                                    <div>
+                                      {new Date(
+                                        order.created_at
+                                      ).toLocaleString()}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Order Items */}
+                              {order.OrderItems &&
+                                order.OrderItems.length > 0 && (
+                                  <div>
+                                    <div className="font-medium text-muted-foreground mb-2">
+                                      Order Items
+                                    </div>
+                                    <div className="space-y-2">
+                                      {order.OrderItems.map((item, index) => (
+                                        <div
+                                          key={index}
+                                          className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                                        >
+                                          <div className="flex-1">
+                                            <div className="font-medium">
+                                              {item.Product?.name ||
+                                                "Unknown Item"}
+                                            </div>
+                                            <div className="text-sm text-muted-foreground">
+                                              {formatCurrency(
+                                                item.price ||
+                                                  item.unit_price ||
+                                                  item.Product?.price ||
+                                                  0
+                                              )}{" "}
+                                              × {item.quantity}
+                                            </div>
+                                          </div>
+                                          <div className="font-medium">
+                                            {formatCurrency(
+                                              (item.price ||
+                                                item.unit_price ||
+                                                item.Product?.price ||
+                                                0) * item.quantity
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                              {/* Notes */}
+                              {order.notes && (
+                                <div>
+                                  <div className="font-medium text-muted-foreground">
+                                    Notes
+                                  </div>
+                                  <div className="text-sm bg-gray-50 p-2 rounded">
+                                    {order.notes}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {getOrderTypeBadge(order.order_type)}
-                            <Badge variant="outline" className="text-xs">
-                              {order.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })
               )}
             </div>
           </div>
@@ -613,198 +1119,243 @@ export function CounterInterface() {
           <div className="flex-1 overflow-hidden flex flex-col">
             {/* Cart Section */}
             <div className="flex-1 overflow-y-auto">
+              {/* Table Selection (for dine-in) - Show selected table info */}
+              {orderType === "dine_in" && selectedTable && (
+                <div className="p-4 border-b border-border">
+                  <h3 className="font-semibold mb-3 flex items-center">
+                    <TableIcon className="w-4 h-4 mr-2" />
+                    Selected Table
+                  </h3>
+
+                  <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-semibold">
+                          Table {selectedTable.table_number}
+                        </span>
+                        <span className="text-sm text-muted-foreground ml-2">
+                          ({selectedTable.capacity} seats)
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentView("tables")}
+                      >
+                        Change Table
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="p-4">
                 <h3 className="font-semibold mb-3 flex items-center">
                   <ShoppingCart className="w-4 h-4 mr-2" />
-                  Order Items ({cart.length})
+                  {selectedOrder ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <div>
+                          Editing Order #{selectedOrder.id} (
+                          {cart.length + existingOrderItems.length} items)
+                        </div>
+                        <Badge
+                          className="ml-2 bg-gray-200 text-gray-800"
+                          variant="secondary"
+                        >
+                          EDITING
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            if (!selectedOrder) return;
+                            if (!confirm("Cancel this order?")) return;
+                            cancelOrderMutation.mutate(selectedOrder.id);
+                          }}
+                          className="ml-2 text-red-600"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>Order Items ({cart.length})</>
+                  )}
                 </h3>
 
-                {cart.length === 0 ? (
+                {/* Existing Order Items Section */}
+                {existingOrderItems.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="text-sm font-semibold mb-2 flex items-center text-gray-800">
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Existing Items
+                    </h4>
+                    <div className="space-y-2">
+                      {existingOrderItems.map((item, index) => (
+                        <div
+                          key={`existing-${index}`}
+                          className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate text-gray-900">
+                              {item.Product?.name || "Unknown Item"}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {formatCurrency(item.Product?.price || 0)} ×{" "}
+                              {item.quantity}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 ml-2">
+                            <div className="font-medium text-gray-800">
+                              {formatCurrency(
+                                (item.Product?.price || 0) * item.quantity
+                              )}
+                            </div>
+                            <Badge
+                              variant="secondary"
+                              className="bg-gray-200 text-gray-800"
+                            >
+                              Existing
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-2 p-2 bg-gray-100 rounded text-sm font-medium text-gray-800">
+                      Existing Total:{" "}
+                      {formatCurrency(
+                        existingOrderItems.reduce(
+                          (sum, item) =>
+                            sum + (item.Product?.price || 0) * item.quantity,
+                          0
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* New Items Section */}
+                {cart.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="text-sm font-semibold mb-2 flex items-center text-gray-800">
+                      <Plus className="w-4 h-4 mr-2" />
+                      New Items
+                    </h4>
+                    <div className="space-y-2">
+                      {cart.map((item) => (
+                        <div
+                          key={item.Product.id}
+                          className="flex items-center justify-between p-3 bg-white border border-gray-300 rounded-lg"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate text-gray-900">
+                              {item.Product.name}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {formatCurrency(item.Product.price)} ×{" "}
+                              {item.quantity}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 ml-2">
+                            <div className="font-medium text-gray-800">
+                              {formatCurrency(
+                                item.Product.price * item.quantity
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeFromCart(item.Product.id)}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="w-6 text-center text-sm">
+                                {item.quantity}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => addToCart(item.Product)}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-2 p-2 bg-gray-100 rounded text-sm font-medium text-gray-800">
+                      New Items Total:{" "}
+                      {formatCurrency(
+                        cart.reduce(
+                          (sum, item) =>
+                            sum + item.Product.price * item.quantity,
+                          0
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty state */}
+                {cart.length === 0 && existingOrderItems.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
                     <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p>No items in order</p>
                     <p className="text-sm">
-                      Add items from the menu to get started
+                      {selectedOrder
+                        ? "Add more items to this existing order"
+                        : "Add items from the menu to get started"}
                     </p>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {cart.map((item) => (
-                      <div
-                        key={item.product.id}
-                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">
-                            {item.product.name}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {formatCurrency(item.product.price)} ×{" "}
-                            {item.quantity}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 ml-2">
-                          <div className="font-medium">
-                            {formatCurrency(item.product.price * item.quantity)}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeFromCart(item.product.id)}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="w-6 text-center text-sm">
-                              {item.quantity}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => addToCart(item.product)}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 )}
+
+                {/* Overall Total */}
+                {/* {(cart.length > 0 || existingOrderItems.length > 0) && (
+                  <div className="p-3 bg-gray-900 text-white rounded-lg font-bold">
+                    <div className="flex justify-between items-center">
+                      <span>Total Amount:</span>
+                      <span className="text-lg">
+                        {formatCurrency(
+                          cart.reduce(
+                            (sum, item) =>
+                              sum + item.Product.price * item.quantity,
+                            0
+                          ) +
+                            existingOrderItems.reduce(
+                              (sum, item) =>
+                                sum +
+                                (item.Product?.price || 0) * item.quantity,
+                              0
+                            )
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                )} */}
 
                 {/* Customer name input removed per request */}
               </div>
             </div>
-            {/* Table Selection (for dine-in) */}
-            {orderType === "dine_in" && (
-              <div className="p-4 border-b border-border">
-                <h3 className="font-semibold mb-3 flex items-center">
-                  <TableIcon className="w-4 h-4 mr-2" />
-                  Table Selection
-                </h3>
-
-                {/* Selected Table Display */}
-                {selectedTable ? (
-                  <div className="mb-3">
-                    <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-semibold">
-                            Table {selectedTable.table_number}
-                          </span>
-                          <span className="text-sm text-muted-foreground ml-2">
-                            ({selectedTable.capacity} seats)
-                          </span>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowTableModal(true)}
-                        >
-                          Change Table
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mb-3">
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      onClick={() => setShowTableModal(true)}
-                      className="w-full h-12 border-dashed"
-                    >
-                      <TableIcon className="w-4 h-4 mr-2" />
-                      Select Table
-                    </Button>
-                  </div>
-                )}
-
-                {/* Table Selection Modal */}
-                {showTableModal && (
-                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4 max-h-[80vh] overflow-hidden">
-                      <div className="flex items-center justify-between p-4 border-b">
-                        <h3 className="text-lg font-semibold">Select Table</h3>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowTableModal(false)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      <div className="p-4 space-y-4">
-                        {/* Table Search */}
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                          <Input
-                            placeholder="Search tables..."
-                            value={tableSearchTerm}
-                            onChange={(e) => setTableSearchTerm(e.target.value)}
-                            className="pl-10"
-                          />
-                        </div>
-
-                        {/* Tables Grid */}
-                        <div className="max-h-[300px] overflow-y-auto">
-                          {filteredTables?.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
-                              <TableIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                              <p className="text-sm">
-                                {tableSearchTerm
-                                  ? "No tables found"
-                                  : "No available tables"}
-                              </p>
-                              {tableSearchTerm && (
-                                <p className="text-xs">
-                                  Try adjusting your search
-                                </p>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="grid grid-cols-3 gap-2">
-                              {filteredTables?.map((table) => (
-                                <Button
-                                  key={table.id}
-                                  variant={
-                                    selectedTable?.id === table.id
-                                      ? "default"
-                                      : "outline"
-                                  }
-                                  size="sm"
-                                  onClick={() => handleTableSelect(table)}
-                                  className="h-16 flex flex-col items-center justify-center"
-                                >
-                                  <span className="font-semibold text-sm">
-                                    Table {table.table_number}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {table.capacity} seats
-                                  </span>
-                                </Button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Order Summary and Actions */}
             {cart.length > 0 && (
               <div className="p-4 border-t border-border bg-card">
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="flex justify-between text-lg font-semibold">
-                    <span>Total:</span>
-                    <span>{formatCurrency(getTotalAmount())}</span>
+                    <span>Total (All Items):</span>
+                    <span>
+                      {formatCurrency(
+                        getTotalAmount() +
+                          existingOrderItems.reduce(
+                            (sum, item) =>
+                              sum + (item.Product?.price || 0) * item.quantity,
+                            0
+                          )
+                      )}
+                    </span>
                   </div>
-
                   <Button
                     className="w-full"
                     size="lg"
@@ -818,18 +1369,26 @@ export function CounterInterface() {
                     {createOrderMutation.isPending ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                        Creating Order...
+                        {selectedOrder
+                          ? "Updating Order..."
+                          : "Creating Order..."}
                       </>
                     ) : (
                       <>
                         <Check className="w-4 h-4 mr-2" />
-                        Create{" "}
-                        {orderType === "dine_in"
-                          ? "Dine-In"
-                          : orderType === "takeout"
-                            ? "Takeout"
-                            : "Delivery"}{" "}
-                        Order
+                        {selectedOrder ? (
+                          <>Add Items to Existing Order</>
+                        ) : (
+                          <>
+                            Create{" "}
+                            {orderType === "dine_in"
+                              ? "Dine-In"
+                              : orderType === "take_away"
+                                ? "Take Away"
+                                : "Delivery"}{" "}
+                            Order
+                          </>
+                        )}
                       </>
                     )}
                   </Button>
@@ -922,24 +1481,59 @@ export function CounterInterface() {
                   </div>
                 )}
 
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={handleProcessPayment}
-                  disabled={!paymentAmount || processPaymentMutation.isPending}
-                >
-                  {processPaymentMutation.isPending ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      Process Payment
-                    </>
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1"
+                    size="lg"
+                    onClick={handleProcessPayment}
+                    disabled={
+                      !paymentAmount || processPaymentMutation.isPending
+                    }
+                  >
+                    {processPaymentMutation.isPending ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Process Payment
+                      </>
+                    )}
+                  </Button>
+
+                  {selectedOrder && (
+                    <Button
+                      variant="destructive"
+                      className="w-40"
+                      size="lg"
+                      onClick={() => {
+                        if (!selectedOrder) return;
+                        if (
+                          !confirm(
+                            "Are you sure you want to cancel this order?"
+                          )
+                        )
+                          return;
+                        cancelOrderMutation.mutate(selectedOrder.id);
+                      }}
+                      disabled={cancelOrderMutation.isPending}
+                    >
+                      {cancelOrderMutation.isPending ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                          Cancelling...
+                        </>
+                      ) : (
+                        <>
+                          <X className="w-4 h-4 mr-2" />
+                          Cancel Order
+                        </>
+                      )}
+                    </Button>
                   )}
-                </Button>
+                </div>
               </div>
             )}
           </>
