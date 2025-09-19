@@ -18,6 +18,8 @@ import {
   Plus,
   BarChart3,
 } from "lucide-react";
+import { useRouter } from "@tanstack/react-router";
+import { toast } from "@/hooks/use-toast";
 
 interface IncomeBreakdownItem {
   period: string;
@@ -28,6 +30,23 @@ interface IncomeBreakdownItem {
 }
 
 export function AdminDashboard() {
+  const router = useRouter();
+  useEffect(() => {
+    console.log("Loading user from JWT token...");
+    const decodedToken = apiClient.isAuthenticated();
+
+    if (decodedToken) {
+      console.log("Decoded token User:", decodedToken);
+    } else {
+      toast({
+        title: "Authentication Error",
+        description: "Session expired. Please log in again.",
+        variant: "destructive",
+      });
+      router.navigate({ to: "/login" });
+    }
+  }, []);
+
   const [selectedPeriod, setSelectedPeriod] = useState<
     "today" | "week" | "month"
   >("today");

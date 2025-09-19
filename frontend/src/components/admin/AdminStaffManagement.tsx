@@ -21,13 +21,33 @@ import { UserForm } from "@/components/forms/UserForm";
 import { AdminStaffTable } from "@/components/admin/AdminStaffTable";
 import { PaginationControlsComponent } from "@/components/ui/pagination-controls";
 import { usePagination } from "@/hooks/usePagination";
-import { UserListSkeleton, SearchingSkeleton } from "@/components/ui/skeletons";
-import { PageLoading, InlineLoading } from "@/components/ui/loading-spinner";
+import { UserListSkeleton } from "@/components/ui/skeletons";
+import { InlineLoading } from "@/components/ui/loading-spinner";
 import type { User } from "@/types";
+import { useRouter } from "node_modules/@tanstack/react-router/dist/esm/useRouter";
+import { toast } from "@/hooks/use-toast";
 
 type DisplayMode = "table" | "cards";
 
 export function AdminStaffManagement() {
+  const router = useRouter();
+
+  useEffect(() => {
+    console.log("Loading user from JWT token...");
+    const decodedToken = apiClient.isAuthenticated();
+
+    if (decodedToken) {
+      console.log("Decoded token User:", decodedToken);
+    } else {
+      toast({
+        title: "Authentication Error",
+        description: "Session expired. Please log in again.",
+        variant: "destructive",
+      });
+      router.navigate({ to: "/login" });
+    }
+  }, []);
+
   const [displayMode, setDisplayMode] = useState<DisplayMode>("table");
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");

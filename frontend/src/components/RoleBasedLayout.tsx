@@ -120,9 +120,9 @@ export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
       case "dashboard":
         return <AdminLayout user={user} />;
       case "counter":
-        return <CounterInterface user={user} />;
+        return <CounterInterface />;
       default:
-        return <CounterInterface user={user} />;
+        return <CounterInterface />;
     }
   };
 

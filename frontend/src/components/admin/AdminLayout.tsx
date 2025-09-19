@@ -101,7 +101,7 @@ export function AdminLayout({ user }: AdminLayoutProps) {
       case "dashboard":
         return <AdminDashboard />;
       case "counter":
-        return <CounterInterface user={user} />;
+        return <CounterInterface />;
       case "settings":
         return (
           <div className="space-y-8">

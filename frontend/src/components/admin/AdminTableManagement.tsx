@@ -11,9 +11,7 @@ import {
   Trash2,
   Users,
   MapPin,
-  AlertCircle,
   CheckCircle,
-  Clock,
   Settings,
 } from "lucide-react";
 import apiClient from "@/api/client";
@@ -29,10 +27,29 @@ import {
 } from "@/components/ui/skeletons";
 import { InlineLoading } from "@/components/ui/loading-spinner";
 import type { DiningTable } from "@/types";
+import { useRouter } from "@tanstack/react-router";
+import { toast } from "@/hooks/use-toast";
 
 type ViewMode = "list" | "table-form";
 
 export function AdminTableManagement() {
+  const router = useRouter();
+
+  useEffect(() => {
+    console.log("Loading user from JWT token...");
+    const decodedToken = apiClient.isAuthenticated();
+
+    if (decodedToken) {
+      console.log("Decoded token User:", decodedToken);
+    } else {
+      toast({
+        title: "Authentication Error",
+        description: "Session expired. Please log in again.",
+        variant: "destructive",
+      });
+      router.navigate({ to: "/login" });
+    }
+  }, []);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");

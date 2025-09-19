@@ -27,17 +27,34 @@ import { usePagination } from "@/hooks/usePagination";
 import {
   ProductListSkeleton,
   CategoryListSkeleton,
-  SearchingSkeleton,
 } from "@/components/ui/skeletons";
 import { InlineLoading } from "@/components/ui/loading-spinner";
 import type { Product, Category } from "@/types";
+import { useRouter } from "@tanstack/react-router";
+import { toast } from "@/hooks/use-toast";
 
-type ViewMode = "list" | "product-form" | "category-form";
 type DisplayMode = "table" | "cards";
 type ActiveTab = "products" | "categories";
 
 export function AdminMenuManagement() {
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const router = useRouter();
+
+  useEffect(() => {
+    console.log("Loading user from JWT token...");
+    const decodedToken = apiClient.isAuthenticated();
+
+    if (decodedToken) {
+      console.log("Decoded token User:", decodedToken);
+    } else {
+      toast({
+        title: "Authentication Error",
+        description: "Session expired. Please log in again.",
+        variant: "destructive",
+      });
+      router.navigate({ to: "/login" });
+    }
+  }, []);
+
   const [displayMode, setDisplayMode] = useState<DisplayMode>("table");
   const [activeTab, setActiveTab] = useState<ActiveTab>("products");
   const [searchTerm, setSearchTerm] = useState("");
@@ -196,7 +213,6 @@ export function AdminMenuManagement() {
     setShowCreateCategoryForm(false);
     setEditingProduct(null);
     setEditingCategory(null);
-    setViewMode("list");
   };
 
   const handleCancelForm = () => {
@@ -204,7 +220,6 @@ export function AdminMenuManagement() {
     setShowCreateCategoryForm(false);
     setEditingProduct(null);
     setEditingCategory(null);
-    setViewMode("list");
   };
 
   const handleDeleteProduct = (product: Product) => {

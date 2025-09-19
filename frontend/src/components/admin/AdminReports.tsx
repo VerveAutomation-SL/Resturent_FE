@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import {
   FileBarChart,
 } from "lucide-react";
 import apiClient from "@/api/client";
+import { useRouter } from "@tanstack/react-router";
+import { toast } from "@/hooks/use-toast";
 
 interface SalesReportItem {
   date: string;
@@ -28,6 +30,23 @@ interface OrdersReportItem {
 }
 
 export function AdminReports() {
+  const router = useRouter();
+
+  useEffect(() => {
+    console.log("Loading user from JWT token...");
+    const decodedToken = apiClient.isAuthenticated();
+
+    if (decodedToken) {
+      console.log("Decoded token User:", decodedToken);
+    } else {
+      toast({
+        title: "Authentication Error",
+        description: "Session expired. Please log in again.",
+        variant: "destructive",
+      });
+      router.navigate({ to: "/login" });
+    }
+  }, []);
   const [activeTab, setActiveTab] = useState<"sales" | "orders" | "analytics">(
     "sales"
   );

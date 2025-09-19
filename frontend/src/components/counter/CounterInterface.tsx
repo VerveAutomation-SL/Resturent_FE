@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/api/client";
 import {
@@ -39,13 +39,29 @@ import type {
   CreateOrderRequest,
   CartItem,
   UpdateOrderRequest,
+  User,
 } from "@/types";
 
-import type { User as UserType } from "@/types";
 import { OrderStatus } from "@/types";
+import { useRouter } from "@tanstack/react-router";
 
-export function CounterInterface({ user }: { user: UserType }) {
+export function CounterInterface() {
+  const router = useRouter();
+
+  useEffect(() => {
+    console.log("Loading user from JWT token...");
+    const decodedToken = apiClient.isAuthenticated();
+
+    if (decodedToken) {
+      console.log("Decoded token User:", decodedToken);
+      setUser(decodedToken);
+    } else {
+      router.navigate({ to: "/login" });
+    }
+  }, []);
+
   // State
+  const [user, setUser] = useState<User>();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [existingOrderItems, setExistingOrderItems] = useState<CartItem[]>([]); // Track existing order items separately
   const [activeTab, setActiveTab] = useState<"create" | "payment">("create");
@@ -472,7 +488,7 @@ export function CounterInterface({ user }: { user: UserType }) {
 
   return (
     <div
-      className={`flex bg-background ${user.role === "admin" ? "h-screen" : "h-[92vh]"}`}
+      className={`flex bg-background ${user?.role === "admin" ? "h-screen" : "h-[92vh]"}`}
     >
       {/* Left Side - Header with Tabs and Order Items */}
       <div className="w-full border-r border-border overflow-hidden flex flex-col">

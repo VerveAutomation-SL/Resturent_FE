@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,27 @@ import StockManagementTab from "./StockManagementTab";
 import TransactionsTab from "./TransactionsTab";
 import PurchaseOrdersTab from "./PurchaseOrdersTab";
 import { StockItemForm } from "../forms/StockItemForm";
+import { useRouter } from "@tanstack/react-router";
+import { toast } from "@/hooks/use-toast";
 
 export function AdminIngredientsManagement() {
+  const router = useRouter();
+  useEffect(() => {
+    console.log("Loading user from JWT token...");
+    const decodedToken = apiClient.isAuthenticated();
+
+    if (decodedToken) {
+      console.log("Decoded token User:", decodedToken);
+    } else {
+      toast({
+        title: "Authentication Error",
+        description: "Session expired. Please log in again.",
+        variant: "destructive",
+      });
+      router.navigate({ to: "/login" });
+    }
+  }, []);
+
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
   const [stockFilter, setStockFilter] = useState<string>("all");

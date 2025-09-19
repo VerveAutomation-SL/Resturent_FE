@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -17,8 +17,29 @@ import {
   Save,
   RotateCcw,
 } from "lucide-react";
+import { useRouter } from "@tanstack/react-router";
+import apiClient from "@/api/client";
+import { toast } from "@/hooks/use-toast";
 
 export function AdminSettings() {
+  const router = useRouter();
+
+  useEffect(() => {
+    console.log("Loading user from JWT token...");
+    const decodedToken = apiClient.isAuthenticated();
+
+    if (decodedToken) {
+      console.log("Decoded token User:", decodedToken);
+    } else {
+      toast({
+        title: "Authentication Error",
+        description: "Session expired. Please log in again.",
+        variant: "destructive",
+      });
+      router.navigate({ to: "/login" });
+    }
+  }, []);
+
   const [settings, setSettings] = useState({
     restaurant_name: "My Restaurant",
     currency: "USD",
