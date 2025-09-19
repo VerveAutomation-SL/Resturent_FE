@@ -49,8 +49,25 @@ export function AdminMenuManagement() {
   const [showCreateProductForm, setShowCreateProductForm] = useState(false);
   const [showCreateCategoryForm, setShowCreateCategoryForm] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const queryClient = useQueryClient();
+
+  // Responsive breakpoint detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const isMobileSize = window.innerWidth < 768;
+      setIsMobile(isMobileSize);
+      // Auto switch to cards view on mobile
+      if (isMobileSize && displayMode === "table") {
+        setDisplayMode("cards");
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, [displayMode]);
 
   // Pagination hooks
   const productsPagination = usePagination({
@@ -205,7 +222,7 @@ export function AdminMenuManagement() {
   // Show form if creating or editing
   if (showCreateProductForm || editingProduct) {
     return (
-      <div className="p-8">
+      <div className={isMobile ? "p-4" : "p-8"}>
         <ProductForm
           product={editingProduct || undefined}
           mode={editingProduct ? "edit" : "create"}
@@ -218,7 +235,7 @@ export function AdminMenuManagement() {
 
   if (showCreateCategoryForm || editingCategory) {
     return (
-      <div className="p-6">
+      <div className={isMobile ? "p-4" : "p-6"}>
         <CategoryForm
           category={editingCategory || undefined}
           mode={editingCategory ? "edit" : "create"}
@@ -230,38 +247,50 @@ export function AdminMenuManagement() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div
+      className={`${isMobile ? "p-4" : "p-6"} space-y-${isMobile ? "4" : "6"}`}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div
+        className={`${isMobile ? "space-y-3" : "flex items-center justify-between"}`}
+      >
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Menu Management</h2>
-          <p className="text-muted-foreground">
-            Manage your restaurant's products and categories
+          <h2
+            className={`font-bold tracking-tight ${isMobile ? "text-2xl" : "text-3xl"}`}
+          >
+            Menu Management
+          </h2>
+          <p className={`text-muted-foreground ${isMobile ? "text-sm" : ""}`}>
+            {isMobile
+              ? "Manage products & categories"
+              : "Manage your restaurant's products and categories"}
           </p>
         </div>
-        <div className="flex items-center space-x-4">
-          {/* View Toggle */}
-          <div className="flex items-center bg-muted rounded-lg p-1">
-            <Button
-              variant={displayMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setDisplayMode("table")}
-              className="px-3"
-            >
-              <Table className="h-4 w-4 mr-1" />
-              Table
-            </Button>
-            <Button
-              variant={displayMode === "cards" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setDisplayMode("cards")}
-              className="px-3"
-            >
-              <Grid3X3 className="h-4 w-4 mr-1" />
-              Cards
-            </Button>
+        {!isMobile && (
+          <div className="flex items-center space-x-4">
+            {/* View Toggle */}
+            <div className="flex items-center bg-muted rounded-lg p-1">
+              <Button
+                variant={displayMode === "table" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setDisplayMode("table")}
+                className="px-3"
+              >
+                <Table className="h-4 w-4 mr-1" />
+                Table
+              </Button>
+              <Button
+                variant={displayMode === "cards" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setDisplayMode("cards")}
+                className="px-3"
+              >
+                <Grid3X3 className="h-4 w-4 mr-1" />
+                Cards
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -270,32 +299,77 @@ export function AdminMenuManagement() {
         onValueChange={(value) => setActiveTab(value as ActiveTab)}
         className="w-full"
       >
-        <div className="flex items-center justify-between">
-          <TabsList className="grid w-[400px] grid-cols-2">
-            <TabsTrigger value="products" className="gap-2">
-              <Package className="h-4 w-4" />
+        <div
+          className={`${isMobile ? "space-y-3" : "flex items-center justify-between"}`}
+        >
+          <TabsList
+            className={`${isMobile ? "grid grid-cols-2 w-full" : "grid w-[400px] grid-cols-2"}`}
+          >
+            <TabsTrigger
+              value="products"
+              className={`gap-2 ${isMobile ? "text-sm" : ""}`}
+            >
+              <Package className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
               Products ({products.length || 0})
             </TabsTrigger>
-            <TabsTrigger value="categories" className="gap-2">
-              <Tag className="h-4 w-4" />
+            <TabsTrigger
+              value="categories"
+              className={`gap-2 ${isMobile ? "text-sm" : ""}`}
+            >
+              <Tag className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
               Categories ({categories.length || 0})
             </TabsTrigger>
           </TabsList>
+
+          {/* Mobile View Toggle */}
+          {isMobile && (
+            <div className="flex items-center bg-muted rounded-lg p-1">
+              <Button
+                variant={displayMode === "table" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setDisplayMode("table")}
+                className="px-3 text-xs"
+              >
+                <Table className="h-3 w-3 mr-1" />
+                Table
+              </Button>
+              <Button
+                variant={displayMode === "cards" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setDisplayMode("cards")}
+                className="px-3 text-xs"
+              >
+                <Grid3X3 className="h-3 w-3 mr-1" />
+                Cards
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Products Tab */}
-        <TabsContent value="products" className="space-y-6">
+        <TabsContent
+          value="products"
+          className={`space-y-${isMobile ? "4" : "6"}`}
+        >
           {/* Search and Add Product */}
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between gap-4">
+            <CardContent className={isMobile ? "pt-4 pb-4" : "pt-6"}>
+              <div
+                className={`${isMobile ? "space-y-3" : "flex items-center justify-between gap-4"}`}
+              >
                 <div className="relative flex-1">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search
+                    className={`absolute left-2 top-2.5 text-muted-foreground ${isMobile ? "h-3 w-3" : "h-4 w-4"}`}
+                  />
                   <Input
-                    placeholder="Search products by name, category, or description..."
+                    placeholder={
+                      isMobile
+                        ? "Search products..."
+                        : "Search products by name, category, or description..."
+                    }
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8"
+                    className={isMobile ? "pl-8 text-sm" : "pl-8"}
                   />
                   {isSearching && activeTab === "products" && (
                     <div className="absolute right-2 top-2.5">
@@ -305,10 +379,11 @@ export function AdminMenuManagement() {
                 </div>
                 <Button
                   onClick={() => setShowCreateProductForm(true)}
-                  className="gap-2"
+                  className={`gap-2 ${isMobile ? "w-full text-sm" : ""}`}
+                  size={isMobile ? "sm" : "default"}
                 >
-                  <Plus className="h-4 w-4" />
-                  Add Product
+                  <Plus className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
+                  {isMobile ? "Add Product" : "Add Product"}
                 </Button>
               </div>
             </CardContent>
@@ -354,62 +429,92 @@ export function AdminMenuManagement() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div
+                className={`grid gap-${isMobile ? "3" : "4"} ${isMobile ? "grid-cols-1 sm:grid-cols-2" : "md:grid-cols-2 lg:grid-cols-3"}`}
+              >
                 {products.map((product: Product) => (
                   <Card
                     key={product.id}
                     className="hover:shadow-md transition-shadow"
                   >
-                    <CardContent className="pt-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center space-x-3 flex-1">
+                    <CardContent className={isMobile ? "pt-4 pb-4" : "pt-6"}>
+                      <div
+                        className={`${isMobile ? "space-y-3" : "flex items-start justify-between"}`}
+                      >
+                        <div
+                          className={`flex ${isMobile ? "flex-col space-y-3" : "items-center space-x-3"} flex-1`}
+                        >
                           <div className="flex-shrink-0">
                             {product.image_url ? (
                               <img
                                 src={product.image_url}
                                 alt={product.name}
-                                className="h-12 w-12 rounded-lg object-cover"
+                                className={`rounded-lg object-cover ${isMobile ? "h-20 w-20 mx-auto" : "h-12 w-12"}`}
                               />
                             ) : (
-                              <div className="h-12 w-12 rounded-lg bg-gradient-to-r from-orange-400 to-pink-500 flex items-center justify-center">
-                                <Package className="h-6 w-6 text-white" />
+                              <div
+                                className={`rounded-lg bg-gradient-to-r from-orange-400 to-pink-500 flex items-center justify-center ${isMobile ? "h-20 w-20 mx-auto" : "h-12 w-12"}`}
+                              >
+                                <Package
+                                  className={`text-white ${isMobile ? "h-8 w-8" : "h-6 w-6"}`}
+                                />
                               </div>
                             )}
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <h3 className="font-medium text-gray-900 truncate">
+                          <div
+                            className={`min-w-0 flex-1 ${isMobile ? "text-center" : ""}`}
+                          >
+                            <h3
+                              className={`font-medium text-gray-900 ${isMobile ? "text-sm" : ""} ${isMobile ? "" : "truncate"}`}
+                            >
                               {product.name}
                             </h3>
-                            <p className="text-sm text-gray-500 line-clamp-2">
+                            <p
+                              className={`text-gray-500 line-clamp-2 ${isMobile ? "text-xs mt-1" : "text-sm"}`}
+                            >
                               {product.description || "No description"}
                             </p>
-                            <div className="flex items-center gap-2 mt-2">
+                            <div
+                              className={`flex items-center gap-2 mt-2 ${isMobile ? "justify-center" : ""}`}
+                            >
                               <Badge
                                 variant="outline"
-                                className="text-green-600"
+                                className={`text-green-600 ${isMobile ? "text-xs" : ""}`}
                               >
-                                <DollarSign className="w-3 h-3 mr-1" />
+                                <DollarSign
+                                  className={`mr-1 ${isMobile ? "w-2 h-2" : "w-3 h-3"}`}
+                                />
                                 {product.price}
                               </Badge>
                             </div>
                           </div>
                         </div>
-                        <div className="flex flex-col space-y-1 ml-2">
+                        <div
+                          className={`flex ${isMobile ? "justify-center space-x-2 w-full" : "flex-col space-y-1 ml-2"}`}
+                        >
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setEditingProduct(product)}
-                            className="h-8 w-8 p-0"
+                            className={
+                              isMobile ? "flex-1 gap-1 text-xs" : "h-8 w-8 p-0"
+                            }
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit
+                              className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                            />
+                            {isMobile && "Edit"}
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleDeleteProduct(product)}
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:border-red-300"
+                            className={`text-red-600 hover:text-red-700 hover:border-red-300 ${isMobile ? "flex-1 gap-1 text-xs" : "h-8 w-8 p-0"}`}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2
+                              className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                            />
+                            {isMobile && "Delete"}
                           </Button>
                         </div>
                       </div>
@@ -437,18 +542,29 @@ export function AdminMenuManagement() {
         </TabsContent>
 
         {/* Categories Tab */}
-        <TabsContent value="categories" className="space-y-6">
+        <TabsContent
+          value="categories"
+          className={`space-y-${isMobile ? "4" : "6"}`}
+        >
           {/* Search and Add Category */}
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between gap-4">
+            <CardContent className={isMobile ? "pt-4 pb-4" : "pt-6"}>
+              <div
+                className={`${isMobile ? "space-y-3" : "flex items-center justify-between gap-4"}`}
+              >
                 <div className="relative flex-1">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search
+                    className={`absolute left-2 top-2.5 text-muted-foreground ${isMobile ? "h-3 w-3" : "h-4 w-4"}`}
+                  />
                   <Input
-                    placeholder="Search categories by name or description..."
+                    placeholder={
+                      isMobile
+                        ? "Search categories..."
+                        : "Search categories by name or description..."
+                    }
                     value={categorySearch}
                     onChange={(e) => setCategorySearch(e.target.value)}
-                    className="pl-8"
+                    className={isMobile ? "pl-8 text-sm" : "pl-8"}
                   />
                   {isSearching && activeTab === "categories" && (
                     <div className="absolute right-2 top-2.5">
@@ -458,9 +574,10 @@ export function AdminMenuManagement() {
                 </div>
                 <Button
                   onClick={() => setShowCreateCategoryForm(true)}
-                  className="gap-2"
+                  className={`gap-2 ${isMobile ? "w-full text-sm" : ""}`}
+                  size={isMobile ? "sm" : "default"}
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
                   Add Category
                 </Button>
               </div>
@@ -480,13 +597,19 @@ export function AdminMenuManagement() {
               <CategoryListSkeleton />
             ) : categories.length === 0 ? (
               <Card>
-                <CardContent className="pt-6">
+                <CardContent className={isMobile ? "pt-4" : "pt-6"}>
                   <div className="text-center py-8">
-                    <Tag className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                    <Tag
+                      className={`mx-auto text-gray-400 ${isMobile ? "h-8 w-8" : "h-12 w-12"}`}
+                    />
+                    <h3
+                      className={`mt-2 font-medium text-gray-900 ${isMobile ? "text-sm" : "text-sm"}`}
+                    >
                       No categories
                     </h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p
+                      className={`mt-1 text-gray-500 ${isMobile ? "text-xs" : "text-sm"}`}
+                    >
                       {categorySearch
                         ? "No categories match your search."
                         : "Get started by adding your first category."}
@@ -496,8 +619,9 @@ export function AdminMenuManagement() {
                         <Button
                           onClick={() => setShowCreateCategoryForm(true)}
                           className="gap-2"
+                          size={isMobile ? "sm" : "default"}
                         >
-                          <Plus className="h-4 w-4" />
+                          <Plus className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
                           Add Category
                         </Button>
                       </div>
@@ -506,46 +630,58 @@ export function AdminMenuManagement() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div
+                className={`grid gap-${isMobile ? "3" : "4"} ${isMobile ? "grid-cols-1 sm:grid-cols-2" : "md:grid-cols-2 lg:grid-cols-4"}`}
+              >
                 {categories.map((category: Category) => (
                   <Card
                     key={category.id}
                     className="hover:shadow-md transition-shadow"
                   >
-                    <CardContent className="pt-6">
+                    <CardContent className={isMobile ? "pt-4 pb-4" : "pt-6"}>
                       <div className="text-center">
                         <div
-                          className="mx-auto h-16 w-16 rounded-lg flex items-center justify-center mb-4"
+                          className={`mx-auto rounded-lg flex items-center justify-center mb-4 ${isMobile ? "h-12 w-12" : "h-16 w-16"}`}
                           style={{
                             backgroundColor: category.color || "#6B7280",
                             color: "white",
                           }}
                         >
-                          <Tag className="h-8 w-8" />
+                          <Tag className={isMobile ? "h-6 w-6" : "h-8 w-8"} />
                         </div>
-                        <h3 className="font-medium text-gray-900 mb-2">
+                        <h3
+                          className={`font-medium text-gray-900 mb-2 ${isMobile ? "text-sm" : ""}`}
+                        >
                           {category.name}
                         </h3>
-                        <p className="text-sm text-gray-500 mb-4 line-clamp-2">
+                        <p
+                          className={`text-gray-500 mb-4 line-clamp-2 ${isMobile ? "text-xs" : "text-sm"}`}
+                        >
                           {category.description || "No description"}
                         </p>
-                        <div className="flex justify-center space-x-2">
+                        <div
+                          className={`flex ${isMobile ? "flex-col space-y-2" : "justify-center space-x-2"}`}
+                        >
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setEditingCategory(category)}
-                            className="gap-1"
+                            className={`gap-1 ${isMobile ? "text-xs" : ""}`}
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit
+                              className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                            />
                             Edit
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleDeleteCategory(category)}
-                            className="gap-1 text-red-600 hover:text-red-700 hover:border-red-300"
+                            className={`gap-1 text-red-600 hover:text-red-700 hover:border-red-300 ${isMobile ? "text-xs" : ""}`}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2
+                              className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                            />
                             Delete
                           </Button>
                         </div>

@@ -42,13 +42,6 @@ const adminSections = [
     href: "/admin/ingredients",
   },
   {
-    id: "reports",
-    label: "View Reports",
-    icon: <BarChart3 className="w-5 h-5" />,
-    description: "Analytics and reports",
-    href: "/admin/reports",
-  },
-  {
     id: "menu",
     label: "Manage Menu",
     icon: <Menu className="w-5 h-5" />,
@@ -68,6 +61,13 @@ const adminSections = [
     icon: <UserCog className="w-5 h-5" />,
     description: "User and role management",
     href: "/admin/staff",
+  },
+  {
+    id: "reports",
+    label: "View Reports",
+    icon: <BarChart3 className="w-5 h-5" />,
+    description: "Analytics and reports",
+    href: "/admin/reports",
   },
   {
     id: "settings",
@@ -117,9 +117,9 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
 
       {/* Sidebar */}
       <div
-        className={`bg-card border-r border-border transition-all duration-300 flex flex-col z-50 ${
+        className={`bg-card border-r border-border transition-all duration-300 flex flex-col z-50 h-screen ${
           isMobile || isTablet
-            ? `fixed left-0 top-0 h-full ${sidebarCollapsed ? "-translate-x-full w-0" : "translate-x-0 w-80"}`
+            ? `fixed left-0 top-0 ${sidebarCollapsed ? "-translate-x-full w-0" : "translate-x-0 w-80"}`
             : `relative ${sidebarCollapsed ? "w-16" : "w-64"}`
         }`}
       >

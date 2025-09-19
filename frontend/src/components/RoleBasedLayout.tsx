@@ -10,7 +10,6 @@ import {
   ShoppingCart,
   Settings,
   LogOut,
-  User,
 } from "lucide-react";
 import type { User as UserType } from "@/types";
 import apiClient from "@/api/client";
@@ -32,7 +31,7 @@ export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
       case "counter":
         return "counter";
       default:
-        return "pos"; // fallback to general POS interface
+        return "counter";
     }
   }
 
@@ -66,10 +65,10 @@ export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
         };
       default:
         return {
-          title: "Staff",
-          color: "bg-gray-100 text-gray-800",
-          icon: <User className="w-4 h-4" />,
-          description: "General access",
+          title: "Counter/Checkout",
+          color: "bg-green-100 text-green-800",
+          icon: <CreditCard className="w-4 h-4" />,
+          description: "Order creation and payment processing",
         };
     }
   };
@@ -89,11 +88,6 @@ export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
           icon: <LayoutDashboard className="w-4 h-4" />,
         },
         {
-          id: "pos",
-          label: "General POS",
-          icon: <ShoppingCart className="w-4 h-4" />,
-        },
-        {
           id: "counter",
           label: "Counter/Checkout",
           icon: <CreditCard className="w-4 h-4" />,
@@ -102,25 +96,18 @@ export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
     }
     // Counter gets counter interface and general POS
     else if (role === "counter") {
-      views.push(
-        {
-          id: "counter",
-          label: "Counter/Checkout",
-          icon: <CreditCard className="w-4 h-4" />,
-        },
-        {
-          id: "pos",
-          label: "General POS",
-          icon: <ShoppingCart className="w-4 h-4" />,
-        }
-      );
+      views.push({
+        id: "counter",
+        label: "Counter/Checkout",
+        icon: <CreditCard className="w-4 h-4" />,
+      });
     }
     // Default fallback
     else {
       views.push({
-        id: "pos",
-        label: "POS System",
-        icon: <ShoppingCart className="w-4 h-4" />,
+        id: "counter",
+        label: "Counter/Checkout",
+        icon: <CreditCard className="w-4 h-4" />,
       });
     }
 

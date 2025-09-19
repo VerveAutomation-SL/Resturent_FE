@@ -1,10 +1,8 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { jwtDecode } from "jwt-decode";
 import apiClient from "@/api/client";
 import { RoleBasedLayout } from "@/components/RoleBasedLayout";
 import type { User } from "@/types";
-import Cookies from "js-cookie";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -16,49 +14,15 @@ function HomePage() {
 
   useEffect(() => {
     console.log("Loading user from JWT token...");
-    const token = Cookies.get("pos_token");
+    const decodedToken = apiClient.isAuthenticated();
 
-    console.log("Stored token:", token ? "exists" : "missing");
-
-    // Check if token exists
-    if (!token) {
-      console.log("Token missing, clearing auth");
-      apiClient.clearAuth();
-      setIsLoading(false);
-      window.location.href = "/login";
-      return;
-    }
-
-    // Decode JWT token to get user information and check expiry
-    try {
-      const decodedToken = jwtDecode<User & { exp: number; iat: number }>(
-        token
-      );
-
-      // Check if token has expired (from JWT token itself)
-      const currentTime = new Date().getTime();
-      const tokenExpTime = decodedToken.exp * 1000; // Convert to milliseconds
-
-      if (currentTime >= tokenExpTime) {
-        console.log("Token expired (from JWT), clearing auth");
-        apiClient.clearAuth();
-        setIsLoading(false);
-        return;
-      }
-
+    if (decodedToken) {
       console.log("Decoded token User:", decodedToken);
-
       setUser(decodedToken);
-
-      // No need to store user separately since we get it from JWT token
-    } catch (error) {
-      console.error("Failed to decode JWT token:", error);
-      apiClient.clearAuth();
       setIsLoading(false);
-      return;
+    } else {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   }, []);
 
   // Show loading while we check Cookies
@@ -75,7 +39,7 @@ function HomePage() {
   }
 
   // Check authentication - ONLY after Cookies is loaded
-  if (!apiClient.isAuthenticated() || !user) {
+  if (!user) {
     console.log("Not authenticated, redirecting to login");
     return <Navigate to="/login" />;
   }
@@ -86,9 +50,5 @@ function HomePage() {
     return <Navigate to="/admin/dashboard" />;
   }
 
-  console.log(
-    "User authenticated, rendering role-based layout for user:",
-    user
-  );
   return <RoleBasedLayout user={user} />;
 }

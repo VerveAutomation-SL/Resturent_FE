@@ -34,8 +34,25 @@ export function AdminStaffManagement() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const queryClient = useQueryClient();
+
+  // Responsive breakpoint detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const isMobileSize = window.innerWidth < 768;
+      setIsMobile(isMobileSize);
+      // Auto switch to cards view on mobile
+      if (isMobileSize && displayMode === "table") {
+        setDisplayMode("cards");
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, [displayMode]);
 
   // Pagination hook
   const pagination = usePagination({
@@ -129,7 +146,7 @@ export function AdminStaffManagement() {
   // Show form if creating or editing
   if (showCreateForm || editingUser) {
     return (
-      <div className="p-6">
+      <div className={isMobile ? "p-4" : "p-6"}>
         <UserForm
           user={editingUser || undefined}
           mode={editingUser ? "edit" : "create"}
@@ -142,19 +159,33 @@ export function AdminStaffManagement() {
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
+      <div
+        className={`${isMobile ? "p-4" : "p-6"} space-y-${isMobile ? "4" : "6"}`}
+      >
         {/* Header Skeleton */}
-        <div className="flex items-center justify-between">
+        <div
+          className={`${isMobile ? "space-y-3" : "flex items-center justify-between"}`}
+        >
           <div className="space-y-2">
-            <div className="h-8 w-48 bg-muted animate-pulse rounded-md" />
-            <div className="h-4 w-72 bg-muted animate-pulse rounded-md" />
+            <div
+              className={`bg-muted animate-pulse rounded-md ${isMobile ? "h-6 w-36" : "h-8 w-48"}`}
+            />
+            <div
+              className={`bg-muted animate-pulse rounded-md ${isMobile ? "h-3 w-48" : "h-4 w-72"}`}
+            />
           </div>
-          <div className="h-10 w-24 bg-muted animate-pulse rounded-md" />
+          {!isMobile && (
+            <div className="h-10 w-24 bg-muted animate-pulse rounded-md" />
+          )}
         </div>
 
         {/* Search and Controls Skeleton */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="h-10 w-full max-w-sm bg-muted animate-pulse rounded-md" />
+        <div
+          className={`${isMobile ? "space-y-3" : "flex items-center justify-between gap-4"}`}
+        >
+          <div
+            className={`bg-muted animate-pulse rounded-md ${isMobile ? "h-8 w-full" : "h-10 w-full max-w-sm"}`}
+          />
         </div>
 
         {/* User List Skeleton */}
@@ -164,62 +195,115 @@ export function AdminStaffManagement() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div
+      className={`${isMobile ? "p-4" : "p-6"} space-y-${isMobile ? "4" : "6"}`}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div
+        className={`${isMobile ? "space-y-3" : "flex items-center justify-between"}`}
+      >
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">
+          <h2
+            className={`font-bold tracking-tight ${isMobile ? "text-2xl" : "text-3xl"}`}
+          >
             Staff Management
           </h2>
-          <p className="text-muted-foreground">
-            Manage your restaurant staff and their permissions
+          <p className={`text-muted-foreground ${isMobile ? "text-sm" : ""}`}>
+            {isMobile
+              ? "Manage staff & permissions"
+              : "Manage your restaurant staff and their permissions"}
           </p>
         </div>
-        <div className="flex items-center space-x-4">
-          {/* View Toggle */}
-          <div className="flex items-center bg-muted rounded-lg p-1">
-            <Button
-              variant={displayMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setDisplayMode("table")}
-              className="px-3"
-            >
-              <Table className="h-4 w-4 mr-1" />
-              Table
-            </Button>
-            <Button
-              variant={displayMode === "cards" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setDisplayMode("cards")}
-              className="px-3"
-            >
-              <Users className="h-4 w-4 mr-1" />
-              Cards
-            </Button>
+        {!isMobile && (
+          <div className="flex items-center space-x-4">
+            {/* View Toggle */}
+            <div className="flex items-center bg-muted rounded-lg p-1">
+              <Button
+                variant={displayMode === "table" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setDisplayMode("table")}
+                className="px-3"
+              >
+                <Table className="h-4 w-4 mr-1" />
+                Table
+              </Button>
+              <Button
+                variant={displayMode === "cards" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setDisplayMode("cards")}
+                className="px-3"
+              >
+                <Users className="h-4 w-4 mr-1" />
+                Cards
+              </Button>
+            </div>
           </div>
-          <Button onClick={() => setShowCreateForm(true)} className="gap-2">
-            <UserPlus className="h-4 w-4" />
-            Add New Staff
-          </Button>
-        </div>
+        )}
       </div>
 
-      {/* Search */}
+      {/* Search and Add Staff */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search staff by name, email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
-            />
-            {isSearching && (
-              <div className="absolute right-2 top-2.5">
-                <InlineLoading size="sm" />
-              </div>
-            )}
+        <CardContent className={isMobile ? "pt-4 pb-4" : "pt-6"}>
+          <div
+            className={`${isMobile ? "space-y-3" : "flex items-center justify-between gap-4"}`}
+          >
+            <div className="relative flex-1">
+              <Search
+                className={`absolute left-2 top-2.5 text-muted-foreground ${isMobile ? "h-3 w-3" : "h-4 w-4"}`}
+              />
+              <Input
+                placeholder={
+                  isMobile
+                    ? "Search staff..."
+                    : "Search by name, email, or role..."
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={isMobile ? "pl-8 text-sm" : "pl-8"}
+              />
+              {isSearching && (
+                <div className="absolute right-2 top-2.5">
+                  <InlineLoading size="sm" />
+                </div>
+              )}
+            </div>
+
+            <div
+              className={`flex ${isMobile ? "gap-2" : "items-center space-x-4"}`}
+            >
+              {/* Mobile View Toggle */}
+              {isMobile && (
+                <div className="flex items-center bg-muted rounded-lg p-1">
+                  <Button
+                    variant={displayMode === "table" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setDisplayMode("table")}
+                    className="px-3 text-xs"
+                  >
+                    <Table className="h-3 w-3 mr-1" />
+                    Table
+                  </Button>
+                  <Button
+                    variant={displayMode === "cards" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setDisplayMode("cards")}
+                    className="px-3 text-xs"
+                  >
+                    <Users className="h-3 w-3 mr-1" />
+                    Cards
+                  </Button>
+                </div>
+              )}
+
+              <Button
+                onClick={() => setShowCreateForm(true)}
+                className={`gap-2 ${isMobile ? "text-sm" : ""}`}
+                size={isMobile ? "sm" : "default"}
+              >
+                <UserPlus className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
+                {isMobile ? "Add Staff" : "Add Staff"}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -235,13 +319,19 @@ export function AdminStaffManagement() {
           />
         ) : filteredUsers.length === 0 ? (
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className={isMobile ? "pt-4" : "pt-6"}>
               <div className="text-center py-8">
-                <UserPlus className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                <UserPlus
+                  className={`mx-auto text-gray-400 ${isMobile ? "h-8 w-8" : "h-12 w-12"}`}
+                />
+                <h3
+                  className={`mt-2 font-medium text-gray-900 ${isMobile ? "text-sm" : "text-sm"}`}
+                >
                   No staff members
                 </h3>
-                <p className="mt-1 text-sm text-gray-500">
+                <p
+                  className={`mt-1 text-gray-500 ${isMobile ? "text-xs" : "text-sm"}`}
+                >
                   {searchTerm
                     ? "No staff members match your search."
                     : "Get started by adding a new staff member."}
@@ -251,8 +341,9 @@ export function AdminStaffManagement() {
                     <Button
                       onClick={() => setShowCreateForm(true)}
                       className="gap-2"
+                      size={isMobile ? "sm" : "default"}
                     >
-                      <UserPlus className="h-4 w-4" />
+                      <UserPlus className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
                       Add New Staff
                     </Button>
                   </div>
@@ -261,67 +352,94 @@ export function AdminStaffManagement() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4">
+          <div className={`grid gap-${isMobile ? "3" : "4"}`}>
             {filteredUsers.map((user: User) => (
               <Card key={user.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
+                <CardContent className={isMobile ? "pt-4 pb-4" : "pt-6"}>
+                  <div
+                    className={`${isMobile ? "space-y-4" : "flex items-center justify-between"}`}
+                  >
+                    <div
+                      className={`flex items-center space-x-4 ${isMobile ? "justify-center" : ""}`}
+                    >
                       <div className="flex-shrink-0">
-                        <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center">
-                          <span className="text-sm font-semibold text-white">
+                        <div
+                          className={`rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center ${isMobile ? "h-10 w-10" : "h-12 w-12"}`}
+                        >
+                          <span
+                            className={`font-semibold text-white ${isMobile ? "text-xs" : "text-sm"}`}
+                          >
                             {user.name[0]}
                           </span>
                         </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-3">
-                          <p className="text-lg font-semibold text-gray-900">
-                            {user.name}
-                          </p>
-                          <Badge className={getRoleBadgeColor(user.role)}>
-                            <Shield className="w-3 h-3 mr-1" />
-                            {user.role.toUpperCase()}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center mt-1 text-sm text-gray-500 space-x-4">
-                          <span className="flex items-center gap-1">
-                            <Mail className="h-4 w-4" />
+                      <div
+                        className={`min-w-0 flex-1 ${isMobile ? "text-center" : ""}`}
+                      >
+                        <h3
+                          className={`font-medium text-gray-900 ${isMobile ? "text-sm" : ""}`}
+                        >
+                          {user.name}
+                        </h3>
+                        <div
+                          className={`flex items-center gap-2 mt-1 ${isMobile ? "justify-center flex-wrap" : ""}`}
+                        >
+                          <Mail className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
+                          <p
+                            className={`text-gray-500 ${isMobile ? "text-xs" : "text-sm"}`}
+                          >
                             {user.email}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            Joined{" "}
-                            {new Date(user.created_at).toLocaleDateString()}
-                          </span>
+                          </p>
+                        </div>
+                        {user.created_at && (
+                          <div
+                            className={`flex items-center gap-2 mt-1 ${isMobile ? "justify-center" : ""}`}
+                          >
+                            <Calendar
+                              className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                            />
+                            <p
+                              className={`text-gray-500 ${isMobile ? "text-xs" : "text-sm"}`}
+                            >
+                              Joined{" "}
+                              {new Date(user.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        )}
+                        <div
+                          className={`flex items-center gap-2 mt-2 ${isMobile ? "justify-center" : ""}`}
+                        >
+                          <Shield
+                            className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                          />
+                          <Badge
+                            className={`${getRoleBadgeColor(user.role)} ${isMobile ? "text-xs" : ""}`}
+                          >
+                            {user.role}
+                          </Badge>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div
+                      className={`flex ${isMobile ? "justify-center space-x-2 w-full" : "flex-col space-y-2 ml-4"}`}
+                    >
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => setEditingUser(user)}
-                        className="gap-2"
+                        className={isMobile ? "flex-1 gap-1 text-xs" : "gap-1"}
                       >
-                        <Edit className="h-4 w-4" />
-                        Edit
+                        <Edit className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
+                        {isMobile ? "Edit" : "Edit"}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleDeleteUser(user)}
-                        disabled={deleteUserMutation.isPending}
-                        className="gap-2 text-red-600 hover:text-red-700 hover:border-red-300"
+                        className={`text-red-600 hover:text-red-700 hover:border-red-300 ${isMobile ? "flex-1 gap-1 text-xs" : "gap-1"}`}
                       >
-                        {deleteUserMutation.isPending ? (
-                          <InlineLoading size="sm" />
-                        ) : (
-                          <>
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                          </>
-                        )}
+                        <Trash2 className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
+                        {isMobile ? "Delete" : "Delete"}
                       </Button>
                     </div>
                   </div>
@@ -330,22 +448,22 @@ export function AdminStaffManagement() {
             ))}
           </div>
         )}
-      </div>
 
-      {/* Pagination with loading state */}
-      {filteredUsers.length > 0 && (
-        <div className="mt-6 space-y-4">
-          {isFetching && !isLoading && (
-            <div className="flex justify-center">
-              <InlineLoading text="Updating results..." />
-            </div>
-          )}
-          <PaginationControlsComponent
-            pagination={pagination}
-            total={paginationInfo.total || users.length}
-          />
-        </div>
-      )}
+        {/* Pagination */}
+        {filteredUsers.length > 0 && (
+          <div className={`${isMobile ? "mt-4 space-y-3" : "mt-6 space-y-4"}`}>
+            {isFetching && !isLoading && (
+              <div className="flex justify-center">
+                <InlineLoading text="Updating staff..." />
+              </div>
+            )}
+            <PaginationControlsComponent
+              pagination={pagination}
+              total={paginationInfo.total || filteredUsers.length}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

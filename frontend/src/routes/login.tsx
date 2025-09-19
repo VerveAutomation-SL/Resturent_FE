@@ -20,8 +20,6 @@ import {
   Users,
   CreditCard,
   BarChart3,
-  ChefHat,
-  UserCheck,
   Settings,
 } from "lucide-react";
 
@@ -38,11 +36,9 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  // Redirect if already authenticated (useEffect to avoid early return -> hooks mismatch)
   useEffect(() => {
     if (apiClient.isAuthenticated()) {
       console.log("Already authenticated, redirecting to home...");
-      // use router.navigate instead of rendering <Navigate /> to keep hooks stable
       router.navigate({ to: "/" });
     }
   }, []);
@@ -57,9 +53,7 @@ function LoginPage() {
       console.log("Login success:", response);
       console.log("Current API URL:", import.meta.env.VITE_API_URL);
       if (response.success && response.data) {
-        // Set auth token - expiry will be extracted from JWT token
         apiClient.setAuthToken(response.data.accessToken);
-        // Let the page-level guard handle redirect after token is set
         router.navigate({ to: "/" });
       } else {
         console.error("Login failed:", response.message);
@@ -254,85 +248,10 @@ function LoginPage() {
               </form>
 
               <div className="border-t pt-6">
-                {/* Featured Roles - Server & Cashier */}
-                <div className="mb-4">
-                  <div className="text-xs text-gray-600 mb-2 font-medium">
-                    🌟 Featured Roles
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      {
-                        email: "server1",
-                        role: "Server",
-                        icon: UserCheck,
-                        bg: "bg-gradient-to-r from-purple-100 to-purple-50 text-purple-800 border-purple-200",
-                        desc: "🍽️ Table service & dine-in orders",
-                        password: "admin123",
-                        features: [
-                          "Table management",
-                          "Order taking",
-                          "Guest service",
-                        ],
-                      },
-                      {
-                        email: "counter@restaurant.com",
-                        role: "Counter",
-                        icon: CreditCard,
-                        bg: "bg-gradient-to-r from-green-100 to-green-50 text-green-800 border-green-200",
-                        desc: "💰 Payment processing & all orders",
-                        password: "counter1@123",
-                        features: [
-                          "All order types",
-                          "Payment processing",
-                          "Receipt printing",
-                        ],
-                      },
-                    ].map((account) => (
-                      <button
-                        key={account.email}
-                        onClick={() =>
-                          fillDemoCredentials(account.email, account.password)
-                        }
-                        className={`p-4 rounded-xl border-2 ${account.bg} hover:scale-105 text-left transition-all duration-200 shadow-sm hover:shadow-md`}
-                        disabled={loginMutation.isPending}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-white/70 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <account.icon className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="font-semibold text-sm">
-                                {account.role}
-                              </div>
-                              <div className="text-xs opacity-60 font-mono">
-                                {account.password}
-                              </div>
-                            </div>
-                            <div className="text-xs mb-2 opacity-80">
-                              {account.desc}
-                            </div>
-                            <div className="flex flex-wrap gap-1">
-                              {account.features.map((feature, idx) => (
-                                <span
-                                  key={idx}
-                                  className="text-[10px] bg-white/50 px-2 py-0.5 rounded-full"
-                                >
-                                  {feature}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Other Roles */}
+                {/* Roles */}
                 <div>
                   <div className="text-xs text-gray-600 mb-2 font-medium">
-                    Other Demo Accounts
+                    Demo Accounts
                   </div>
                   <div className="grid gap-2">
                     {[
@@ -345,20 +264,20 @@ function LoginPage() {
                         password: "kalpa123",
                       },
                       {
-                        email: "manager1",
+                        email: "manager@restaurant.com",
                         role: "manager",
                         icon: BarChart3,
                         bg: "bg-blue-50 text-blue-700 border-blue-100",
                         desc: "📊 Management & reports",
-                        password: "admin123",
+                        password: "manager123",
                       },
                       {
-                        email: "kitchen1",
-                        role: "kitchen",
-                        icon: ChefHat,
-                        bg: "bg-orange-50 text-orange-700 border-orange-100",
-                        desc: "👨‍🍳 Order preparation",
-                        password: "admin123",
+                        email: "counter@restaurant.com",
+                        role: "Counter",
+                        icon: CreditCard,
+                        bg: "bg-gradient-to-r from-green-100 to-green-50 text-green-800 border-green-200",
+                        desc: "💰 Payment processing & all orders",
+                        password: "counter1@123",
                       },
                     ].map((account) => (
                       <button

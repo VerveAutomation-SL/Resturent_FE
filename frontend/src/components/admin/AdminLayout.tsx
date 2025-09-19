@@ -19,8 +19,6 @@ import type { User as UserType } from "@/types";
 // Import components for different sections
 import { AdminDashboard } from "./AdminDashboard";
 import { CounterInterface } from "@/components/counter/CounterInterface";
-import { ToastDemo } from "@/components/ui/demo-toast";
-import { FormDemo } from "@/components/forms/FormDemo";
 import { AdminStaffManagement } from "./AdminStaffManagement";
 import { AdminSettings } from "./AdminSettings";
 import { AdminMenuManagement } from "./AdminMenuManagement";
@@ -110,8 +108,6 @@ export function AdminLayout({ user }: AdminLayoutProps) {
         return (
           <div className="space-y-8">
             <AdminSettings />
-            <ToastDemo />
-            <FormDemo />
           </div>
         );
       case "staff":

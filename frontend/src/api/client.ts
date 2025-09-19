@@ -572,7 +572,7 @@ class APIClient {
 
   // Utility methods
   setAuthToken(accessToken: string): void {
-    console.log("Auth token set with JWT expiry, redirecting to home...");
+    console.log("Auth token set with JWT, redirecting to home...");
     Cookies.set('pos_token', accessToken);
   }
 
@@ -585,29 +585,32 @@ class APIClient {
     return token === undefined ? null : token;
   }
 
-  isAuthenticated(): boolean {
+  isAuthenticated(): User & { exp: number; iat: number } | null {
     const token = this.getAuthToken();
     
     if (!token) {
-      return false;
+      console.log("Token missing, clearing auth");
+      this.clearAuth();
+      return null;
     }
     
     try {
       // Decode the JWT token to check expiry
-      const decodedToken = jwtDecode<{ exp: number }>(token);
+      const decodedToken = jwtDecode<User & { exp: number; iat: number }>(token);
       const expiryTime = decodedToken.exp * 1000; // Convert from seconds to milliseconds
       const currentTime = new Date().getTime();
       
       if (currentTime >= expiryTime) {
+        console.log("Token expired (from JWT), clearing auth");
         this.clearAuth();
-        return false;
+        return null;
       }
-      
-      return true;
+
+      return decodedToken;
     } catch (error) {
       console.error('Failed to decode JWT token:', error);
       this.clearAuth();
-      return false;
+      return null;
     }
   }
 }
