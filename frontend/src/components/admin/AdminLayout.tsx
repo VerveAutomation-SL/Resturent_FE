@@ -4,15 +4,13 @@ import { UserMenu } from "@/components/ui/user-menu";
 // import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card' // Removed - not used in simplified layout
 import {
   LayoutDashboard,
-  Users,
-  CreditCard,
-  ChefHat,
   ShoppingCart,
   Settings,
   Menu,
   BarChart3,
   UserCog,
   LayoutGrid,
+  CreditCard,
 } from "lucide-react";
 import type { User as UserType } from "@/types";
 
@@ -103,7 +101,7 @@ export function AdminLayout({ user }: AdminLayoutProps) {
       case "dashboard":
         return <AdminDashboard />;
       case "counter":
-        return <CounterInterface />;
+        return <CounterInterface user={user} />;
       case "settings":
         return (
           <div className="space-y-8">

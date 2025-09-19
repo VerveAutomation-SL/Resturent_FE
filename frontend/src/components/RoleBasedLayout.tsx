@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { CounterInterface } from "@/components/counter/CounterInterface";
-import { POSLayout } from "@/components/pos/POSLayout";
 import {
   LayoutDashboard,
   CreditCard,
@@ -121,18 +120,16 @@ export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
       case "dashboard":
         return <AdminLayout user={user} />;
       case "counter":
-        return <CounterInterface />;
-      case "pos":
-        return <POSLayout user={user} />;
+        return <CounterInterface user={user} />;
       default:
-        return <POSLayout user={user} />;
+        return <CounterInterface user={user} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Top Navigation Bar */}
-      <div className="border-b border-border bg-card px-6 py-3">
+      <div className="border-b border-border bg-card px-6 py-3 h-[8vh]">
         <div className="flex items-center justify-between">
           {/* Left Side - Logo and Navigation */}
           <div className="flex items-center gap-6">
@@ -193,7 +190,7 @@ export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1">{renderCurrentView()}</div>
+      <div>{renderCurrentView()}</div>
     </div>
   );
 }

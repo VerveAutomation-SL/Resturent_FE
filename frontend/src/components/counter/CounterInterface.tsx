@@ -40,9 +40,11 @@ import type {
   CartItem,
   UpdateOrderRequest,
 } from "@/types";
+
+import type { User as UserType } from "@/types";
 import { OrderStatus } from "@/types";
 
-export function CounterInterface() {
+export function CounterInterface({ user }: { user: UserType }) {
   // State
   const [cart, setCart] = useState<CartItem[]>([]);
   const [existingOrderItems, setExistingOrderItems] = useState<CartItem[]>([]); // Track existing order items separately
@@ -469,7 +471,9 @@ export function CounterInterface() {
   };
 
   return (
-    <div className="flex h-screen bg-background">
+    <div
+      className={`flex bg-background ${user.role === "admin" ? "h-screen" : "h-[92vh]"}`}
+    >
       {/* Left Side - Header with Tabs and Order Items */}
       <div className="w-full border-r border-border overflow-hidden flex flex-col">
         {/* Header with Tabs */}
@@ -657,7 +661,6 @@ export function CounterInterface() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                       {filteredTables?.map((table) => {
                         const occupied = table.status === "occupied";
-                        const tableOrder = getTableOrder(table.id);
 
                         return (
                           <Card
@@ -700,28 +703,6 @@ export function CounterInterface() {
                                     {occupied ? "Occupied" : "Available"}
                                   </Badge>
                                 </div>
-
-                                {/* Process Payment Button for Occupied Tables */}
-                                {occupied && tableOrder && (
-                                  <div className="mt-3">
-                                    <Button
-                                      size="sm"
-                                      variant="default"
-                                      className="w-full bg-black hover:bg-gray-800 text-white"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedOrder(tableOrder);
-                                        setPaymentAmount(
-                                          (tableOrder.price ?? 0).toString()
-                                        );
-                                        setActiveTab("payment");
-                                      }}
-                                    >
-                                      <CreditCard className="w-3 h-3 mr-1" />
-                                      Process Payment
-                                    </Button>
-                                  </div>
-                                )}
                               </div>
                             </CardContent>
                           </Card>
@@ -1166,15 +1147,25 @@ export function CounterInterface() {
                         </Badge>
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="destructive"
                           onClick={() => {
                             if (!selectedOrder) return;
                             if (!confirm("Cancel this order?")) return;
                             cancelOrderMutation.mutate(selectedOrder.id);
                           }}
-                          className="ml-2 text-red-600"
+                          className="ml-2 bg-red-600 hover:bg-red-700 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
                         >
-                          Cancel
+                          {cancelOrderMutation.isPending ? (
+                            <>
+                              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" />
+                              Cancelling...
+                            </>
+                          ) : (
+                            <>
+                              <X className="w-3 h-3 mr-1" />
+                              Cancel Order
+                            </>
+                          )}
                         </Button>
                       </div>
                     </>
@@ -1395,6 +1386,30 @@ export function CounterInterface() {
                 </div>
               </div>
             )}
+
+            {/* Process Payment Button for Occupied Tables */}
+            {selectedTable &&
+              selectedTable.status === "occupied" &&
+              getTableOrder(selectedTable.id) && (
+                <div className="p-4 border-t border-border bg-card">
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    variant="default"
+                    onClick={() => {
+                      const tableOrder = getTableOrder(selectedTable.id);
+                      if (tableOrder) {
+                        setSelectedOrder(tableOrder);
+                        setPaymentAmount((tableOrder.price ?? 0).toString());
+                        setActiveTab("payment");
+                      }
+                    }}
+                  >
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Process Payment
+                  </Button>
+                </div>
+              )}
           </div>
         ) : (
           /* Payment Tab - Payment Processing Interface */
