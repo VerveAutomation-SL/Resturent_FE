@@ -19,6 +19,10 @@ function HomePage() {
     if (decodedToken) {
       console.log("Decoded token User:", decodedToken);
       setUser(decodedToken);
+
+      // Show user detected toast
+      // toastHelpers.userDetected(decodedToken.role, decodedToken.name);
+
       setIsLoading(false);
     } else {
       setIsLoading(false);

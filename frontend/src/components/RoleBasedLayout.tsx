@@ -25,6 +25,7 @@ export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
   function getDefaultView(role: string): string {
     switch (role) {
       case "admin":
+        return "dashboard";
       case "manager":
         return "dashboard";
       case "counter":

@@ -133,6 +133,7 @@ export function CounterInterface() {
       setSelectedOrder(null); // Clear selected order
       setOrderNotes("");
       setCurrentView("tables");
+      setOrderType("dine_in");
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["tables"] });
     },
@@ -149,6 +150,7 @@ export function CounterInterface() {
       setExistingOrderItems([]);
       setOrderNotes("");
       setCurrentView("tables");
+      setOrderType("dine_in");
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["tables"] });
       console.log("Order updated successfully");
@@ -177,7 +179,9 @@ export function CounterInterface() {
       setPaymentAmount("");
       setReferenceNumber("");
       setCurrentView("tables");
+      setOrderType("dine_in");
       setActiveTab("create");
+      setExistingOrderItems([]);
       // Show success toast
       try {
         toast({
@@ -211,6 +215,7 @@ export function CounterInterface() {
       });
       setActiveTab("create");
       setCurrentView("tables");
+      setOrderType("dine_in");
     },
     onError: (err: any) => {
       toast({
@@ -526,48 +531,53 @@ export function CounterInterface() {
               {/* Order Type Selection */}
               <div className="flex justify-between mt-2">
                 {/* Hide order type buttons once a table is selected */}
-                {!selectedTable && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant={orderType === "dine_in" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => {
-                        setOrderType("dine_in");
-                        setCurrentView("tables");
-                        setSelectedTable(null);
-                      }}
-                    >
-                      <Users className="w-4 h-4 mr-1" />
-                      Dine-In
-                    </Button>
-                    <Button
-                      variant={
-                        orderType === "take_away" ? "default" : "outline"
-                      }
-                      size="sm"
-                      onClick={() => {
-                        setOrderType("take_away");
-                        setCurrentView("products");
-                        setSelectedTable(null);
-                      }}
-                    >
-                      <Package className="w-4 h-4 mr-1" />
-                      Take Away
-                    </Button>
-                    <Button
-                      variant={orderType === "delivery" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => {
-                        setOrderType("delivery");
-                        setCurrentView("products");
-                        setSelectedTable(null);
-                      }}
-                    >
-                      <Car className="w-4 h-4 mr-1" />
-                      Delivery
-                    </Button>
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={orderType === "dine_in" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setOrderType("dine_in");
+                      setCurrentView("tables");
+                      setSelectedTable(null);
+                      setExistingOrderItems([]);
+                      setCart([]);
+                      setSelectedOrder(null);
+                    }}
+                  >
+                    <Users className="w-4 h-4 mr-1" />
+                    Dine-In
+                  </Button>
+                  <Button
+                    variant={orderType === "take_away" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setOrderType("take_away");
+                      setCurrentView("products");
+                      setSelectedTable(null);
+                      setExistingOrderItems([]);
+                      setCart([]);
+                      setSelectedOrder(null);
+                    }}
+                  >
+                    <Package className="w-4 h-4 mr-1" />
+                    Take Away
+                  </Button>
+                  <Button
+                    variant={orderType === "delivery" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setOrderType("delivery");
+                      setCurrentView("products");
+                      setSelectedTable(null);
+                      setExistingOrderItems([]);
+                      setCart([]);
+                      setSelectedOrder(null);
+                    }}
+                  >
+                    <Car className="w-4 h-4 mr-1" />
+                    Delivery
+                  </Button>
+                </div>
 
                 <div />
               </div>
@@ -1004,14 +1014,6 @@ export function CounterInterface() {
                                     {order.status}
                                   </div>
                                 </div>
-                                {order.customer_name && (
-                                  <div>
-                                    <div className="font-medium text-muted-foreground">
-                                      Customer
-                                    </div>
-                                    <div>{order.customer_name}</div>
-                                  </div>
-                                )}
                                 {order.RestaurantTable && (
                                   <div>
                                     <div className="font-medium text-muted-foreground">

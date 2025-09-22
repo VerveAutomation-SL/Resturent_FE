@@ -1,15 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  RefreshCw,
   AlertTriangle,
   XCircle,
   AlertCircle,
-  Eye,
   TrendingUp,
-  ShoppingCart,
-  Upload,
   Package,
   DollarSign,
   Users,
@@ -31,7 +26,6 @@ export default function StockDashboard({
   transactions = [],
   stockItems = [],
   setActiveTab,
-  setShowTransactionForm,
   stockStats,
 }: Props) {
   // Top suppliers by value

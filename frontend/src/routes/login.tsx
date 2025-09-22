@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 
 import apiClient from "@/api/client";
 import type { LoginRequest, LoginResponse, APIResponse } from "@/types";
+import { toastHelpers } from "@/lib/toast-helpers";
 import {
   Eye,
   EyeOff,
@@ -37,9 +38,16 @@ function LoginPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (apiClient.isAuthenticated()) {
+    const user = apiClient.isAuthenticated();
+    if (user) {
       console.log("Already authenticated, redirecting to home...");
-      router.navigate({ to: "/" });
+      if (user.role === "admin") {
+        console.log("Admin user detected, redirecting to admin panel");
+        router.navigate({ to: "/admin/dashboard" });
+        return;
+      } else {
+        console.log("Non-admin user, redirecting to home");
+      }
     }
   }, []);
 
@@ -54,14 +62,31 @@ function LoginPage() {
       console.log("Current API URL:", import.meta.env.VITE_API_URL);
       if (response.success && response.data) {
         apiClient.setAuthToken(response.data.accessToken);
+
+        // Get user info from token for the toast
+        const userInfo = apiClient.isAuthenticated();
+        const userRole = userInfo?.role;
+        const userName = userInfo?.name;
+
+        // Show success toast
+        toastHelpers.loginSuccess(userRole, userName);
+
         router.navigate({ to: "/" });
       } else {
         console.error("Login failed:", response.message);
-        setError(response.message || "Login failed");
+        const errorMessage = response.message || "Login failed";
+        setError(errorMessage);
+
+        // Show login failed toast
+        toastHelpers.loginFailed(errorMessage);
       }
     },
     onError: (error: any) => {
-      setError(error.message || "Login failed");
+      const errorMessage = error.message || "Login failed";
+      setError(errorMessage);
+
+      // Show login failed toast
+      toastHelpers.loginFailed(errorMessage);
     },
   });
 
