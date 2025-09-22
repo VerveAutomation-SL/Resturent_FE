@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/utils";
 import type { InventoryIngredient } from "@/types";
 
 type Props = {
@@ -30,7 +31,7 @@ export default function ReportsTab({ stockItems }: Props) {
               Total Stock Value
             </div>
             <div className="text-2xl font-bold">
-              ${totalStockValue.toFixed(2)}
+              {formatCurrency(totalStockValue)}
             </div>
           </CardContent>
         </Card>

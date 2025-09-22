@@ -19,13 +19,14 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
-import { toast } from "@/hooks/use-toast";
+import { toastHelpers } from "@/lib/toast-helpers";
+import { formatCurrency } from "@/lib/utils";
 
 interface IncomeBreakdownItem {
   period: string;
   orders: number;
   gross: number;
-  tax: number;
+  service_charge: number;
   net: number;
 }
 
@@ -38,11 +39,7 @@ export function AdminDashboard() {
     if (decodedToken) {
       console.log("Decoded token User:", decodedToken);
     } else {
-      toast({
-        title: "Authentication Error",
-        description: "Session expired. Please log in again.",
-        variant: "destructive",
-      });
+      toastHelpers.sessionExpired();
       router.navigate({ to: "/login" });
     }
   }, []);
@@ -79,12 +76,7 @@ export function AdminDashboard() {
     queryFn: () =>
       apiClient.getIncomeReport(selectedPeriod).then((res) => res.data),
   });
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
+  // use shared formatCurrency (LKR)
 
   if (statsLoading) {
     return (
@@ -305,12 +297,12 @@ export function AdminDashboard() {
                   <div
                     className={`font-bold text-orange-600 ${isMobile ? "text-lg" : "text-2xl"}`}
                   >
-                    {formatCurrency(income.summary.taxCollected)}
+                    {formatCurrency(income.summary.serviceChargeCollected)}
                   </div>
                   <div
                     className={`text-muted-foreground ${isMobile ? "text-xs" : "text-sm"}`}
                   >
-                    Tax Collected
+                    Service Charge Collected
                   </div>
                 </div>
                 <div className="text-center">
@@ -359,9 +351,11 @@ export function AdminDashboard() {
                                 </div>
                               </div>
                               <div>
-                                <div className="text-muted-foreground">Tax</div>
+                                <div className="text-muted-foreground">
+                                  Service Charge
+                                </div>
                                 <div className="font-medium">
-                                  {formatCurrency(item.tax)}
+                                  {formatCurrency(item.service_charge)}
                                 </div>
                               </div>
                               <div>
@@ -381,7 +375,7 @@ export function AdminDashboard() {
                         <div>Period</div>
                         <div className="text-center">Orders</div>
                         <div className="text-center">Gross</div>
-                        <div className="text-center">Tax</div>
+                        <div className="text-center">Service Charge</div>
                         <div className="text-center">Net</div>
                       </div>
                       {income.breakdown
@@ -399,7 +393,7 @@ export function AdminDashboard() {
                               {formatCurrency(item.gross)}
                             </div>
                             <div className="text-center">
-                              {formatCurrency(item.tax)}
+                              {formatCurrency(item.service_charge)}
                             </div>
                             <div className="text-center font-medium">
                               {formatCurrency(item.net)}

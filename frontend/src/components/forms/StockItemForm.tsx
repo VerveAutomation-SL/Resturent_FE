@@ -284,7 +284,7 @@ export function StockItemForm({
                 <NumberInputField
                   control={form.control}
                   name="cost_per_unit"
-                  label="Cost Per Unit ($)"
+                  label="Cost Per Unit (Rs)"
                   min={0}
                   step={0.01}
                   description="Cost per unit from supplier"

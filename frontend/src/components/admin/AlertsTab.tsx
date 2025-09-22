@@ -10,6 +10,7 @@ import {
   TrendingDown,
   AlertTriangle,
 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 import type { InventoryIngredient } from "@/types";
 
 type Props = {
@@ -208,7 +209,7 @@ export default function AlertsTab({ alerts, resolveAlert }: Props) {
                         Cost per unit:
                       </span>
                       <span className="ml-2 font-medium">
-                        ${a.item.cost_per_unit || 0}
+                        {formatCurrency(a.item.cost_per_unit || 0)}
                       </span>
                     </div>
                     <div>
@@ -236,11 +237,10 @@ export default function AlertsTab({ alerts, resolveAlert }: Props) {
                         Total Value:
                       </span>
                       <span className="ml-2 font-medium">
-                        $
-                        {(
+                        {formatCurrency(
                           Number(a.current_quantity ?? a.current_qty ?? 0) *
-                          (a.item.cost_per_unit || 0)
-                        ).toFixed(2)}
+                            (a.item.cost_per_unit || 0)
+                        )}
                       </span>
                     </div>
                   </div>
@@ -265,11 +265,11 @@ export default function AlertsTab({ alerts, resolveAlert }: Props) {
                           {a.item?.supplier && ` from ${a.item.supplier}`}.
                         </p>
                         <p className="text-xs text-blue-600 mt-2">
-                          Estimated cost: $
-                          {(
+                          Estimated cost:{" "}
+                          {formatCurrency(
                             (a.reorder_quantity ?? a.reorder_qty ?? 0) *
-                            (a.item?.cost_per_unit || 0)
-                          ).toFixed(2)}
+                              (a.item?.cost_per_unit || 0)
+                          )}
                         </p>
                       </div>
                     </div>

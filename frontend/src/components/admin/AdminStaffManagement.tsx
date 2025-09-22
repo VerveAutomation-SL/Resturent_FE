@@ -25,7 +25,6 @@ import { UserListSkeleton } from "@/components/ui/skeletons";
 import { InlineLoading } from "@/components/ui/loading-spinner";
 import type { User } from "@/types";
 import { useRouter } from "node_modules/@tanstack/react-router/dist/esm/useRouter";
-import { toast } from "@/hooks/use-toast";
 
 type DisplayMode = "table" | "cards";
 
@@ -39,11 +38,7 @@ export function AdminStaffManagement() {
     if (decodedToken) {
       console.log("Decoded token User:", decodedToken);
     } else {
-      toast({
-        title: "Authentication Error",
-        description: "Session expired. Please log in again.",
-        variant: "destructive",
-      });
+      toastHelpers.sessionExpired();
       router.navigate({ to: "/login" });
     }
   }, []);

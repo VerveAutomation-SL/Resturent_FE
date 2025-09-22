@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 import { X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { toastHelpers } from "@/lib/toast-helpers";
+import { formatCurrency } from "@/lib/utils";
 
 import type {
   Product,
@@ -48,17 +50,7 @@ import { useRouter } from "@tanstack/react-router";
 export function CounterInterface() {
   const router = useRouter();
 
-  useEffect(() => {
-    console.log("Loading user from JWT token...");
-    const decodedToken = apiClient.isAuthenticated();
-
-    if (decodedToken) {
-      console.log("Decoded token User:", decodedToken);
-      setUser(decodedToken);
-    } else {
-      router.navigate({ to: "/login" });
-    }
-  }, []);
+  const queryClient = useQueryClient();
 
   // State
   const [user, setUser] = useState<User>();
@@ -84,7 +76,26 @@ export function CounterInterface() {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [referenceNumber, setReferenceNumber] = useState("");
 
-  const queryClient = useQueryClient();
+  useEffect(() => {
+    console.log("Loading user from JWT token...");
+    const decodedToken = apiClient.isAuthenticated();
+
+    if (decodedToken) {
+      console.log("Decoded token User:", decodedToken);
+      setUser(decodedToken);
+    } else {
+      toastHelpers.sessionExpired();
+      router.navigate({ to: "/login" });
+    }
+  }, []);
+
+  // Set payment amount to order total when order is selected
+  useEffect(() => {
+    if (selectedOrder && activeTab === "payment") {
+      const breakdown = getOrderPaymentBreakdown(selectedOrder);
+      setPaymentAmount(breakdown.total.toString());
+    }
+  }, [selectedOrder, activeTab]);
 
   // Data fetching
   const { data: products } = useQuery({
@@ -182,12 +193,12 @@ export function CounterInterface() {
       setOrderType("dine_in");
       setActiveTab("create");
       setExistingOrderItems([]);
-      // Show success toast
+      // Show payment completed toast
       try {
-        toast({
-          title: "Payment processed",
-          description: `Order ${vars.orderId} paid ${formatCurrency(Number(vars.paymentData.amount))}`,
-        });
+        toastHelpers.success(
+          "Payment Completed Successfully!",
+          `Order ${vars.orderId} has been paid ${formatCurrency(Number(vars.paymentData.amount))} via ${vars.paymentData.payment_method}. Receipt printed.`
+        );
       } catch (e) {
         console.error("Toast failed", e);
       }
@@ -209,10 +220,10 @@ export function CounterInterface() {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["tables"] });
       queryClient.invalidateQueries({ queryKey: ["payments"] });
-      toast({
-        title: "Order cancelled",
-        description: "The order was successfully cancelled.",
-      });
+      toastHelpers.success(
+        "Order Cancelled Successfully",
+        "The order has been cancelled and the table is now available for new orders."
+      );
       setActiveTab("create");
       setCurrentView("tables");
       setOrderType("dine_in");
@@ -271,6 +282,43 @@ export function CounterInterface() {
       (total, item) => total + item.Product.price * item.quantity,
       0
     );
+  };
+
+  const getPaymentBreakdown = () => {
+    const subtotal = getTotalAmount();
+    const serviceChargeRate =
+      orderType === "dine_in"
+        ? import.meta.env.VITE_SERVICE_CHARGE_RATE || 0.1
+        : 0; // 10% service charge only for dine-in
+    const serviceCharge = subtotal * serviceChargeRate;
+    const total = subtotal + serviceCharge;
+
+    return {
+      subtotal,
+      serviceCharge,
+      total,
+    };
+  };
+
+  const getOrderPaymentBreakdown = (order: Order) => {
+    if (!order.OrderItems) return { subtotal: 0, serviceCharge: 0, total: 0 };
+
+    const subtotal = order.OrderItems.reduce(
+      (sum, item) => sum + item.quantity * (item.Product?.price || 0),
+      0
+    );
+    const serviceChargeRate =
+      order.order_type === "dine_in"
+        ? import.meta.env.VITE_SERVICE_CHARGE_RATE || 0.1
+        : 0; // 10% service charge only for dine-in
+    const serviceCharge = subtotal * serviceChargeRate;
+    const total = subtotal + serviceCharge;
+
+    return {
+      subtotal,
+      serviceCharge,
+      total,
+    };
   };
 
   // Filtered data
@@ -385,12 +433,7 @@ export function CounterInterface() {
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
+  // use shared formatCurrency from utils for LKR formatting
 
   // Print a simple receipt for an order by fetching the order then opening a print window
   const printReceipt = async (orderId: string) => {
@@ -426,7 +469,7 @@ export function CounterInterface() {
           </head>
           <body>
             <h2>Receipt</h2>
-            <div>Order #: ${order.order_number ?? order.id}</div>
+            <div>Order #: ${order.id}</div>
             <div>Type: ${order.order_type ?? "-"}</div>
             <div>Table: ${anyOrder.table?.table_number ?? anyOrder.RestaurantTable?.table_number ?? "-"}</div>
             <table>
@@ -1004,7 +1047,7 @@ export function CounterInterface() {
                                   <div className="font-medium text-muted-foreground">
                                     Order Number
                                   </div>
-                                  <div>{order.order_number || order.id}</div>
+                                  <div>{order.id}</div>
                                 </div>
                                 <div>
                                   <div className="font-medium text-muted-foreground">
@@ -1294,16 +1337,40 @@ export function CounterInterface() {
                         </div>
                       ))}
                     </div>
-                    <div className="mt-2 p-2 bg-gray-100 rounded text-sm font-medium text-gray-800">
-                      New Items Total:{" "}
-                      {formatCurrency(
-                        cart.reduce(
-                          (sum, item) =>
-                            sum + item.Product.price * item.quantity,
-                          0
-                        )
-                      )}
-                    </div>
+
+                    {/* New Items Summary */}
+                    {(() => {
+                      const breakdown = getPaymentBreakdown();
+                      return (
+                        <div className="mt-2 p-3 bg-gray-100 rounded text-sm">
+                          <div className="font-medium text-gray-800 mb-2">
+                            New Items Summary:
+                          </div>
+                          <div className="space-y-1 text-xs">
+                            {orderType === "dine_in" && (
+                              <div className="flex justify-between">
+                                <span>Subtotal:</span>
+                                <span>
+                                  {formatCurrency(breakdown.subtotal)}
+                                </span>
+                              </div>
+                            )}
+                            {orderType === "dine_in" && (
+                              <div className="flex justify-between">
+                                <span>Service Charge (10%):</span>
+                                <span>
+                                  {formatCurrency(breakdown.serviceCharge)}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex justify-between font-medium border-t pt-1">
+                              <span>Total:</span>
+                              <span>{formatCurrency(breakdown.total)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -1352,19 +1419,45 @@ export function CounterInterface() {
             {cart.length > 0 && (
               <div className="p-4 border-t border-border bg-card">
                 <div className="space-y-4">
-                  <div className="flex justify-between text-lg font-semibold">
-                    <span>Total (All Items):</span>
-                    <span>
-                      {formatCurrency(
-                        getTotalAmount() +
-                          existingOrderItems.reduce(
-                            (sum, item) =>
-                              sum + (item.Product?.price || 0) * item.quantity,
-                            0
-                          )
-                      )}
-                    </span>
-                  </div>
+                  {/* Payment Breakdown */}
+                  {(() => {
+                    const newItemsBreakdown = getPaymentBreakdown();
+                    const existingItemsTotal = existingOrderItems.reduce(
+                      (sum, item) =>
+                        sum + (item.Product?.price || 0) * item.quantity,
+                      0
+                    );
+                    const existingServiceCharge =
+                      orderType === "dine_in" ? existingItemsTotal * 0.1 : 0;
+                    const combinedSubtotal =
+                      newItemsBreakdown.subtotal + existingItemsTotal;
+                    const combinedServiceCharge =
+                      newItemsBreakdown.serviceCharge + existingServiceCharge;
+                    const combinedTotal =
+                      combinedSubtotal + combinedServiceCharge;
+
+                    return (
+                      <div className="space-y-2 text-sm">
+                        {orderType === "dine_in" && (
+                          <div className="flex justify-between">
+                            <span>Subtotal:</span>
+                            <span>{formatCurrency(combinedSubtotal)}</span>
+                          </div>
+                        )}
+                        {orderType === "dine_in" && (
+                          <div className="flex justify-between">
+                            <span>Service Charge (10%):</span>
+                            <span>{formatCurrency(combinedServiceCharge)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-lg font-semibold border-t pt-2">
+                          <span>Total:</span>
+                          <span>{formatCurrency(combinedTotal)}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   <Button
                     className="w-full"
                     size="lg"
@@ -1439,7 +1532,7 @@ export function CounterInterface() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>Order:</span>
-                      <span>#{selectedOrder.order_number}</span>
+                      <span>#{selectedOrder.id}</span>
                     </div>
                     {selectedOrder.customer_name && (
                       <div className="flex justify-between">
@@ -1447,10 +1540,37 @@ export function CounterInterface() {
                         <span>{selectedOrder.customer_name}</span>
                       </div>
                     )}
-                    <div className="flex justify-between font-semibold text-lg">
-                      <span>Total:</span>
-                      <span>{formatCurrency(selectedOrder.price ?? 0)}</span>
-                    </div>
+
+                    {/* Payment Breakdown */}
+                    {(() => {
+                      const breakdown = getOrderPaymentBreakdown(selectedOrder);
+                      return (
+                        <>
+                          <div className="border-t pt-2 mt-2">
+                            {selectedOrder.order_type === "dine_in" && (
+                              <div className="flex justify-between">
+                                <span>Subtotal:</span>
+                                <span>
+                                  {formatCurrency(breakdown.subtotal)}
+                                </span>
+                              </div>
+                            )}
+                            {selectedOrder.order_type === "dine_in" && (
+                              <div className="flex justify-between">
+                                <span>Service Charge (10%):</span>
+                                <span>
+                                  {formatCurrency(breakdown.serviceCharge)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex justify-between font-semibold text-lg border-t pt-2">
+                            <span>Total:</span>
+                            <span>{formatCurrency(breakdown.total)}</span>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
 

@@ -4,6 +4,7 @@ import { jwtDecode } from "jwt-decode";
 import apiClient from "@/api/client";
 import type { User } from "@/types";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { toastHelpers } from "@/lib/toast-helpers";
 import Cookies from "js-cookie";
 
 export const Route = createFileRoute("/admin")({
@@ -34,6 +35,7 @@ function AdminLayout() {
 
       if (currentTime >= tokenExpTime) {
         apiClient.clearAuth();
+        toastHelpers.sessionExpired();
         setIsLoading(false);
         return;
       }
@@ -54,6 +56,7 @@ function AdminLayout() {
     } catch (error) {
       console.error("Failed to decode JWT token:", error);
       apiClient.clearAuth();
+      toastHelpers.sessionExpired();
     }
 
     setIsLoading(false);
@@ -73,6 +76,7 @@ function AdminLayout() {
 
   // Check authentication
   if (!apiClient.isAuthenticated() || !user) {
+    toastHelpers.sessionExpired();
     return <Navigate to="/login" />;
   }
 

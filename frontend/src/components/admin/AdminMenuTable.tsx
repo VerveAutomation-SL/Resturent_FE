@@ -27,6 +27,7 @@ import {
   DollarSign,
   Tag,
 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 import type { Product, Category } from "@/types";
 
 interface AdminMenuTableProps {
@@ -58,12 +59,7 @@ export function AdminMenuTable({
     return category?.color || "bg-gray-100 text-gray-800";
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
+  // use shared formatCurrency (LKR)
 
   const columns: ColumnDef<Product>[] = [
     {

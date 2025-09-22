@@ -477,7 +477,7 @@ export function ProductForm({
                   control={form.control}
                   name="price"
                   label="Price"
-                  currency="$"
+                  currency="Rs"
                   description="Product selling price"
                 />
               </div>

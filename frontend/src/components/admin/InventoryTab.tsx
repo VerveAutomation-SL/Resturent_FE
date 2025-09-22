@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Search, Edit, Trash2, Package } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 import type { InventoryIngredient } from "@/types";
 
 type Props = {
@@ -130,7 +131,7 @@ export default function InventoryTab({
                       {item.reserved_quantity} {item.unit}
                     </TableCell>
                     <TableCell>{item.low_stock_threshold} / 0</TableCell>
-                    <TableCell>${item.cost_per_unit}</TableCell>
+                    <TableCell>{formatCurrency(item.cost_per_unit)}</TableCell>
                     <TableCell>{item.supplier}</TableCell>
                     <TableCell>
                       {item.last_restocked_at

@@ -31,7 +31,6 @@ import {
 import { InlineLoading } from "@/components/ui/loading-spinner";
 import type { Product, Category } from "@/types";
 import { useRouter } from "@tanstack/react-router";
-import { toast } from "@/hooks/use-toast";
 
 type DisplayMode = "table" | "cards";
 type ActiveTab = "products" | "categories";
@@ -46,11 +45,7 @@ export function AdminMenuManagement() {
     if (decodedToken) {
       console.log("Decoded token User:", decodedToken);
     } else {
-      toast({
-        title: "Authentication Error",
-        description: "Session expired. Please log in again.",
-        variant: "destructive",
-      });
+      toastHelpers.sessionExpired();
       router.navigate({ to: "/login" });
     }
   }, []);

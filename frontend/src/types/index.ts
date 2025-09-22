@@ -181,14 +181,13 @@ export interface AdminTablesResponse {
 // Order Types
 export interface Order {
   id: string;
-  order_number?: string;
   table_id?: string;
   waiter_id?: string;
   customer_name?: string;
   order_type: 'dine_in' | 'takeout' | 'delivery';
   status: 'confirmed' | 'preparing' | 'served' | 'completed' | 'cancelled';
   subtotal?: number;
-  tax_amount?: number;
+  service_charge?: number;
   discount_amount?: number;
   price?: number;
   notes?: string;
@@ -287,7 +286,7 @@ export interface CartItem {
 export interface Cart {
   items: CartItem[];
   subtotal: number;
-  tax_amount: number;
+  service_charge: number;
   total_amount: number;
 }
 

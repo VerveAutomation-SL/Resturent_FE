@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
 import apiClient from "@/api/client";
-import { toast } from "@/hooks/use-toast";
+import { toastHelpers } from "@/lib/toast-helpers";
 
 export function AdminSettings() {
   const router = useRouter();
@@ -31,24 +31,19 @@ export function AdminSettings() {
     if (decodedToken) {
       console.log("Decoded token User:", decodedToken);
     } else {
-      toast({
-        title: "Authentication Error",
-        description: "Session expired. Please log in again.",
-        variant: "destructive",
-      });
+      toastHelpers.sessionExpired();
       router.navigate({ to: "/login" });
     }
   }, []);
 
   const [settings, setSettings] = useState({
-    restaurant_name: "My Restaurant",
-    currency: "USD",
-    tax_rate: "0.00",
+    restaurant_name: "Mantraa",
+    currency: "LKR",
+    service_charge_rate: "0.00",
     service_charge: "0.00",
     receipt_header: "Thank you for dining with us!",
     receipt_footer: "Visit again soon!",
     notification_email: "admin@restaurant.com",
-    backup_frequency: "daily",
     theme: "light",
     language: "en",
   });
@@ -63,13 +58,12 @@ export function AdminSettings() {
     // Reset to defaults
     setSettings({
       restaurant_name: "My Restaurant",
-      currency: "USD",
-      tax_rate: "10.00",
+      currency: "LKR",
+      service_charge_rate: "10.00",
       service_charge: "5.00",
       receipt_header: "Thank you for dining with us!",
       receipt_footer: "Visit again soon!",
       notification_email: "admin@restaurant.com",
-      backup_frequency: "daily",
       theme: "light",
       language: "en",
     });
@@ -145,7 +139,7 @@ export function AdminSettings() {
               Financial Settings
             </CardTitle>
             <CardDescription>
-              Configure currency, taxes, and charges
+              Configure currency, service charges, and fees
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -158,6 +152,7 @@ export function AdminSettings() {
                   setSettings({ ...settings, currency: e.target.value })
                 }
               >
+                <option value="LKR">LKR (Rs)</option>
                 <option value="USD">USD ($)</option>
                 <option value="EUR">EUR (€)</option>
                 <option value="GBP">GBP (£)</option>
@@ -166,14 +161,17 @@ export function AdminSettings() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">
-                  Tax Rate (%)
+                  Service Charge Rate (%)
                 </label>
                 <Input
                   type="number"
                   step="0.01"
-                  value={settings.tax_rate}
+                  value={settings.service_charge_rate}
                   onChange={(e) =>
-                    setSettings({ ...settings, tax_rate: e.target.value })
+                    setSettings({
+                      ...settings,
+                      service_charge_rate: e.target.value,
+                    })
                   }
                 />
               </div>

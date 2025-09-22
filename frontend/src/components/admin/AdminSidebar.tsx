@@ -69,13 +69,6 @@ const adminSections = [
     description: "Analytics and reports",
     href: "/admin/reports",
   },
-  {
-    id: "settings",
-    label: "Settings",
-    icon: <Settings className="w-5 h-5" />,
-    description: "System configuration",
-    href: "/admin/settings",
-  },
 ];
 
 export function AdminSidebar({ user }: AdminSidebarProps) {

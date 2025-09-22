@@ -80,6 +80,13 @@ export const toastHelpers = {
     )
   },
 
+  sessionExpired: () => {
+    return toastHelpers.error(
+      "Session Expired",
+      "Your session has expired. Please log in again to continue."
+    )
+  },
+
   orderCreated: (orderNumber?: string) => {
     return toastHelpers.success(
       "Order Created",

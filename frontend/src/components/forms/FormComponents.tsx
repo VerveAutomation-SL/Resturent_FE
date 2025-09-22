@@ -160,7 +160,7 @@ export function PriceInputField<T extends FieldValues>({
   label,
   placeholder = "0.00",
   description,
-  currency = "$",
+  currency = "Rs",
 }: PriceInputFieldProps<T>) {
   return (
     <FormField

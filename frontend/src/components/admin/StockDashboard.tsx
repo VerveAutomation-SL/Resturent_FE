@@ -10,11 +10,12 @@ import {
   Users,
   Calendar,
 } from "lucide-react";
-import { InventorySummary } from "@/types";
+import { InventorySummary, Transaction } from "@/types";
+import { formatCurrency } from "@/lib/utils";
 
 type Props = {
   alerts?: any[];
-  transactions?: any[];
+  transactions?: Transaction[];
   stockItems?: any[];
   setActiveTab: (v: string) => void;
   setShowTransactionForm: (v: boolean) => void;
@@ -91,7 +92,7 @@ export default function StockDashboard({
                   Total Value
                 </p>
                 <p className="text-2xl font-bold">
-                  ${stockStats?.totalValue.toFixed(2)}
+                  {formatCurrency(stockStats?.totalValue ?? 0)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   <TrendingUp className="w-3 h-3 inline mr-1" />
@@ -241,7 +242,7 @@ export default function StockDashboard({
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium">
-                        ${data.value.toFixed(2)}
+                        {formatCurrency(data.value)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {formatPercent(data.value, stockStats?.totalValue ?? 0)}{" "}
@@ -444,7 +445,7 @@ export default function StockDashboard({
                       {new Date(transaction.created_at).toLocaleDateString()}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      by {transaction.created_by}
+                      by {transaction.User.name}
                     </p>
                   </div>
                 </div>

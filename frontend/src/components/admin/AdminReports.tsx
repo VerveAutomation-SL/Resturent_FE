@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import apiClient from "@/api/client";
 import { useRouter } from "@tanstack/react-router";
-import { toast } from "@/hooks/use-toast";
+import { toastHelpers } from "@/lib/toast-helpers";
+import { formatCurrency } from "@/lib/utils";
 
 interface SalesReportItem {
   date: string;
@@ -39,11 +40,7 @@ export function AdminReports() {
     if (decodedToken) {
       console.log("Decoded token User:", decodedToken);
     } else {
-      toast({
-        title: "Authentication Error",
-        description: "Session expired. Please log in again.",
-        variant: "destructive",
-      });
+      toastHelpers.sessionExpired();
       router.navigate({ to: "/login" });
     }
   }, []);
@@ -80,13 +77,7 @@ export function AdminReports() {
       apiClient.getIncomeReport(selectedPeriod).then((res) => res.data),
   });
 
-  // Format currency helper
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
+  // using shared formatCurrency from utils for LKR
 
   // Calculate totals from real data
   const totalRevenue =
@@ -366,10 +357,12 @@ export function AdminReports() {
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-orange-600">
-                        {formatCurrency(incomeData.summary?.tax_collected || 0)}
+                        {formatCurrency(
+                          incomeData.summary?.service_charge_collected || 0
+                        )}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        Tax Collected
+                        Service Charge Collected
                       </div>
                     </div>
                     <div className="text-center">
@@ -389,7 +382,7 @@ export function AdminReports() {
                         <div>Period</div>
                         <div className="text-center">Orders</div>
                         <div className="text-center">Gross</div>
-                        <div className="text-center">Tax</div>
+                        <div className="text-center">Service Charge</div>
                         <div className="text-center">Net</div>
                       </div>
                       {incomeData.breakdown
@@ -407,7 +400,7 @@ export function AdminReports() {
                               {formatCurrency(item.gross)}
                             </div>
                             <div className="text-center">
-                              {formatCurrency(item.tax)}
+                              {formatCurrency(item.service_charge)}
                             </div>
                             <div className="text-center font-medium">
                               {formatCurrency(item.net)}
