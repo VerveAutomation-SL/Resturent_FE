@@ -148,6 +148,13 @@ export function CounterInterface() {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["tables"] });
     },
+    onError: (err: any) => {
+      console.error("Create order failed:", err);
+      toastHelpers.error(
+        "Order Creation Failed",
+        "Failed to create order. Please try again."
+      );
+    },
   });
 
   // order update Mutation
@@ -166,6 +173,13 @@ export function CounterInterface() {
       queryClient.invalidateQueries({ queryKey: ["tables"] });
       console.log("Order updated successfully");
     },
+    onError: (err: any) => {
+      console.error("Update order failed:", err);
+      toastHelpers.error(
+        "Order Update Failed",
+        "Failed to update order. Please try again."
+      );
+    },
   });
 
   const processPaymentMutation = useMutation({
@@ -178,6 +192,7 @@ export function CounterInterface() {
     }) => apiClient.processCounterPayment(orderId, paymentData),
     onSuccess: (_data, vars) => {
       // try to print receipt for the paid order
+      console.log("processPaymentMutation onSuccess", vars);
       try {
         if (vars?.orderId) void printReceipt(vars.orderId);
       } catch (e) {
@@ -205,9 +220,14 @@ export function CounterInterface() {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["tables"] });
     },
+    onError: (err: any) => {
+      console.error("Payment processing failed:", err);
+      toastHelpers.error(
+        "Payment Processing Failed",
+        "Failed to process payment. Please try again."
+      );
+    },
   });
-
-  const { toast } = useToast();
 
   const cancelOrderMutation = useMutation({
     mutationFn: (orderId: string) =>
@@ -229,10 +249,10 @@ export function CounterInterface() {
       setOrderType("dine_in");
     },
     onError: (err: any) => {
-      toast({
-        title: "Cancel failed",
-        description: err?.message || "Failed to cancel order",
-      });
+      toastHelpers.error(
+        "Cancel Failed",
+        err?.message || "Failed to cancel order. Please try again."
+      );
     },
   });
 
@@ -376,10 +396,10 @@ export function CounterInterface() {
 
   const handleCreateOrder = async () => {
     if (cart.length === 0) {
-      return toast({
-        title: "No items in cart",
-        description: "Please add items to the cart before creating an order.",
-      });
+      return toastHelpers.error(
+        "No Items in Cart",
+        "Please add items to the cart before creating an order."
+      );
     }
     // If editing an existing order, call update mutation
     if (selectedOrder) {
@@ -433,63 +453,254 @@ export function CounterInterface() {
     });
   };
 
-  // use shared formatCurrency from utils for LKR formatting
-
-  // Print a simple receipt for an order by fetching the order then opening a print window
+  // Print a comprehensive receipt for an order by fetching the order then opening a print window
   const printReceipt = async (orderId: string) => {
     try {
       const res = await apiClient.getOrder(orderId);
       const order = res?.data;
+      console.log("printReceipt order:", order);
       if (!order) return;
 
       const anyOrder: any = order as any;
-      const items = anyOrder.items || anyOrder.OrderItems || [];
 
+      // Extract invoice details
+      const invoice = anyOrder.Invoice || {};
+      const items = anyOrder.OrderItems || [];
+      const restaurantTable = anyOrder.RestaurantTable || {};
+
+      // Invoice information
+      const invoiceNumber = invoice.invoice_number || `INV-${order.id}`;
+      const amountPaid = invoice.amount_paid || "0.00";
+      const changeAmount = invoice.change_amount || "0.00";
+      const discountAmount = invoice.discount_amount || "0.00";
+      const serviceChargeAmount = invoice.service_charge_amount || "0.00";
+      const serviceChargePercentage =
+        invoice.service_charge_percentage || "0.00";
+      const subtotal = invoice.subtotal || "0.00";
+      const totalAmount = invoice.total_amount || "0.00";
+      const paymentMethod = invoice.payment_method || "cash";
+      const paymentStatus = invoice.payment_status || "pending";
+      const notes = invoice.notes || order.notes || "";
+
+      // Format dates
+      const orderDate = order.created_at
+        ? new Date(order.created_at).toLocaleString()
+        : "-";
+      const paidDate = invoice.paid_at
+        ? new Date(invoice.paid_at).toLocaleString()
+        : "-";
+      const dueDate = invoice.due_date
+        ? new Date(invoice.due_date).toLocaleString()
+        : "-";
+
+      // Table information
+      const tableNumber = restaurantTable.table_number || "-";
+      const tableCapacity = restaurantTable.capacity || "-";
+
+      // Order information
+      const orderType = (order.order_type || "")
+        .replace("_", " ")
+        .toUpperCase();
+
+      // Build item rows with comprehensive details
       const rows = items
-        .map((it: any) => {
-          const name = it.product?.name || it.name || it.product_name || "Item";
-          const qty = it.quantity ?? it.qty ?? 1;
-          const price = it.price ?? it.unit_price ?? it.total_price ?? 0;
-          const lineTotal = (it.total_price ?? price * qty) || 0;
-          return `<tr><td>${name}</td><td style="text-align:center">${qty}</td><td style="text-align:right">${formatCurrency(lineTotal)}</td></tr>`;
+        .map((item: any) => {
+          const productName =
+            item.Product?.name || item.product?.name || "Item";
+          const quantity = item.quantity || 1;
+          const unitPrice = item.Product?.price || item.price || 0;
+          const lineTotal = quantity * unitPrice;
+
+          return `<tr>
+            <td>${productName}</td>
+            <td style="text-align:center">${quantity}</td>
+            <td style="text-align:right">${formatCurrency(unitPrice)}</td>
+            <td style="text-align:right">${formatCurrency(lineTotal)}</td>
+          </tr>`;
         })
         .join("");
 
       const html = `
         <html>
           <head>
-            <title>Receipt #${order.id}</title>
+            <title>Invoice #${invoiceNumber}</title>
             <style>
-              body{font-family:Arial,Helvetica,sans-serif;padding:16px;color:#111}
-              h2{margin:0 0 8px}
-              table{width:100%;border-collapse:collapse;margin-top:8px}
-              td,th{padding:6px;border-bottom:1px solid #eee}
-              .right{text-align:right}
+              body{font-family:Arial,Helvetica,sans-serif;padding:20px;color:#111;max-width:450px;margin:0 auto}
+              .header{text-align:center;border-bottom:2px solid #333;padding-bottom:10px;margin-bottom:15px}
+              h2{margin:0 0 5px;font-size:24px}
+              .business-name{font-size:18px;font-weight:bold;margin-bottom:3px}
+              .invoice-info{margin-bottom:15px}
+              .info-row{display:flex;justify-content:space-between;margin-bottom:3px;font-size:13px}
+              .info-section{margin-bottom:15px;padding-bottom:10px;border-bottom:1px solid #eee}
+              table{width:100%;border-collapse:collapse;margin:10px 0}
+              td,th{padding:6px 4px;border-bottom:1px solid #ddd;font-size:12px}
+              th{background:#f5f5f5;font-weight:bold}
+              .totals{border-top:2px solid #333;padding-top:10px;margin-top:10px}
+              .total-row{display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px}
+              .final-total{font-weight:bold;font-size:16px;border-top:1px solid #333;padding-top:6px;margin-top:6px}
+              .payment-details{margin-top:15px;padding-top:10px;border-top:1px solid #ddd}
+              .footer{text-align:center;margin-top:20px;font-size:12px;color:#666}
+              .notes{margin-top:10px;font-style:italic;font-size:12px;background:#f9f9f9;padding:8px;border-radius:4px}
+              .status{padding:2px 6px;border-radius:3px;font-size:11px;font-weight:bold}
+              .status-paid{background:#d4edda;color:#155724}
+              .status-pending{background:#fff3cd;color:#856404}
             </style>
           </head>
           <body>
-            <h2>Receipt</h2>
-            <div>Order #: ${order.id}</div>
-            <div>Type: ${order.order_type ?? "-"}</div>
-            <div>Table: ${anyOrder.table?.table_number ?? anyOrder.RestaurantTable?.table_number ?? "-"}</div>
+            <div class="header">
+              <div class="business-name">Restaurant POS</div>
+              <h2>Invoice</h2>
+              <div style="font-size:14px;color:#666">#${invoiceNumber}</div>
+            </div>
+            
+            <div class="info-section">
+              <div class="info-row">
+                <span><strong>Order #:</strong></span>
+                <span>${order.id}</span>
+              </div>
+              <div class="info-row">
+                <span><strong>Order Type:</strong></span>
+                <span>${orderType}</span>
+              </div>
+              ${
+                tableNumber !== "-"
+                  ? `
+              <div class="info-row">
+                <span><strong>Table:</strong></span>
+                <span>#${tableNumber} (Capacity: ${tableCapacity})</span>
+              </div>
+              `
+                  : ""
+              }
+              <div class="info-row">
+                <span><strong>Order Date:</strong></span>
+                <span>${orderDate}</span>
+              </div>
+              <div class="info-row">
+                <span><strong>Status:</strong></span>
+                <span class="status ${paymentStatus === "paid" ? "status-paid" : "status-pending"}">${paymentStatus.toUpperCase()}</span>
+              </div>
+            </div>
+
             <table>
               <thead>
-                <tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Total</th></tr>
+                <tr>
+                  <th style="text-align:left">Item</th>
+                  <th style="text-align:center">Qty</th>
+                  <th style="text-align:right">Unit Price</th>
+                  <th style="text-align:right">Total</th>
+                </tr>
               </thead>
               <tbody>
                 ${rows}
               </tbody>
             </table>
-            <div style="margin-top:12px;display:flex;justify-content:space-between;font-weight:600">
-              <div>Total</div>
-              <div>${formatCurrency(order.price ?? getTotalAmount())}</div>
+
+            <div class="totals">
+              <div class="total-row">
+                <span>Subtotal:</span>
+                <span>${formatCurrency(Number(subtotal))}</span>
+              </div>
+              ${
+                Number(discountAmount) > 0
+                  ? `
+              <div class="total-row" style="color:#d63384">
+                <span>Discount:</span>
+                <span>-${formatCurrency(Number(discountAmount))}</span>
+              </div>
+              `
+                  : ""
+              }
+              ${
+                Number(serviceChargeAmount) > 0
+                  ? `
+              <div class="total-row">
+                <span>Service Charge (${serviceChargePercentage}%):</span>
+                <span>${formatCurrency(Number(serviceChargeAmount))}</span>
+              </div>
+              `
+                  : ""
+              }
+              <div class="total-row final-total">
+                <span>Total Amount:</span>
+                <span>${formatCurrency(Number(totalAmount))}</span>
+              </div>
             </div>
-            <div style="margin-top:18px;font-size:12px;color:#666">Thank you for your order</div>
+
+            ${
+              paymentStatus === "paid"
+                ? `
+            <div class="payment-details">
+              <div class="info-row">
+                <span><strong>Payment Method:</strong></span>
+                <span>${paymentMethod.toUpperCase()}</span>
+              </div>
+              <div class="info-row">
+                <span><strong>Amount Paid:</strong></span>
+                <span>${formatCurrency(Number(amountPaid))}</span>
+              </div>
+              ${
+                Number(changeAmount) > 0
+                  ? `
+              <div class="info-row">
+                <span><strong>Change:</strong></span>
+                <span>${formatCurrency(Number(changeAmount))}</span>
+              </div>
+              `
+                  : ""
+              }
+              ${
+                paidDate !== "-"
+                  ? `
+              <div class="info-row">
+                <span><strong>Payment Date:</strong></span>
+                <span>${paidDate}</span>
+              </div>
+              `
+                  : ""
+              }
+            </div>
+            `
+                : `
+            <div class="payment-details">
+              <div class="info-row">
+                <span><strong>Payment Status:</strong></span>
+                <span class="status status-pending">PENDING</span>
+              </div>
+              ${
+                dueDate !== "-"
+                  ? `
+              <div class="info-row">
+                <span><strong>Due Date:</strong></span>
+                <span>${dueDate}</span>
+              </div>
+              `
+                  : ""
+              }
+            </div>
+            `
+            }
+
+            ${
+              notes
+                ? `
+            <div class="notes">
+              <strong>Notes:</strong> ${notes}
+            </div>
+            `
+                : ""
+            }
+
+            <div class="footer">
+              <p>Thank you for your order!</p>
+              <p>Please come again</p>
+              ${paymentStatus !== "paid" ? '<p style="color:#856404;font-weight:bold">** PAYMENT PENDING **</p>' : ""}
+            </div>
           </body>
         </html>
       `;
 
-      const w = window.open("", "_blank", "width=400,height=700");
+      const w = window.open("", "_blank", "width=500,height=900");
       if (!w) return;
       w.document.open();
       w.document.write(html);
@@ -508,6 +719,11 @@ export function CounterInterface() {
       }, 500);
     } catch (err) {
       console.error("Failed to print receipt", err);
+      // Show error toast to user
+      toastHelpers.error(
+        "Receipt Print Failed",
+        "Failed to generate receipt. Please try again."
+      );
     }
   };
 

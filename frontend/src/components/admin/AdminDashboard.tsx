@@ -32,6 +32,11 @@ interface IncomeBreakdownItem {
 
 export function AdminDashboard() {
   const router = useRouter();
+
+  const [selectedPeriod, setSelectedPeriod] = useState<
+    "today" | "week" | "month"
+  >("today");
+  const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     console.log("Loading user from JWT token...");
     const decodedToken = apiClient.isAuthenticated();
@@ -43,11 +48,6 @@ export function AdminDashboard() {
       router.navigate({ to: "/login" });
     }
   }, []);
-
-  const [selectedPeriod, setSelectedPeriod] = useState<
-    "today" | "week" | "month"
-  >("today");
-  const [isMobile, setIsMobile] = useState(false);
 
   // Responsive breakpoint detection
   useEffect(() => {

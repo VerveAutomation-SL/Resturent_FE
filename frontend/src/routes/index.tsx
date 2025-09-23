@@ -22,11 +22,8 @@ function HomePage() {
 
       // Show user detected toast
       // toastHelpers.userDetected(decodedToken.role, decodedToken.name);
-
-      setIsLoading(false);
-    } else {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }, []);
 
   // Show loading while we check Cookies
