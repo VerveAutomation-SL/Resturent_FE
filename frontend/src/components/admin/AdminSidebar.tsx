@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   CreditCard,
   ChefHat,
-  Settings,
   Menu,
   BarChart3,
   UserCog,

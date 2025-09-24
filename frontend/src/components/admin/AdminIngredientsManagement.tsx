@@ -320,8 +320,13 @@ export function AdminIngredientsManagement() {
           <TabsTrigger value="stock-management" className="flex-1">
             Stock Manage
           </TabsTrigger>
-          <TabsTrigger value="alerts" className="flex-1">
+          <TabsTrigger value="alerts" className="flex-1 relative">
             Alerts
+            {alerts.length > 0 && (
+              <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-5 h-5 text-xs font-semibold bg-destructive text-destructive-foreground rounded-full px-1.5 shadow-sm border-2 border-background">
+                {alerts.length > 9 ? "9+" : alerts.length}
+              </span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="transactions" className="flex-1">
             Transactions
@@ -366,15 +371,7 @@ export function AdminIngredientsManagement() {
 
         <TabsContent value="alerts">
           <AlertsTab
-            alerts={alerts.map((a) => ({
-              id: a.id,
-              item: stockItems.find(
-                (s) => s.id === a.ingredient_id
-              ) as InventoryIngredient,
-              message: a.message,
-              created_at: a.created_at,
-              resolved: Boolean(a.resolved),
-            }))}
+            alerts={alerts}
             resolveAlert={(id) => resolveAlertMutation.mutate(id)}
           />
         </TabsContent>

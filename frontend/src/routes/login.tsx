@@ -107,30 +107,32 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex">
+    <div className="h-screen bg-background flex overflow-hidden">
       {/* Left Panel - Branding */}
-      <div className="hidden lg:flex bg-gradient-to-br from-blue-600 to-indigo-700 p-12 text-white relative overflow-hidden">
-        <div className="relative z-10 flex flex-col justify-start items-center max-w-lg">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-              <Store className="w-7 h-7" />
+      <div className="hidden lg:flex bg-card border-r border-border p-8 xl:p-12 relative overflow-hidden">
+        <div className="relative z-10 flex flex-col justify-center items-center max-w-lg h-full">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 xl:w-12 xl:h-12 bg-primary rounded-lg flex items-center justify-center">
+              <Store className="w-6 h-6 xl:w-7 xl:h-7 text-primary-foreground" />
             </div>
-            <h1 className="text-3xl font-bold">POS System</h1>
+            <h1 className="text-2xl xl:text-3xl font-bold text-foreground">
+              Mantraa POS
+            </h1>
           </div>
 
-          <h2 className="text-4xl font-bold mb-6 leading-tight">
-            Modern Point of Sale
+          <h2 className="text-3xl xl:text-4xl font-bold mb-4 xl:mb-6 leading-tight text-foreground text-center">
+            Complete Restaurant
             <br />
-            <span className="text-blue-200">for Your Business</span>
+            <span className="text-muted-foreground">Management System</span>
           </h2>
 
-          <p className="text-xl text-center text-blue-100 mb-12 leading-relaxed">
-            Streamline your operations with our complete POS solution. Manage
-            orders, track inventory, and grow your business with powerful
-            analytics.
+          <p className="text-base xl:text-lg text-center text-muted-foreground mb-8 xl:mb-12 leading-relaxed">
+            Streamline your restaurant operations with our comprehensive POS
+            solution. Manage orders, track inventory, process payments, and grow
+            your business.
           </p>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-4 xl:gap-6">
             {[
               {
                 icon: Users,
@@ -153,13 +155,17 @@ function LoginPage() {
                 desc: "Kitchen workflow",
               },
             ].map((feature, idx) => (
-              <div key={idx} className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <feature.icon className="w-4 h-4" />
+              <div key={idx} className="flex items-start gap-2 xl:gap-3">
+                <div className="w-7 h-7 xl:w-8 xl:h-8 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                  <feature.icon className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm">{feature.title}</h3>
-                  <p className="text-blue-200 text-xs">{feature.desc}</p>
+                  <h3 className="font-semibold text-xs xl:text-sm text-foreground">
+                    {feature.title}
+                  </h3>
+                  <p className="text-muted-foreground text-xs">
+                    {feature.desc}
+                  </p>
                 </div>
               </div>
             ))}
@@ -167,12 +173,12 @@ function LoginPage() {
         </div>
 
         {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 opacity-5">
           <div
             className="absolute top-0 left-0 w-full h-full"
             style={{
               backgroundImage:
-                "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+                "radial-gradient(circle at 1px 1px, hsl(var(--muted-foreground)) 1px, transparent 0)",
               backgroundSize: "50px 50px",
             }}
           />
@@ -180,25 +186,27 @@ function LoginPage() {
       </div>
 
       {/* Right Panel - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-background overflow-y-auto">
         <div className="w-full max-w-md">
-          <Card className="shadow-xl border-0">
-            <CardHeader className="text-center pb-8">
-              <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-                <Store className="w-8 h-8 text-white" />
+          <Card className="shadow-lg border border-border">
+            <CardHeader className="text-center pb-6">
+              <div className="mx-auto w-14 h-14 xl:w-16 xl:h-16 bg-primary rounded-2xl flex items-center justify-center mb-3 shadow-sm">
+                <Store className="w-7 h-7 xl:w-8 xl:h-8 text-primary-foreground" />
               </div>
-              <CardTitle className="text-2xl font-bold">
+              <CardTitle className="text-xl xl:text-2xl font-bold text-foreground">
                 Restaurant POS Login
               </CardTitle>
-              <CardDescription className="text-base">
+              <CardDescription className="text-sm xl:text-base text-muted-foreground">
                 🍽️ Choose your role below or sign in manually
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-6">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">email</label>
+            <CardContent className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">
+                    Email
+                  </label>
                   <Input
                     type="text"
                     value={formData.email}
@@ -208,14 +216,16 @@ function LoginPage() {
                         email: e.target.value,
                       }))
                     }
-                    className="h-11"
+                    className="h-10"
                     autoComplete="email"
                     disabled={loginMutation.isPending}
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Password</label>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">
+                    Password
+                  </label>
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
@@ -226,14 +236,14 @@ function LoginPage() {
                           password: e.target.value,
                         }))
                       }
-                      className="h-11 pr-10"
+                      className="h-10 pr-10"
                       autoComplete="current-password"
                       disabled={loginMutation.isPending}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     >
                       {showPassword ? (
                         <EyeOff className="w-4 h-4" />
@@ -245,63 +255,65 @@ function LoginPage() {
                 </div>
 
                 {error && (
-                  <div className="bg-gradient-to-r from-red-50 to-red-25 border border-red-200 text-red-700 p-4 rounded-lg text-sm shadow-sm">
+                  <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-lg text-sm">
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
-                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                      <div className="w-4 h-4 bg-destructive rounded-full flex items-center justify-center flex-shrink-0">
+                        <div className="w-1.5 h-1.5 bg-destructive-foreground rounded-full"></div>
                       </div>
                       <span className="font-medium">Login Failed</span>
                     </div>
-                    <div className="mt-1 text-xs text-red-600">{error}</div>
+                    <div className="mt-1 text-xs text-destructive/80">
+                      {error}
+                    </div>
                   </div>
                 )}
 
                 <Button
                   type="submit"
-                  className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-base font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="w-full h-10 text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
                   disabled={loginMutation.isPending}
                 >
                   {loginMutation.isPending ? (
                     <div className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-primary-foreground/20 border-t-primary-foreground rounded-full animate-spin" />
                       Signing In...
                     </div>
                   ) : (
-                    "Sign In to POS System"
+                    "Sign In to Restaurant POS"
                   )}
                 </Button>
               </form>
 
-              <div className="border-t pt-6">
-                {/* Roles */}
+              <div className="border-t border-border pt-4">
+                {/* Demo Accounts */}
                 <div>
-                  <div className="text-xs text-gray-600 mb-2 font-medium">
-                    Demo Accounts
+                  <div className="text-xs text-muted-foreground mb-2 font-medium">
+                    Demo Accounts - Click to auto-fill
                   </div>
                   <div className="grid gap-2">
                     {[
                       {
                         email: "kalpa@restaurant.com",
-                        role: "admin",
+                        role: "Admin",
                         icon: Settings,
-                        bg: "bg-red-50 text-red-700 border-red-100",
-                        desc: "👑 Full system access",
+                        bg: "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/15",
+                        desc: "👑 Full system access & management",
                         password: "kalpa123",
                       },
                       {
                         email: "manager@restaurant.com",
-                        role: "manager",
+                        role: "Manager",
                         icon: BarChart3,
-                        bg: "bg-blue-50 text-blue-700 border-blue-100",
-                        desc: "📊 Management & reports",
+                        bg: "bg-primary/10 text-primary border-primary/20 hover:bg-primary/15",
+                        desc: "📊 Reports & staff management",
                         password: "manager123",
                       },
                       {
                         email: "counter@restaurant.com",
-                        role: "Counter",
+                        role: "Counter Staff",
                         icon: CreditCard,
-                        bg: "bg-gradient-to-r from-green-100 to-green-50 text-green-800 border-green-200",
-                        desc: "💰 Payment processing & all orders",
+                        bg: "bg-green-500/10 text-green-700 border-green-500/20 hover:bg-green-500/15",
+                        desc: "💰 Orders & payment processing",
                         password: "counter1@123",
                       },
                     ].map((account) => (
@@ -310,23 +322,23 @@ function LoginPage() {
                         onClick={() =>
                           fillDemoCredentials(account.email, account.password)
                         }
-                        className={`flex items-center justify-between p-3 border rounded-lg ${account.bg} hover:bg-opacity-80 text-left transition-all duration-200`}
+                        className={`flex items-center justify-between p-3 border rounded-lg ${account.bg} text-left transition-all duration-200 hover:shadow-sm`}
                         disabled={loginMutation.isPending}
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-6 h-6 bg-white/70 rounded flex items-center justify-center">
-                            <account.icon className="w-3 h-3" />
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 bg-card rounded-lg flex items-center justify-center shadow-sm">
+                            <account.icon className="w-3.5 h-3.5" />
                           </div>
                           <div>
-                            <div className="font-medium text-sm">
+                            <div className="font-semibold text-sm">
                               {account.role}
                             </div>
-                            <div className="text-xs opacity-70">
+                            <div className="text-xs opacity-75 mt-0.5">
                               {account.desc}
                             </div>
                           </div>
                         </div>
-                        <div className="text-xs opacity-60 font-mono">
+                        <div className="text-xs opacity-60 font-mono bg-card px-1.5 py-0.5 rounded">
                           {account.password}
                         </div>
                       </button>

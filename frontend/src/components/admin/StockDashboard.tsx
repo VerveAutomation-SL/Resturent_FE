@@ -169,20 +169,7 @@ export default function StockDashboard({
                   </Badge>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm">Auto-Reorder Enabled</span>
-                </div>
-                <div className="flex items-center gap-3 w-36 justify-end">
-                  <span className="text-sm font-medium">
-                    {stockItems.filter((item) => item.auto_reorder).length}
-                  </span>
-                  <Badge variant="secondary" className="text-xs px-2 py-0.5">
-                    Active
-                  </Badge>
-                </div>
-              </div>
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
@@ -378,9 +365,6 @@ export default function StockDashboard({
                         {alert.alert_type === "out_of_stock"
                           ? " - Out of stock"
                           : " - Running low"}
-                        {alert.auto_reorder_triggered || alert.auto_reorder
-                          ? " • Auto-reorder enabled"
-                          : ""}
                       </p>
 
                       <p className="text-xs text-muted-foreground mt-1">

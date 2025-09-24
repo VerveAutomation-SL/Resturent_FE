@@ -91,8 +91,6 @@ export interface InventoryIngredient {
   supplier: string;
   supplier_contact: string;
   last_restocked_at?: string | null;
-  auto_reorder: boolean;
-  reorder_quantity: number;
   created_at: string;
   updated_at: string;
 }

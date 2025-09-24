@@ -29,7 +29,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { X } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { toastHelpers } from "@/lib/toast-helpers";
 import { formatCurrency } from "@/lib/utils";
 
@@ -548,8 +547,7 @@ export function CounterInterface() {
           </head>
           <body>
             <div class="header">
-              <div class="business-name">Restaurant POS</div>
-              <h2>Invoice</h2>
+              <div class="business-name">Mantraa</div>
               <div style="font-size:14px;color:#666">#${invoiceNumber}</div>
             </div>
             
@@ -769,7 +767,17 @@ export function CounterInterface() {
               <Button
                 variant={activeTab === "create" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setActiveTab("create")}
+                onClick={() => {
+                  setSelectedOrder(null);
+                  setSelectedTable(null);
+                  setCart([]);
+                  setPaymentAmount("");
+                  setReferenceNumber("");
+                  setCurrentView("tables");
+                  setOrderType("dine_in");
+                  setActiveTab("create");
+                  setExistingOrderItems([]);
+                }}
               >
                 <Plus className="w-4 h-4 mr-1" />
                 Create Order

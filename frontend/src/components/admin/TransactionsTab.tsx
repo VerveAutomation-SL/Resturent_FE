@@ -184,9 +184,27 @@ export default function TransactionsTab({ transactions }: Props) {
                             {t.previous_quantity} → {t.new_quantity}{" "}
                             {t.Ingredient?.unit}
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            Change: {Number(t.quantity) > 0 ? "+" : ""}
-                            {t.quantity} {t.Ingredient?.unit}
+                          <div className="text-sm flex items-center gap-1">
+                            <span
+                              className={`font-semibold ${
+                                t.transaction_type === "stock_in"
+                                  ? "text-green-600"
+                                  : t.transaction_type === "stock_out"
+                                    ? "text-red-600"
+                                    : t.transaction_type === "manual_adjustment"
+                                      ? "text-blue-600"
+                                      : "text-muted-foreground"
+                              }`}
+                            >
+                              {t.transaction_type === "stock_in" && "📈 +"}
+                              {t.transaction_type === "stock_out" && "📉 -"}
+                              {t.transaction_type === "manual_adjustment" &&
+                                "⚙️ "}
+                              {!t.transaction_type &&
+                                (Number(t.quantity) > 0 ? "+" : "-")}
+                              {Math.abs(Number(t.quantity))}{" "}
+                              {t.Ingredient?.unit}
+                            </span>
                           </div>
                         </div>
                       </TableCell>

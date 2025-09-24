@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, AlertTriangle, ShoppingCart, Search } from "lucide-react";
+import { RefreshCw, AlertTriangle, Search } from "lucide-react";
 import { InventoryIngredient } from "@/types";
 
 type Props = {
@@ -426,32 +426,6 @@ export default function StockManagementTab({
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        {/* Show auto-reorder button for items with auto_reorder enabled (both low stock and out of stock) */}
-                        {item.auto_reorder && item.reorder_quantity && (
-                          <Button
-                            size="sm"
-                            variant="default"
-                            className="bg-blue-600 hover:bg-blue-700"
-                            onClick={() => {
-                              setStockAdjustment({
-                                id: item.id,
-                                amount: Number(item.reorder_quantity),
-                                type: "add",
-                                notes: `Auto-reorder: ${item.reorder_quantity} ${item.unit} (${statusText})`,
-                              });
-                              stockUpdateMutation.mutate({
-                                id: item.id,
-                                amount: Number(item.reorder_quantity),
-                                type: "add",
-                                notes: `Auto-reorder: ${item.reorder_quantity} ${item.unit} (${statusText})`,
-                              });
-                            }}
-                          >
-                            <ShoppingCart className="w-4 h-4 mr-2" />
-                            Auto-Reorder ({item.reorder_quantity} {item.unit})
-                          </Button>
-                        )}
-
                         {/* Manual adjustments are performed via the Quick Stock Adjustment panel */}
                         <div className="text-sm text-muted-foreground">
                           Adjust manually via Quick Stock Adjustment

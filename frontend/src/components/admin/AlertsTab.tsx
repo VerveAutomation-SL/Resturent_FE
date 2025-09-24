@@ -6,7 +6,6 @@ import {
   Check,
   Package,
   Clock,
-  ShoppingCart,
   TrendingDown,
   AlertTriangle,
 } from "lucide-react";
@@ -16,8 +15,7 @@ import type { InventoryIngredient } from "@/types";
 type Props = {
   alerts: Array<{
     id: number;
-    item: InventoryIngredient;
-    message: string;
+    Ingredient: InventoryIngredient;
     created_at: string;
     resolved?: boolean;
     severity?: string;
@@ -27,10 +25,6 @@ type Props = {
     threshold_quantity?: number;
     threshold?: number;
     unit?: string;
-    auto_reorder?: boolean;
-    auto_reorder_triggered?: boolean;
-    reorder_quantity?: number;
-    reorder_qty?: number;
   }>;
   resolveAlert: (id: number) => void;
 };
@@ -72,7 +66,7 @@ export default function AlertsTab({ alerts, resolveAlert }: Props) {
                   />
                   <div>
                     <h3 className="font-semibold text-lg">
-                      {a.item?.name || "Unknown Item"}
+                      {a.Ingredient?.name || "Unknown Item"}
                     </h3>
                     <div className="flex items-center gap-2 mt-1">
                       {a.severity === "high" && (
@@ -109,7 +103,10 @@ export default function AlertsTab({ alerts, resolveAlert }: Props) {
                     <Button
                       size="sm"
                       onClick={() =>
-                        handleResolveAlert(a.id, a.item?.name || "Unknown Item")
+                        handleResolveAlert(
+                          a.id,
+                          a.Ingredient?.name || "Unknown Item"
+                        )
                       }
                       className="bg-green-600 hover:bg-green-700"
                     >
@@ -132,7 +129,7 @@ export default function AlertsTab({ alerts, resolveAlert }: Props) {
                       {Number(a.current_quantity ?? a.current_qty ?? 0)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {a.item?.unit || a.unit || "units"}
+                      {a.Ingredient?.unit || a.unit || "units"}
                     </p>
                   </div>
                 </div>
@@ -147,26 +144,7 @@ export default function AlertsTab({ alerts, resolveAlert }: Props) {
                       {Number(a.threshold_quantity ?? a.threshold ?? 0)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {a.item?.unit || a.unit || "units"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                  <ShoppingCart className="w-8 h-8 text-green-600" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      Auto-Reorder
-                    </p>
-                    <p className="font-semibold text-lg">
-                      {a.auto_reorder_triggered || a.auto_reorder
-                        ? "Enabled"
-                        : "Disabled"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {a.auto_reorder_triggered || a.auto_reorder
-                        ? `Qty: ${a.reorder_quantity ?? a.reorder_qty ?? "—"}`
-                        : "Manual adjustment needed"}
+                      {a.Ingredient?.unit || a.unit || "units"}
                     </p>
                   </div>
                 </div>
@@ -188,20 +166,20 @@ export default function AlertsTab({ alerts, resolveAlert }: Props) {
               </div>
 
               {/* Item Details */}
-              {a.item && (
+              {a.Ingredient && (
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Item Details</h4>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">Unit:</span>
                       <span className="ml-2 font-medium">
-                        {a.item.unit || "—"}
+                        {a.Ingredient.unit || "—"}
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Supplier:</span>
                       <span className="ml-2 font-medium">
-                        {a.item.supplier || "—"}
+                        {a.Ingredient.supplier || "—"}
                       </span>
                     </div>
                     <div>
@@ -209,7 +187,7 @@ export default function AlertsTab({ alerts, resolveAlert }: Props) {
                         Cost per unit:
                       </span>
                       <span className="ml-2 font-medium">
-                        {formatCurrency(a.item.cost_per_unit || 0)}
+                        {formatCurrency(a.Ingredient.cost_per_unit || 0)}
                       </span>
                     </div>
                     <div>
@@ -217,7 +195,7 @@ export default function AlertsTab({ alerts, resolveAlert }: Props) {
                         Supplier Contact:
                       </span>
                       <span className="ml-2 font-medium">
-                        {a.item.supplier_contact || "—"}
+                        {a.Ingredient.supplier_contact || "—"}
                       </span>
                     </div>
                     <div>
@@ -225,9 +203,9 @@ export default function AlertsTab({ alerts, resolveAlert }: Props) {
                         Last Restocked:
                       </span>
                       <span className="ml-2 font-medium">
-                        {a.item.last_restocked_at
+                        {a.Ingredient.last_restocked_at
                           ? new Date(
-                              a.item.last_restocked_at
+                              a.Ingredient.last_restocked_at
                             ).toLocaleDateString()
                           : "—"}
                       </span>
@@ -239,7 +217,7 @@ export default function AlertsTab({ alerts, resolveAlert }: Props) {
                       <span className="ml-2 font-medium">
                         {formatCurrency(
                           Number(a.current_quantity ?? a.current_qty ?? 0) *
-                            (a.item.cost_per_unit || 0)
+                            (a.Ingredient.cost_per_unit || 0)
                         )}
                       </span>
                     </div>
@@ -250,49 +228,24 @@ export default function AlertsTab({ alerts, resolveAlert }: Props) {
               {/* Recommended Actions */}
               <div className="border-t pt-4 mt-4">
                 <h4 className="font-medium mb-3">Recommended Actions</h4>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  {a.auto_reorder_triggered || a.auto_reorder ? (
-                    <div className="flex items-start gap-3">
-                      <ShoppingCart className="w-5 h-5 text-blue-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-blue-900">
-                          Auto-Reorder Active
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-amber-900">
+                        Manual Action Required
+                      </p>
+                      <p className="text-sm text-amber-700 mt-1">
+                        Please use Quick Stock Adjustment to update inventory or
+                        place a manual purchase order.
+                      </p>
+                      {a.Ingredient?.supplier && (
+                        <p className="text-xs text-amber-600 mt-2">
+                          Contact supplier: {a.Ingredient.supplier}
                         </p>
-                        <p className="text-sm text-blue-700 mt-1">
-                          System will automatically place an order for{" "}
-                          {a.reorder_quantity ?? a.reorder_qty ?? "—"}{" "}
-                          {a.item?.unit || a.unit || "units"}
-                          {a.item?.supplier && ` from ${a.item.supplier}`}.
-                        </p>
-                        <p className="text-xs text-blue-600 mt-2">
-                          Estimated cost:{" "}
-                          {formatCurrency(
-                            (a.reorder_quantity ?? a.reorder_qty ?? 0) *
-                              (a.item?.cost_per_unit || 0)
-                          )}
-                        </p>
-                      </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-amber-900">
-                          Manual Action Required
-                        </p>
-                        <p className="text-sm text-amber-700 mt-1">
-                          Auto-reorder is disabled. Please use Quick Stock
-                          Adjustment to update inventory or place a manual
-                          purchase order.
-                        </p>
-                        {a.item?.supplier && (
-                          <p className="text-xs text-amber-600 mt-2">
-                            Contact supplier: {a.item.supplier}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
               </div>
             </CardContent>

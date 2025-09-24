@@ -9,7 +9,6 @@ import {
   TextInputField,
   NumberInputField,
   SelectField,
-  SwitchField,
   FormSubmitButton,
   unitOptions,
 } from "@/components/forms/FormComponents";
@@ -33,24 +32,7 @@ const stockItemSchema = z.object({
   supplier: z.string().min(1, "Supplier is required"),
   supplier_contact: z.string().min(1, "Supplier contact is required"),
   last_restocked_at: z.string().nullable().optional(),
-  auto_reorder: z.boolean().optional().default(false),
-  // reorder_quantity is only required when auto_reorder is true
-  reorder_quantity: z.coerce.number().optional(),
 });
-
-// Require reorder_quantity when auto_reorder is enabled
-const stockItemSchemaWithRefine = stockItemSchema.refine(
-  (data) => {
-    if (data.auto_reorder) {
-      return data.reorder_quantity !== undefined && data.reorder_quantity >= 0;
-    }
-    return true;
-  },
-  {
-    message: "Reorder quantity must be set when Auto Reorder is enabled",
-    path: ["reorder_quantity"],
-  }
-);
 
 type StockItemFormData = z.infer<typeof stockItemSchema>;
 
@@ -92,8 +74,6 @@ export function StockItemForm({
         supplier: stockItem.supplier,
         supplier_contact: stockItem.supplier_contact,
         last_restocked_at: stockItem.last_restocked_at || null,
-        auto_reorder: stockItem.auto_reorder,
-        reorder_quantity: stockItem.reorder_quantity,
       }
     : {
         name: "",
@@ -105,12 +85,10 @@ export function StockItemForm({
         supplier: "",
         supplier_contact: "",
         last_restocked_at: null,
-        auto_reorder: false,
-        reorder_quantity: 0,
       };
 
   const form = useForm<StockItemFormData>({
-    resolver: zodResolver(stockItemSchemaWithRefine),
+    resolver: zodResolver(stockItemSchema),
     defaultValues,
   });
 
@@ -138,7 +116,6 @@ export function StockItemForm({
 
   const selectedUnit = form.watch("unit") || "pcs";
   const numericStep = unitStepMap[selectedUnit] ?? unitStepMap.default;
-  const autoReorderEnabled = form.watch("auto_reorder") ?? false;
 
   // createHandler/updateHandler passed from parent will be used instead of local mutations
 
@@ -151,13 +128,10 @@ export function StockItemForm({
         quantity: Number(data.quantity),
         reserved_quantity: Number(data.reserved_quantity),
         low_stock_threshold: Number(data.low_stock_threshold),
-        // critical_stock_threshold removed
         cost_per_unit: Number(data.cost_per_unit),
         supplier: data.supplier,
         supplier_contact: data.supplier_contact,
         last_restocked_at: data.last_restocked_at,
-        auto_reorder: data.auto_reorder,
-        reorder_quantity: Number(data.reorder_quantity),
       };
 
       if (isEditing) {
@@ -290,26 +264,6 @@ export function StockItemForm({
                   description="Cost per unit from supplier"
                 />
               </div>
-
-              <SwitchField
-                control={form.control}
-                name="auto_reorder"
-                label="Auto Reorder"
-                description="Automatically reorder when low stock threshold is reached"
-              />
-
-              {autoReorderEnabled && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <NumberInputField
-                    control={form.control}
-                    name="reorder_quantity"
-                    label="Reorder Quantity"
-                    min={0}
-                    step={numericStep}
-                    description="Quantity to reorder when auto-reorder is triggered"
-                  />
-                </div>
-              )}
             </div>
 
             {/* Additional Details */}
