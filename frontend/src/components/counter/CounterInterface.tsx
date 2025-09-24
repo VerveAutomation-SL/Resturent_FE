@@ -151,7 +151,7 @@ export function CounterInterface() {
       console.error("Create order failed:", err);
       toastHelpers.error(
         "Order Creation Failed",
-        "Failed to create order. Please try again."
+        err.message || "Failed to create order. Please try again."
       );
     },
   });
