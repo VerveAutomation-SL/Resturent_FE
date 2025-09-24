@@ -6,7 +6,6 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import {
   TextInputField,
-  TextareaField,
   NumberInputField,
   SelectField,
   FormSubmitButton,
@@ -62,7 +61,7 @@ export function TableForm({
   // Create mutation
   const createMutation = useMutation({
     mutationFn: (data: CreateTableData) => apiClient.createTable(data),
-    onSuccess: (response) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-tables"] });
       queryClient.invalidateQueries({ queryKey: ["tables"] });
       queryClient.invalidateQueries({ queryKey: ["tables-summary"] });
@@ -79,7 +78,7 @@ export function TableForm({
   const updateMutation = useMutation({
     mutationFn: (data: UpdateTableData) =>
       apiClient.updateTable(data.id.toString(), data),
-    onSuccess: (response) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-tables"] });
       queryClient.invalidateQueries({ queryKey: ["tables"] });
       queryClient.invalidateQueries({ queryKey: ["tables-summary"] });

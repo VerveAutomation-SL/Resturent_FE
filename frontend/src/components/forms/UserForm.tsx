@@ -65,7 +65,7 @@ export function UserForm({
   // Create mutation
   const createMutation = useMutation({
     mutationFn: (data: CreateUserData) => apiClient.createUser(data),
-    onSuccess: (response) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toastHelpers.userCreated(`${form.getValues("name")}`);
       form.reset();
@@ -80,7 +80,7 @@ export function UserForm({
   const updateMutation = useMutation({
     mutationFn: (data: UpdateUserData) =>
       apiClient.updateUser(data.id.toString(), data),
-    onSuccess: (response) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toastHelpers.apiSuccess("Update", `User ${form.getValues("name")}`);
       onSuccess?.();

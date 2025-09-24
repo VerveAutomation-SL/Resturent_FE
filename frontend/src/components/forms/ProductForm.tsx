@@ -114,14 +114,6 @@ export function ProductForm({
     if (existsIndex >= 0) {
       // remove
       // find the field-array index for that ingredient id
-      const faIndex = fields.findIndex(
-        (f) =>
-          String(
-            (form.getValues() as any).ingredients?.find(
-              (it: any) => String(it.ingredient_id) === String(ingredientId)
-            )?.ingredient_id
-          ) === String(ingredientId)
-      );
       // safer: remove by searching ingredients array index
       const ingredientsArray: any[] =
         (form.getValues() as any).ingredients || [];
