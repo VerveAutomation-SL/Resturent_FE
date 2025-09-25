@@ -37,7 +37,7 @@ export function AdminTableManagement() {
   const router = useRouter();
 
   // Auto-refresh data when navigating to this page
-  const { manualRefresh } = useNavigationRefresh([
+  const { manualRefresh, isRefreshing } = useNavigationRefresh([
     "admin-tables",
     "table-stats",
   ]);
@@ -93,11 +93,7 @@ export function AdminTableManagement() {
   }, [filterStatus]);
 
   // Fetch tables with pagination
-  const {
-    data: tablesData,
-    isLoading,
-    isFetching,
-  } = useQuery({
+  const { data: tablesData, isLoading } = useQuery({
     queryKey: [
       "admin-tables",
       pagination.page,
@@ -120,13 +116,16 @@ export function AdminTableManagement() {
   });
 
   // Also fetch summary stats (all tables for stats calculation)
-  const { data: allTables } = useQuery({
+  const { data: allTables, isLoading: loadingAllTables } = useQuery({
     queryKey: ["tables-summary"],
     queryFn: () =>
       apiClient.getTables().then((res) => {
         return res.data;
       }),
   });
+
+  // Show loading screen when backend is called (not cache fetch)
+  const isLoadingAny = isLoading || loadingAllTables || isRefreshing;
 
   // Extract data and pagination info
   const tables = (tablesData as any)?.tables || [];
@@ -250,10 +249,11 @@ export function AdminTableManagement() {
           <Button
             variant="outline"
             onClick={manualRefresh}
+            disabled={isRefreshing}
             className="flex items-center gap-2"
           >
             <RefreshCw className="w-4 h-4" />
-            Refresh
+            {isRefreshing ? "Refreshing..." : "Refresh"}
           </Button>
           <Button
             onClick={() => {
@@ -268,221 +268,290 @@ export function AdminTableManagement() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-        {isLoading ? (
-          <>
-            <StatsCardSkeleton />
-            <StatsCardSkeleton />
-            <StatsCardSkeleton />
-          </>
-        ) : (
-          <>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {stats.total}
+      <div className="mt-8 relative min-h-[400px]">
+        {/* Enhanced skeleton during loading */}
+        {isLoadingAny && (
+          <div className="space-y-8">
+            {/* Stats Cards Skeleton */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              <StatsCardSkeleton />
+              <StatsCardSkeleton />
+              <StatsCardSkeleton />
+            </div>
+
+            {/* Search and Filter Bar Skeleton */}
+            <div className="flex flex-col sm:flex-row gap-4 bg-white p-6 rounded-lg border">
+              <div className="bg-muted animate-pulse rounded-md h-10 flex-1" />
+              <div className="bg-muted animate-pulse rounded-md h-10 w-40" />
+            </div>
+
+            {/* Table Grid Skeleton */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-lg border p-6 space-y-4"
+                >
+                  {/* Table number and status */}
+                  <div className="flex items-center justify-between">
+                    <div className="bg-muted animate-pulse rounded h-6 w-20" />
+                    <div className="bg-muted animate-pulse rounded-full h-6 w-16" />
                   </div>
-                  <p className="text-xs text-muted-foreground">Total Tables</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {stats.available}
+
+                  {/* Capacity info */}
+                  <div className="space-y-2">
+                    <div className="bg-muted animate-pulse rounded h-4 w-24" />
+                    <div className="bg-muted animate-pulse rounded h-3 w-32" />
                   </div>
-                  <p className="text-xs text-muted-foreground">Available</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {stats.occupied}
+
+                  {/* Action buttons */}
+                  <div className="flex gap-2 pt-2">
+                    <div className="bg-muted animate-pulse rounded h-8 flex-1" />
+                    <div className="bg-muted animate-pulse rounded h-8 w-10" />
                   </div>
-                  <p className="text-xs text-muted-foreground">Occupied</p>
                 </div>
-              </CardContent>
-            </Card>
-          </>
+              ))}
+            </div>
+
+            {/* Pagination Skeleton */}
+            <div className="flex justify-between items-center">
+              <div className="bg-muted animate-pulse rounded h-4 w-32" />
+              <div className="flex gap-2">
+                <div className="bg-muted animate-pulse rounded h-8 w-8" />
+                <div className="bg-muted animate-pulse rounded h-8 w-8" />
+                <div className="bg-muted animate-pulse rounded h-8 w-8" />
+                <div className="bg-muted animate-pulse rounded h-8 w-8" />
+              </div>
+            </div>
+          </div>
         )}
-      </div>
 
-      {/* Controls */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search tables by number or location..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
-          />
-          {isSearching && (
-            <div className="absolute right-2 top-2.5">
-              <InlineLoading size="sm" />
-            </div>
-          )}
-        </div>
-        <div className="flex gap-2">
-          {isFiltering && (
-            <div className="flex items-center mr-2">
-              <FilteringSkeleton />
-            </div>
-          )}
-          <Button
-            variant={filterStatus === "all" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterStatus("all")}
-          >
-            All ({stats.total})
-          </Button>
-          <Button
-            variant={filterStatus === "available" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterStatus("available")}
-          >
-            Available ({stats.available})
-          </Button>
-          <Button
-            variant={filterStatus === "occupied" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterStatus("occupied")}
-          >
-            Occupied ({stats.occupied})
-          </Button>
-        </div>
-      </div>
+        <div
+          className={
+            isLoadingAny && !isRefreshing
+              ? "pointer-events-none opacity-50"
+              : isLoading || isRefreshing
+                ? "hidden"
+                : ""
+          }
+        >
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            {
+              <>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-gray-900">
+                        {stats.total}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Total Tables
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {stats.available}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Available</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {stats.occupied}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Occupied</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            }
+          </div>
 
-      {/* Tables List */}
-      {isLoading ? (
-        <TableGridSkeleton count={pagination.pageSize} />
-      ) : isSearching && searchTerm ? (
-        <SearchingSkeleton />
-      ) : filteredTables.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <Settings className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">
-                No tables found
-              </h3>
-              <p className="mt-1 text-sm text-gray-500">
-                {searchTerm || filterStatus !== "all"
-                  ? "No tables match your current filters."
-                  : "Get started by adding your first table."}
-              </p>
-              {!searchTerm && filterStatus === "all" && (
-                <div className="mt-6">
-                  <Button
-                    onClick={() => setViewMode("table-form")}
-                    className="gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Table
-                  </Button>
+          {/* Controls */}
+          <div className="flex items-center justify-between gap-4 mt-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search tables by number or location..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+              {isSearching && (
+                <div className="absolute right-2 top-2.5">
+                  <InlineLoading size="sm" />
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredTables.map((table: any) => {
-            const statusBadge = getStatusBadge(table.status);
-            return (
-              <Card
-                key={table.id}
-                className="hover:shadow-md transition-shadow"
+            <div className="flex gap-2">
+              {isFiltering && (
+                <div className="flex items-center mr-2">
+                  <FilteringSkeleton />
+                </div>
+              )}
+              <Button
+                variant={filterStatus === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterStatus("all")}
               >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg">
-                        Table {table.table_number}
-                      </CardTitle>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge className={`gap-1 ${statusBadge.className}`}>
-                          {statusBadge.icon}
-                          {table.status}
-                        </Badge>
+                All ({stats.total})
+              </Button>
+              <Button
+                variant={filterStatus === "available" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterStatus("available")}
+              >
+                Available ({stats.available})
+              </Button>
+              <Button
+                variant={filterStatus === "occupied" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterStatus("occupied")}
+              >
+                Occupied ({stats.occupied})
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            {/* Tables List */}
+            {isLoadingAny ? (
+              <TableGridSkeleton count={pagination.pageSize} />
+            ) : isSearching && searchTerm ? (
+              <SearchingSkeleton />
+            ) : filteredTables.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center py-8">
+                    <Settings className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                      No tables found
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {searchTerm || filterStatus !== "all"
+                        ? "No tables match your current filters."
+                        : "Get started by adding your first table."}
+                    </p>
+                    {!searchTerm && filterStatus === "all" && (
+                      <div className="mt-6">
+                        <Button
+                          onClick={() => setViewMode("table-form")}
+                          className="gap-2"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Add Table
+                        </Button>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Users className="h-4 w-4" />
-                        {table.capacity} seats
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  {table.location_notes && (
-                    <div className="flex items-start gap-2 mb-4">
-                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-muted-foreground">
-                        {table.location_notes}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between pt-2">
-                    <div className="text-xs text-muted-foreground">
-                      Created {new Date(table.created_at).toLocaleDateString()}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setEditingTable(table);
-                          setViewMode("table-form");
-                        }}
-                        className="gap-2"
-                      >
-                        <Edit className="h-4 w-4" />
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDeleteTable(table)}
-                        disabled={
-                          deleteTableMutation.isPending ||
-                          table.status === "occupied"
-                        }
-                        className="gap-2 text-red-600 hover:text-red-700 hover:border-red-300"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </Button>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Pagination */}
-      {filteredTables.length > 0 && (
-        <div className="mt-6 space-y-4">
-          {isFetching && !isLoading && (
-            <div className="flex justify-center">
-              <InlineLoading text="Updating tables..." />
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filteredTables.map((table: any) => {
+                  const statusBadge = getStatusBadge(table.status);
+                  return (
+                    <Card
+                      key={table.id}
+                      className="hover:shadow-md transition-shadow"
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <CardTitle className="text-lg">
+                              Table {table.table_number}
+                            </CardTitle>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge
+                                className={`gap-1 ${statusBadge.className}`}
+                              >
+                                {statusBadge.icon}
+                                {table.status}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Users className="h-4 w-4" />
+                              {table.capacity} seats
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        {table.location_notes && (
+                          <div className="flex items-start gap-2 mb-4">
+                            <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <span className="text-sm text-muted-foreground">
+                              {table.location_notes}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between pt-2">
+                          <div className="text-xs text-muted-foreground">
+                            Created{" "}
+                            {new Date(table.created_at).toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingTable(table);
+                                setViewMode("table-form");
+                              }}
+                              className="gap-2"
+                            >
+                              <Edit className="h-4 w-4" />
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteTable(table)}
+                              disabled={
+                                deleteTableMutation.isPending ||
+                                table.status === "occupied"
+                              }
+                              className="gap-2 text-red-600 hover:text-red-700 hover:border-red-300"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          {/* Pagination */}
+          {filteredTables.length > 0 && (
+            <div className="mt-6 space-y-4">
+              {isLoadingAny && (
+                <div className="flex justify-center">
+                  <InlineLoading text="Updating tables..." />
+                </div>
+              )}
+              <PaginationControlsComponent
+                pagination={pagination}
+                total={paginationInfo.totalTables || tables.length}
+                pageSizeOptions={[6, 12, 24, 48]}
+              />
             </div>
           )}
-          <PaginationControlsComponent
-            pagination={pagination}
-            total={paginationInfo.totalTables || tables.length}
-            pageSizeOptions={[6, 12, 24, 48]}
-          />
         </div>
-      )}
+      </div>
     </div>
   );
 }

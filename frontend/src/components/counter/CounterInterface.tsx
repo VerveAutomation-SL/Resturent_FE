@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Plus,
   Minus,
@@ -48,6 +49,71 @@ import { OrderStatus } from "@/types";
 import { useRouter } from "@tanstack/react-router";
 import { useNavigationRefresh } from "@/hooks/useNavigationRefresh";
 
+function CounterProductSkeleton() {
+  return (
+    <Card className="hover:shadow-lg transition-shadow aspect-square flex flex-col">
+      <div className="flex-1 flex items-center justify-center p-4 border-b">
+        <Skeleton className="w-16 h-16 rounded-lg" />
+      </div>
+      <CardContent className="p-3 space-y-2">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-3 w-3/4" />
+        <div className="flex items-center justify-between pt-2">
+          <Skeleton className="h-6 w-16" />
+          <Skeleton className="h-8 w-20" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CounterTableSkeleton() {
+  return (
+    <Card className="cursor-pointer transition-all hover:shadow-lg">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-2">
+          <Skeleton className="h-6 w-20" />
+          <Skeleton className="h-5 w-16 rounded-full" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-3 w-full" />
+          <div className="flex justify-between items-center pt-2">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-8 w-16" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CounterOrderSkeleton() {
+  return (
+    <Card className="transition-all hover:shadow-md">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Skeleton className="h-10 w-10 rounded" />
+            <div className="space-y-1">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-5 w-16 rounded-full" />
+            <Skeleton className="h-4 w-4" />
+          </div>
+        </div>
+        <div className="mt-3 pt-3 border-t space-y-2">
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-2/3" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function CounterInterface() {
   const router = useRouter();
 
@@ -77,6 +143,13 @@ export function CounterInterface() {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [referenceNumber, setReferenceNumber] = useState("");
 
+  const { manualRefresh, isRefreshing } = useNavigationRefresh([
+    "products",
+    "categories",
+    "orders",
+    "tables",
+  ]);
+
   useEffect(() => {
     const decodedToken = apiClient.isAuthenticated();
 
@@ -96,15 +169,8 @@ export function CounterInterface() {
     }
   }, [selectedOrder, activeTab]);
 
-  const { manualRefresh } = useNavigationRefresh([
-    "products",
-    "categories",
-    "orders",
-    "tables",
-  ]);
-
   // Data fetching
-  const { data: products } = useQuery({
+  const { data: products, isLoading: loadingProducts } = useQuery({
     queryKey: ["products"],
     queryFn: () =>
       apiClient.getProducts().then((res) => {
@@ -113,7 +179,7 @@ export function CounterInterface() {
       }),
   });
 
-  const { data: categories } = useQuery({
+  const { data: categories, isLoading: loadingCategories } = useQuery({
     queryKey: ["categories"],
     queryFn: () =>
       apiClient.getCategories().then((res) => {
@@ -121,7 +187,7 @@ export function CounterInterface() {
       }),
   });
 
-  const { data: tables } = useQuery({
+  const { data: tables, isLoading: loadingTables } = useQuery({
     queryKey: ["tables"],
     queryFn: () =>
       apiClient.getAdminTables().then((res) => {
@@ -130,7 +196,7 @@ export function CounterInterface() {
       }),
   });
 
-  const { data: orders } = useQuery({
+  const { data: orders, isLoading: loadingOrders } = useQuery({
     queryKey: ["orders"],
     queryFn: () =>
       apiClient.getOrders({ status: "confirmed" }).then((res) => {
@@ -139,6 +205,14 @@ export function CounterInterface() {
       }),
     enabled: activeTab === "payment" || currentView === "tables",
   });
+
+  // Show loading screen when backend is called (not cache fetch)
+  const isLoadingAny =
+    isRefreshing ||
+    loadingProducts ||
+    loadingCategories ||
+    loadingTables ||
+    loadingOrders;
 
   // Order Create Mutations
   const createOrderMutation = useMutation({
@@ -771,10 +845,13 @@ export function CounterInterface() {
                 variant="outline"
                 size="sm"
                 onClick={manualRefresh}
+                disabled={isRefreshing}
                 className="flex items-center gap-2"
               >
-                <RefreshCw className="w-4 h-4" />
-                Refresh
+                <RefreshCw
+                  className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
+                />
+                {isRefreshing ? "Refreshing..." : "Refresh"}
               </Button>
               <Button
                 variant={activeTab === "create" ? "default" : "outline"}
@@ -952,7 +1029,13 @@ export function CounterInterface() {
                     }
                   }}
                 >
-                  {filteredTables?.length === 0 ? (
+                  {isLoadingAny ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {Array.from({ length: 8 }, (_, i) => (
+                        <CounterTableSkeleton key={i} />
+                      ))}
+                    </div>
+                  ) : filteredTables?.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <TableIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
                       <p>No tables found</p>
@@ -1068,26 +1151,36 @@ export function CounterInterface() {
                     >
                       All Items
                     </Button>
-                    {categories?.map((category) => (
-                      <Button
-                        key={category.id}
-                        variant={
-                          selectedCategory === category.id
-                            ? "default"
-                            : "outline"
-                        }
-                        size="sm"
-                        onClick={() => setSelectedCategory(category.id)}
-                      >
-                        {category.name}
-                      </Button>
-                    ))}
+                    {isLoadingAny
+                      ? Array.from({ length: 4 }, (_, i) => (
+                          <Skeleton key={i} className="h-8 w-20" />
+                        ))
+                      : categories?.map((category) => (
+                          <Button
+                            key={category.id}
+                            variant={
+                              selectedCategory === category.id
+                                ? "default"
+                                : "outline"
+                            }
+                            size="sm"
+                            onClick={() => setSelectedCategory(category.id)}
+                          >
+                            {category.name}
+                          </Button>
+                        ))}
                   </div>
                 </div>
 
                 {/* Products Grid */}
                 <div className="flex-1 overflow-y-auto p-4">
-                  {filteredProducts?.length === 0 ? (
+                  {isLoadingAny ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <CounterProductSkeleton key={i} />
+                      ))}
+                    </div>
+                  ) : filteredProducts?.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
                       <p>No items found</p>
@@ -1205,7 +1298,13 @@ export function CounterInterface() {
               <h3 className="text-lg font-semibold mb-4">
                 Orders Ready for Payment
               </h3>
-              {orders?.length === 0 ? (
+              {isLoadingAny ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 5 }, (_, i) => (
+                    <CounterOrderSkeleton key={i} />
+                  ))}
+                </div>
+              ) : orders?.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Receipt className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p>No orders ready for payment</p>
@@ -1622,32 +1721,6 @@ export function CounterInterface() {
                     </p>
                   </div>
                 )}
-
-                {/* Overall Total */}
-                {/* {(cart.length > 0 || existingOrderItems.length > 0) && (
-                  <div className="p-3 bg-gray-900 text-white rounded-lg font-bold">
-                    <div className="flex justify-between items-center">
-                      <span>Total Amount:</span>
-                      <span className="text-lg">
-                        {formatCurrency(
-                          cart.reduce(
-                            (sum, item) =>
-                              sum + item.Product.price * item.quantity,
-                            0
-                          ) +
-                            existingOrderItems.reduce(
-                              (sum, item) =>
-                                sum +
-                                (item.Product?.price || 0) * item.quantity,
-                              0
-                            )
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                )} */}
-
-                {/* Customer name input removed per request */}
               </div>
             </div>
 

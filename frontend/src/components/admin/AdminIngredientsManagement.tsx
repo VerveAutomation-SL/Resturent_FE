@@ -15,12 +15,13 @@ import PurchaseOrdersTab from "./PurchaseOrdersTab";
 import { StockItemForm } from "../forms/StockItemForm";
 import { useRouter } from "@tanstack/react-router";
 import { useNavigationRefresh } from "@/hooks/useNavigationRefresh";
+import { StatsCardSkeleton } from "@/components/ui/skeletons";
 
 export function AdminIngredientsManagement() {
   const router = useRouter();
 
   // Auto-refresh data when navigating to this page
-  const { manualRefresh } = useNavigationRefresh([
+  const { manualRefresh, isRefreshing } = useNavigationRefresh([
     "stock-stats",
     "stock-items",
     "stock-alerts",
@@ -53,7 +54,7 @@ export function AdminIngredientsManagement() {
     }
   }, []);
 
-  const { data: stockStats } = useQuery({
+  const { data: stockStats, isLoading: stockStatsLoading } = useQuery({
     queryKey: ["stock-stats"],
     queryFn: () =>
       apiClient.getIngredientStats().then((res) => {
@@ -63,7 +64,7 @@ export function AdminIngredientsManagement() {
   });
 
   // Fetch all stock items (ingredients, supplies, equipment, etc.)
-  const { data: stockItems = [], isLoading: loadingStock } = useQuery({
+  const { data: stockItems = [], isLoading: stockItemsLoading } = useQuery({
     queryKey: ["stock-items"],
     queryFn: () =>
       apiClient.getIngredients().then((res) => {
@@ -73,7 +74,7 @@ export function AdminIngredientsManagement() {
   });
 
   // Fetch stock alerts
-  const { data: alerts = [] } = useQuery({
+  const { data: alerts = [], isLoading: alertsLoading } = useQuery({
     queryKey: ["stock-alerts"],
     queryFn: () =>
       apiClient
@@ -89,7 +90,7 @@ export function AdminIngredientsManagement() {
   });
 
   // Fetch stock transactions
-  const { data: transactions } = useQuery({
+  const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
     queryKey: ["stock-transactions"],
     queryFn: () =>
       apiClient.getInventoryTransactions().then((res) => {
@@ -240,15 +241,13 @@ export function AdminIngredientsManagement() {
     },
   });
 
-  if (loadingStock) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin" />
-        <span className="ml-2">Loading stock data...</span>
-      </div>
-    );
-  }
-
+  // Show loading screen when backend is called (not cache fetch)
+  const isLoadingAny =
+    isRefreshing ||
+    stockStatsLoading ||
+    stockItemsLoading ||
+    alertsLoading ||
+    transactionsLoading;
   function onDeleteItem(item: InventoryIngredient): void {
     if (
       window.confirm(
@@ -277,6 +276,7 @@ export function AdminIngredientsManagement() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Always show header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
@@ -292,9 +292,10 @@ export function AdminIngredientsManagement() {
             variant="outline"
             onClick={manualRefresh}
             className="flex items-center gap-2"
+            disabled={isRefreshing}
           >
             <RefreshCw className="w-4 h-4" />
-            Refresh
+            {isRefreshing ? "Refreshing..." : "Refresh"}
           </Button>
           <Button
             onClick={() => setShowCreateForm(true)}
@@ -306,6 +307,7 @@ export function AdminIngredientsManagement() {
         </div>
       </div>
 
+      {/* Always show tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex w-full gap-4 px-2">
           <TabsTrigger value="dashboard" className="flex-1">
@@ -333,58 +335,124 @@ export function AdminIngredientsManagement() {
           {/* <TabsTrigger value="reports" className="flex-1">Reports</TabsTrigger> */}
         </TabsList>
 
-        <TabsContent value="dashboard">
-          <StockDashboard
-            alerts={alerts}
-            transactions={transactions}
-            stockItems={stockItems}
-            setActiveTab={setActiveTab}
-            setShowTransactionForm={setShowTransactionForm}
-            stockStats={stockStats}
-          />
-        </TabsContent>
+        {/* TabsContent - Show skeleton only for content area during loading */}
+        <div className="mt-8">
+          {isLoadingAny ? (
+            <div className="space-y-8">
+              {/* Stats Cards Skeleton */}
+              <div className="grid gap-4 md:grid-cols-3">
+                <StatsCardSkeleton />
+                <StatsCardSkeleton />
+                <StatsCardSkeleton />
+              </div>
 
-        <TabsContent value="inventory">
-          <InventoryTab
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            stockFilter={stockFilter}
-            setStockFilter={setStockFilter}
-            getFilteredItems={getFilteredItems}
-            setSelectedItem={setSelectedItem}
-            setShowTransactionForm={setShowTransactionForm}
-            setShowCreateForm={setShowCreateForm}
-            onDeleteItem={onDeleteItem}
-          />
-        </TabsContent>
+              {/* Search and Filter Bar Skeleton */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="bg-muted animate-pulse rounded-md h-10 flex-1" />
+                <div className="bg-muted animate-pulse rounded-md h-10 w-40" />
+                <div className="bg-muted animate-pulse rounded-md h-10 w-32" />
+              </div>
 
-        <TabsContent value="stock-management">
-          <StockManagementTab
-            stockItems={stockItems}
-            stockAdjustment={stockAdjustment}
-            setStockAdjustment={setStockAdjustment}
-            stockUpdateMutation={stockUpdateMutation}
-          />
-        </TabsContent>
+              {/* Table/List Content Skeleton */}
+              <div className="space-y-4">
+                {/* Table Header */}
+                <div className="grid grid-cols-6 gap-4 p-4 bg-muted/30 rounded-lg">
+                  <div className="bg-muted animate-pulse rounded h-4" />
+                  <div className="bg-muted animate-pulse rounded h-4" />
+                  <div className="bg-muted animate-pulse rounded h-4" />
+                  <div className="bg-muted animate-pulse rounded h-4" />
+                  <div className="bg-muted animate-pulse rounded h-4" />
+                  <div className="bg-muted animate-pulse rounded h-4" />
+                </div>
 
-        <TabsContent value="alerts">
-          <AlertsTab
-            alerts={alerts}
-            resolveAlert={(id) => resolveAlertMutation.mutate(id)}
-          />
-        </TabsContent>
+                {/* Table Rows */}
+                {[...Array(8)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="grid grid-cols-6 gap-4 p-4 border rounded-lg"
+                  >
+                    <div className="bg-muted animate-pulse rounded h-4" />
+                    <div className="bg-muted animate-pulse rounded h-4" />
+                    <div className="bg-muted animate-pulse rounded h-4" />
+                    <div className="bg-muted animate-pulse rounded h-4" />
+                    <div className="bg-muted animate-pulse rounded h-4" />
+                    <div className="flex gap-2">
+                      <div className="bg-muted animate-pulse rounded h-8 w-16" />
+                      <div className="bg-muted animate-pulse rounded h-8 w-16" />
+                      <div className="bg-muted animate-pulse rounded h-8 w-16" />
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-        <TabsContent value="transactions">
-          <TransactionsTab transactions={transactions} />
-        </TabsContent>
+              {/* Pagination Skeleton */}
+              <div className="flex justify-between items-center">
+                <div className="bg-muted animate-pulse rounded h-4 w-32" />
+                <div className="flex gap-2">
+                  <div className="bg-muted animate-pulse rounded h-8 w-8" />
+                  <div className="bg-muted animate-pulse rounded h-8 w-8" />
+                  <div className="bg-muted animate-pulse rounded h-8 w-8" />
+                  <div className="bg-muted animate-pulse rounded h-8 w-8" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="relative min-h-[400px]">
+              <TabsContent value="dashboard">
+                <StockDashboard
+                  alerts={alerts}
+                  transactions={transactions}
+                  stockItems={stockItems}
+                  setActiveTab={setActiveTab}
+                  setShowTransactionForm={setShowTransactionForm}
+                  stockStats={stockStats}
+                />
+              </TabsContent>
 
-        <TabsContent value="purchase-orders">
-          <PurchaseOrdersTab purchaseOrders={[]} />
-        </TabsContent>
+              <TabsContent value="inventory">
+                <InventoryTab
+                  searchTerm={searchTerm}
+                  setSearchTerm={setSearchTerm}
+                  stockFilter={stockFilter}
+                  setStockFilter={setStockFilter}
+                  getFilteredItems={getFilteredItems}
+                  setSelectedItem={setSelectedItem}
+                  setShowTransactionForm={setShowTransactionForm}
+                  setShowCreateForm={setShowCreateForm}
+                  onDeleteItem={onDeleteItem}
+                />
+              </TabsContent>
 
-        {/* <TabsContent value="reports">
+              <TabsContent value="stock-management">
+                <StockManagementTab
+                  stockItems={stockItems}
+                  stockAdjustment={stockAdjustment}
+                  setStockAdjustment={setStockAdjustment}
+                  stockUpdateMutation={stockUpdateMutation}
+                />
+              </TabsContent>
+
+              <TabsContent value="alerts">
+                <AlertsTab
+                  alerts={alerts}
+                  resolveAlert={(id) => resolveAlertMutation.mutate(id)}
+                />
+              </TabsContent>
+
+              <TabsContent value="transactions">
+                <TransactionsTab transactions={transactions} />
+              </TabsContent>
+
+              <TabsContent value="purchase-orders">
+                <PurchaseOrdersTab purchaseOrders={[]} />
+              </TabsContent>
+
+              {/* <TabsContent value="reports">
           <ReportsTab stockItems={stockItems} />
         </TabsContent> */}
+            </div>
+          )}
+        </div>
       </Tabs>
 
       {/* Stock Item Create/Edit Form Modal */}

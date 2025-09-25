@@ -22,7 +22,7 @@ import { UserForm } from "@/components/forms/UserForm";
 import { AdminStaffTable } from "@/components/admin/AdminStaffTable";
 import { PaginationControlsComponent } from "@/components/ui/pagination-controls";
 import { usePagination } from "@/hooks/usePagination";
-import { UserListSkeleton } from "@/components/ui/skeletons";
+// UserListSkeleton removed — detailed skeletons are rendered inline in this component
 import { InlineLoading } from "@/components/ui/loading-spinner";
 import type { User } from "@/types";
 import { useRouter } from "node_modules/@tanstack/react-router/dist/esm/useRouter";
@@ -34,8 +34,7 @@ export function AdminStaffManagement() {
   const router = useRouter();
 
   // Manual refresh functionality
-  const { manualRefresh } = useNavigationRefresh(["users"]);
-
+  const { manualRefresh, isRefreshing } = useNavigationRefresh(["users"]);
   useEffect(() => {
     const decodedToken = apiClient.isAuthenticated();
 
@@ -92,14 +91,13 @@ export function AdminStaffManagement() {
   }, [searchTerm, debouncedSearch]);
 
   // Fetch users with pagination
-  const {
-    data: usersData,
-    isLoading,
-    isFetching,
-  } = useQuery({
+  const { data: usersData, isLoading } = useQuery({
     queryKey: ["users", pagination.page, pagination.pageSize, debouncedSearch],
     queryFn: () => apiClient.getUsers().then((res: any) => res.data),
   });
+
+  // Show loading screen when backend is called (not cache fetch) or refreshing
+  const isLoadingAny = isRefreshing || isLoading;
 
   // Extract data and pagination info
   const users = Array.isArray(usersData)
@@ -174,42 +172,7 @@ export function AdminStaffManagement() {
     );
   }
 
-  if (isLoading) {
-    return (
-      <div
-        className={`${isMobile ? "p-4" : "p-6"} space-y-${isMobile ? "4" : "6"}`}
-      >
-        {/* Header Skeleton */}
-        <div
-          className={`${isMobile ? "space-y-3" : "flex items-center justify-between"}`}
-        >
-          <div className="space-y-2">
-            <div
-              className={`bg-muted animate-pulse rounded-md ${isMobile ? "h-6 w-36" : "h-8 w-48"}`}
-            />
-            <div
-              className={`bg-muted animate-pulse rounded-md ${isMobile ? "h-3 w-48" : "h-4 w-72"}`}
-            />
-          </div>
-          {!isMobile && (
-            <div className="h-10 w-24 bg-muted animate-pulse rounded-md" />
-          )}
-        </div>
-
-        {/* Search and Controls Skeleton */}
-        <div
-          className={`${isMobile ? "space-y-3" : "flex items-center justify-between gap-4"}`}
-        >
-          <div
-            className={`bg-muted animate-pulse rounded-md ${isMobile ? "h-8 w-full" : "h-10 w-full max-w-sm"}`}
-          />
-        </div>
-
-        {/* User List Skeleton */}
-        <UserListSkeleton count={pagination.pageSize} />
-      </div>
-    );
-  }
+  // Always show header and search; content area will show skeletons when loading
 
   return (
     <div
@@ -237,10 +200,11 @@ export function AdminStaffManagement() {
             <Button
               variant="outline"
               onClick={manualRefresh}
+              disabled={isRefreshing}
               className="flex items-center gap-2"
             >
               <RefreshCw className="w-4 h-4" />
-              Refresh
+              {isRefreshing ? "Refreshing..." : "Refresh"}
             </Button>
             {/* View Toggle */}
             <div className="flex items-center bg-muted rounded-lg p-1">
@@ -303,10 +267,11 @@ export function AdminStaffManagement() {
                   variant="outline"
                   size="sm"
                   onClick={manualRefresh}
+                  disabled={isRefreshing}
                   className="flex items-center gap-1"
                 >
                   <RefreshCw className="w-3 h-3" />
-                  Refresh
+                  {isRefreshing ? "Refreshing..." : "Refresh"}
                 </Button>
               )}
               {/* Mobile View Toggle */}
@@ -346,161 +311,278 @@ export function AdminStaffManagement() {
         </CardContent>
       </Card>
 
-      {/* Staff List */}
-      <div className="space-y-4">
-        {displayMode === "table" ? (
-          <AdminStaffTable
-            data={filteredUsers}
-            onEdit={setEditingUser}
-            onDelete={handleDeleteUser}
-            isLoading={isLoading}
-          />
-        ) : filteredUsers.length === 0 ? (
-          <Card>
-            <CardContent className={isMobile ? "pt-4" : "pt-6"}>
-              <div className="text-center py-8">
-                <UserPlus
-                  className={`mx-auto text-gray-400 ${isMobile ? "h-8 w-8" : "h-12 w-12"}`}
-                />
-                <h3
-                  className={`mt-2 font-medium text-gray-900 ${isMobile ? "text-sm" : "text-sm"}`}
-                >
-                  No staff members
-                </h3>
-                <p
-                  className={`mt-1 text-gray-500 ${isMobile ? "text-xs" : "text-sm"}`}
-                >
-                  {searchTerm
-                    ? "No staff members match your search."
-                    : "Get started by adding a new staff member."}
-                </p>
-                {!searchTerm && (
-                  <div className="mt-6">
-                    <Button
-                      onClick={() => setShowCreateForm(true)}
-                      className="gap-2"
-                      size={isMobile ? "sm" : "default"}
-                    >
-                      <UserPlus className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
-                      Add New Staff
-                    </Button>
-                  </div>
-                )}
+      <div className="mt-8 relative min-h-[400px]">
+        {/* Enhanced skeleton during loading */}
+        {isLoadingAny && (
+          <div className="space-y-8">
+            {/* Search Bar Skeleton */}
+            <div className="bg-white rounded-lg border p-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="bg-muted animate-pulse rounded-md h-10 flex-1" />
+                <div className="bg-muted animate-pulse rounded-md h-10 w-32" />
               </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className={`grid gap-${isMobile ? "3" : "4"}`}>
-            {filteredUsers.map((user: User) => (
-              <Card key={user.id} className="hover:shadow-md transition-shadow">
-                <CardContent className={isMobile ? "pt-4 pb-4" : "pt-6"}>
-                  <div
-                    className={`${isMobile ? "space-y-4" : "flex items-center justify-between"}`}
-                  >
-                    <div
-                      className={`flex items-center space-x-4 ${isMobile ? "justify-center" : ""}`}
-                    >
-                      <div className="flex-shrink-0">
-                        <div
-                          className={`rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center ${isMobile ? "h-10 w-10" : "h-12 w-12"}`}
-                        >
-                          <span
-                            className={`font-semibold text-white ${isMobile ? "text-xs" : "text-sm"}`}
-                          >
-                            {user.name[0]}
-                          </span>
-                        </div>
-                      </div>
-                      <div
-                        className={`min-w-0 flex-1 ${isMobile ? "text-center" : ""}`}
-                      >
-                        <h3
-                          className={`font-medium text-gray-900 ${isMobile ? "text-sm" : ""}`}
-                        >
-                          {user.name}
-                        </h3>
-                        <div
-                          className={`flex items-center gap-2 mt-1 ${isMobile ? "justify-center flex-wrap" : ""}`}
-                        >
-                          <Mail className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
-                          <p
-                            className={`text-gray-500 ${isMobile ? "text-xs" : "text-sm"}`}
-                          >
-                            {user.email}
-                          </p>
-                        </div>
-                        {user.created_at && (
-                          <div
-                            className={`flex items-center gap-2 mt-1 ${isMobile ? "justify-center" : ""}`}
-                          >
-                            <Calendar
-                              className={isMobile ? "h-3 w-3" : "h-4 w-4"}
-                            />
-                            <p
-                              className={`text-gray-500 ${isMobile ? "text-xs" : "text-sm"}`}
-                            >
-                              Joined{" "}
-                              {new Date(user.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                        )}
-                        <div
-                          className={`flex items-center gap-2 mt-2 ${isMobile ? "justify-center" : ""}`}
-                        >
-                          <Shield
-                            className={isMobile ? "h-3 w-3" : "h-4 w-4"}
-                          />
-                          <Badge
-                            className={`${getRoleBadgeColor(user.role)} ${isMobile ? "text-xs" : ""}`}
-                          >
-                            {user.role}
-                          </Badge>
-                        </div>
-                      </div>
+            </div>
+
+            {/* Staff Table/Cards Skeleton */}
+            {displayMode === "table" ? (
+              <div className="bg-white rounded-lg border">
+                {/* Table header */}
+                <div className="grid grid-cols-5 gap-4 p-4 bg-muted/30 border-b">
+                  <div className="bg-muted animate-pulse rounded h-4" />
+                  <div className="bg-muted animate-pulse rounded h-4" />
+                  <div className="bg-muted animate-pulse rounded h-4" />
+                  <div className="bg-muted animate-pulse rounded h-4" />
+                  <div className="bg-muted animate-pulse rounded h-4" />
+                </div>
+
+                {/* Table rows */}
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="grid grid-cols-5 gap-4 p-4 border-b">
+                    <div className="flex items-center space-x-3">
+                      <div className="bg-muted animate-pulse rounded-full h-8 w-8" />
+                      <div className="bg-muted animate-pulse rounded h-4 w-24" />
                     </div>
-                    <div
-                      className={`flex ${isMobile ? "justify-center space-x-2 w-full" : "flex-col space-y-2 ml-4"}`}
-                    >
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setEditingUser(user)}
-                        className={isMobile ? "flex-1 gap-1 text-xs" : "gap-1"}
-                      >
-                        <Edit className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
-                        {isMobile ? "Edit" : "Edit"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDeleteUser(user)}
-                        className={`text-red-600 hover:text-red-700 hover:border-red-300 ${isMobile ? "flex-1 gap-1 text-xs" : "gap-1"}`}
-                      >
-                        <Trash2 className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
-                        {isMobile ? "Delete" : "Delete"}
-                      </Button>
+                    <div className="bg-muted animate-pulse rounded h-4 w-32" />
+                    <div className="bg-muted animate-pulse rounded h-6 w-20" />
+                    <div className="bg-muted animate-pulse rounded h-4 w-24" />
+                    <div className="flex gap-2">
+                      <div className="bg-muted animate-pulse rounded h-8 w-16" />
+                      <div className="bg-muted animate-pulse rounded h-8 w-16" />
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {[...Array(8)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="bg-white rounded-lg border p-6 space-y-4"
+                  >
+                    {/* User avatar and name */}
+                    <div className="flex items-center space-x-3">
+                      <div className="bg-muted animate-pulse rounded-full h-12 w-12" />
+                      <div className="space-y-2">
+                        <div className="bg-muted animate-pulse rounded h-4 w-24" />
+                        <div className="bg-muted animate-pulse rounded h-3 w-32" />
+                      </div>
+                    </div>
+
+                    {/* Role badge */}
+                    <div className="bg-muted animate-pulse rounded-full h-6 w-20" />
+
+                    {/* Contact info */}
+                    <div className="space-y-2">
+                      <div className="bg-muted animate-pulse rounded h-3 w-full" />
+                      <div className="bg-muted animate-pulse rounded h-3 w-28" />
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex gap-2">
+                      <div className="bg-muted animate-pulse rounded h-8 flex-1" />
+                      <div className="bg-muted animate-pulse rounded h-8 w-10" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Pagination Skeleton */}
+            <div className="flex justify-between items-center">
+              <div className="bg-muted animate-pulse rounded h-4 w-32" />
+              <div className="flex gap-2">
+                <div className="bg-muted animate-pulse rounded h-8 w-8" />
+                <div className="bg-muted animate-pulse rounded h-8 w-8" />
+                <div className="bg-muted animate-pulse rounded h-8 w-8" />
+                <div className="bg-muted animate-pulse rounded h-8 w-8" />
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Pagination */}
-        {filteredUsers.length > 0 && (
-          <div className={`${isMobile ? "mt-4 space-y-3" : "mt-6 space-y-4"}`}>
-            {isFetching && !isLoading && (
-              <div className="flex justify-center">
-                <InlineLoading text="Updating staff..." />
+        <div
+          className={
+            isLoadingAny && !isRefreshing
+              ? "pointer-events-none opacity-50"
+              : isLoading || isRefreshing
+                ? "hidden"
+                : ""
+          }
+        >
+          {/* Staff List */}
+          <div className="space-y-4">
+            {displayMode === "table" ? (
+              <AdminStaffTable
+                data={filteredUsers}
+                onEdit={setEditingUser}
+                onDelete={handleDeleteUser}
+                isLoading={isLoading}
+              />
+            ) : filteredUsers.length === 0 ? (
+              <Card>
+                <CardContent className={isMobile ? "pt-4" : "pt-6"}>
+                  <div className="text-center py-8">
+                    <UserPlus
+                      className={`mx-auto text-gray-400 ${isMobile ? "h-8 w-8" : "h-12 w-12"}`}
+                    />
+                    <h3
+                      className={`mt-2 font-medium text-gray-900 ${isMobile ? "text-sm" : "text-sm"}`}
+                    >
+                      No staff members
+                    </h3>
+                    <p
+                      className={`mt-1 text-gray-500 ${isMobile ? "text-xs" : "text-sm"}`}
+                    >
+                      {searchTerm
+                        ? "No staff members match your search."
+                        : "Get started by adding a new staff member."}
+                    </p>
+                    {!searchTerm && (
+                      <div className="mt-6">
+                        <Button
+                          onClick={() => setShowCreateForm(true)}
+                          className="gap-2"
+                          size={isMobile ? "sm" : "default"}
+                        >
+                          <UserPlus
+                            className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                          />
+                          Add New Staff
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className={`grid gap-${isMobile ? "3" : "4"}`}>
+                {filteredUsers.map((user: User) => (
+                  <Card
+                    key={user.id}
+                    className="hover:shadow-md transition-shadow"
+                  >
+                    <CardContent className={isMobile ? "pt-4 pb-4" : "pt-6"}>
+                      <div
+                        className={`${isMobile ? "space-y-4" : "flex items-center justify-between"}`}
+                      >
+                        <div
+                          className={`flex items-center space-x-4 ${isMobile ? "justify-center" : ""}`}
+                        >
+                          <div className="flex-shrink-0">
+                            <div
+                              className={`rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center ${isMobile ? "h-10 w-10" : "h-12 w-12"}`}
+                            >
+                              <span
+                                className={`font-semibold text-white ${isMobile ? "text-xs" : "text-sm"}`}
+                              >
+                                {user.name[0]}
+                              </span>
+                            </div>
+                          </div>
+                          <div
+                            className={`min-w-0 flex-1 ${isMobile ? "text-center" : ""}`}
+                          >
+                            <h3
+                              className={`font-medium text-gray-900 ${isMobile ? "text-sm" : ""}`}
+                            >
+                              {user.name}
+                            </h3>
+                            <div
+                              className={`flex items-center gap-2 mt-1 ${isMobile ? "justify-center flex-wrap" : ""}`}
+                            >
+                              <Mail
+                                className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                              />
+                              <p
+                                className={`text-gray-500 ${isMobile ? "text-xs" : "text-sm"}`}
+                              >
+                                {user.email}
+                              </p>
+                            </div>
+                            {user.created_at && (
+                              <div
+                                className={`flex items-center gap-2 mt-1 ${isMobile ? "justify-center" : ""}`}
+                              >
+                                <Calendar
+                                  className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                                />
+                                <p
+                                  className={`text-gray-500 ${isMobile ? "text-xs" : "text-sm"}`}
+                                >
+                                  Joined{" "}
+                                  {new Date(
+                                    user.created_at
+                                  ).toLocaleDateString()}
+                                </p>
+                              </div>
+                            )}
+                            <div
+                              className={`flex items-center gap-2 mt-2 ${isMobile ? "justify-center" : ""}`}
+                            >
+                              <Shield
+                                className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                              />
+                              <Badge
+                                className={`${getRoleBadgeColor(user.role)} ${isMobile ? "text-xs" : ""}`}
+                              >
+                                {user.role}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <div
+                          className={`flex ${isMobile ? "justify-center space-x-2 w-full" : "flex-col space-y-2 ml-4"}`}
+                        >
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingUser(user)}
+                            className={
+                              isMobile ? "flex-1 gap-1 text-xs" : "gap-1"
+                            }
+                          >
+                            <Edit
+                              className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                            />
+                            {isMobile ? "Edit" : "Edit"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteUser(user)}
+                            className={`text-red-600 hover:text-red-700 hover:border-red-300 ${isMobile ? "flex-1 gap-1 text-xs" : "gap-1"}`}
+                          >
+                            <Trash2
+                              className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                            />
+                            {isMobile ? "Delete" : "Delete"}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
-            <PaginationControlsComponent
-              pagination={pagination}
-              total={paginationInfo.total || filteredUsers.length}
-            />
+
+            {/* Pagination */}
+            {filteredUsers.length > 0 && (
+              <div
+                className={`${isMobile ? "mt-4 space-y-3" : "mt-6 space-y-4"}`}
+              >
+                {isLoadingAny && (
+                  <div className="flex justify-center">
+                    <InlineLoading text="Updating staff..." />
+                  </div>
+                )}
+                <PaginationControlsComponent
+                  pagination={pagination}
+                  total={paginationInfo.total || filteredUsers.length}
+                />
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
