@@ -54,7 +54,7 @@ function AdminLayout() {
 
       setUser(userFromToken);
     } catch (error) {
-      console.error("Failed to decode JWT token:", error);
+      // console.error("Failed to decode JWT token:", error);
       apiClient.clearAuth();
       toastHelpers.sessionExpired();
     }

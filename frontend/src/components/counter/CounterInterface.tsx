@@ -27,6 +27,7 @@ import {
   Receipt,
   ChevronDown,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 import { X } from "lucide-react";
 import { toastHelpers } from "@/lib/toast-helpers";
@@ -45,6 +46,7 @@ import type {
 
 import { OrderStatus } from "@/types";
 import { useRouter } from "@tanstack/react-router";
+import { useNavigationRefresh } from "@/hooks/useNavigationRefresh";
 
 export function CounterInterface() {
   const router = useRouter();
@@ -76,11 +78,9 @@ export function CounterInterface() {
   const [referenceNumber, setReferenceNumber] = useState("");
 
   useEffect(() => {
-    console.log("Loading user from JWT token...");
     const decodedToken = apiClient.isAuthenticated();
 
     if (decodedToken) {
-      console.log("Decoded token User:", decodedToken);
       setUser(decodedToken);
     } else {
       toastHelpers.sessionExpired();
@@ -95,6 +95,13 @@ export function CounterInterface() {
       setPaymentAmount(breakdown.total.toString());
     }
   }, [selectedOrder, activeTab]);
+
+  const { manualRefresh } = useNavigationRefresh([
+    "products",
+    "categories",
+    "orders",
+    "tables",
+  ]);
 
   // Data fetching
   const { data: products } = useQuery({
@@ -410,9 +417,6 @@ export function CounterInterface() {
         })),
         notes: orderNotes,
       };
-
-      console.log("Updating order with data:", updateData);
-
       updateOrderMutation.mutate(updateData);
       return;
     }
@@ -457,7 +461,6 @@ export function CounterInterface() {
     try {
       const res = await apiClient.getOrder(orderId);
       const order = res?.data;
-      console.log("printReceipt order:", order);
       if (!order) return;
 
       const anyOrder: any = order as any;
@@ -764,6 +767,15 @@ export function CounterInterface() {
               </p>
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={manualRefresh}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Refresh
+              </Button>
               <Button
                 variant={activeTab === "create" ? "default" : "outline"}
                 size="sm"

@@ -15,6 +15,7 @@ import {
   Table,
   Grid3X3,
   DollarSign,
+  RefreshCw,
 } from "lucide-react";
 import apiClient from "@/api/client";
 import { toastHelpers } from "@/lib/toast-helpers";
@@ -31,12 +32,19 @@ import {
 import { InlineLoading } from "@/components/ui/loading-spinner";
 import type { Product, Category } from "@/types";
 import { useRouter } from "@tanstack/react-router";
+import { useNavigationRefresh } from "@/hooks/useNavigationRefresh";
 
 type DisplayMode = "table" | "cards";
 type ActiveTab = "products" | "categories";
 
 export function AdminMenuManagement() {
   const router = useRouter();
+
+  // Auto-refresh data when navigating to this page
+  const { manualRefresh } = useNavigationRefresh([
+    "admin-categories",
+    "admin-products",
+  ]);
 
   useEffect(() => {
     console.log("Loading user from JWT token...");
@@ -278,6 +286,17 @@ export function AdminMenuManagement() {
         </div>
         {!isMobile && (
           <div className="flex items-center space-x-4">
+            {/* Refresh Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={manualRefresh}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+
             {/* View Toggle */}
             <div className="flex items-center bg-muted rounded-lg p-1">
               <Button

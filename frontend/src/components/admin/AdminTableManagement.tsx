@@ -13,6 +13,7 @@ import {
   MapPin,
   CheckCircle,
   Settings,
+  RefreshCw,
 } from "lucide-react";
 import apiClient from "@/api/client";
 import { toastHelpers } from "@/lib/toast-helpers";
@@ -28,11 +29,18 @@ import {
 import { InlineLoading } from "@/components/ui/loading-spinner";
 import type { DiningTable } from "@/types";
 import { useRouter } from "@tanstack/react-router";
+import { useNavigationRefresh } from "@/hooks/useNavigationRefresh";
 
 type ViewMode = "list" | "table-form";
 
 export function AdminTableManagement() {
   const router = useRouter();
+
+  // Auto-refresh data when navigating to this page
+  const { manualRefresh } = useNavigationRefresh([
+    "admin-tables",
+    "table-stats",
+  ]);
 
   useEffect(() => {
     console.log("Loading user from JWT token...");
@@ -238,16 +246,26 @@ export function AdminTableManagement() {
             Manage your restaurant's dining tables and seating arrangements
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setEditingTable(null);
-            setViewMode("table-form");
-          }}
-          className="gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Add Table
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={manualRefresh}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </Button>
+          <Button
+            onClick={() => {
+              setEditingTable(null);
+              setViewMode("table-form");
+            }}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Table
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}

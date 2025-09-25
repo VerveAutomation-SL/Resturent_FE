@@ -37,8 +37,8 @@ class APIClient {
 
   constructor() {
     const apiUrl = import.meta.env?.VITE_API_URL || 'http://localhost:3001/api';
-    console.log('🔧 API Client baseURL:', apiUrl);
-    console.log('🔧 Environment VITE_API_URL:', import.meta.env?.VITE_API_URL);
+    // console.log('🔧 API Client baseURL:', apiUrl);
+    // console.log('🔧 Environment VITE_API_URL:', import.meta.env?.VITE_API_URL);
     
     this.client = axios.create({
       baseURL: apiUrl,

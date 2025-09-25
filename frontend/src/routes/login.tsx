@@ -40,13 +40,11 @@ function LoginPage() {
   useEffect(() => {
     const user = apiClient.isAuthenticated();
     if (user) {
-      console.log("Already authenticated, redirecting to home...");
+      // console.log("Already authenticated, redirecting to home...");
       if (user.role === "admin") {
-        console.log("Admin user detected, redirecting to admin panel");
+        // console.log("Admin user detected, redirecting to admin panel");
         router.navigate({ to: "/admin/dashboard" });
         return;
-      } else {
-        console.log("Non-admin user, redirecting to home");
       }
     }
   }, []);
@@ -58,8 +56,8 @@ function LoginPage() {
       return response;
     },
     onSuccess: (response) => {
-      console.log("Login success:", response);
-      console.log("Current API URL:", import.meta.env.VITE_API_URL);
+      // console.log("Login success:", response);
+      // console.log("Current API URL:", import.meta.env.VITE_API_URL);
       if (response.success && response.data) {
         apiClient.setAuthToken(response.data.accessToken);
 
@@ -73,7 +71,7 @@ function LoginPage() {
 
         router.navigate({ to: "/" });
       } else {
-        console.error("Login failed:", response.message);
+        // console.error("Login failed:", response.message);
         const errorMessage = response.message || "Login failed";
         setError(errorMessage);
 

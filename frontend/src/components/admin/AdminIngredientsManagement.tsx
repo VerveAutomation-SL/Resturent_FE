@@ -14,20 +14,18 @@ import TransactionsTab from "./TransactionsTab";
 import PurchaseOrdersTab from "./PurchaseOrdersTab";
 import { StockItemForm } from "../forms/StockItemForm";
 import { useRouter } from "@tanstack/react-router";
+import { useNavigationRefresh } from "@/hooks/useNavigationRefresh";
 
 export function AdminIngredientsManagement() {
   const router = useRouter();
-  useEffect(() => {
-    console.log("Loading user from JWT token...");
-    const decodedToken = apiClient.isAuthenticated();
 
-    if (decodedToken) {
-      console.log("Decoded token User:", decodedToken);
-    } else {
-      toastHelpers.sessionExpired();
-      router.navigate({ to: "/login" });
-    }
-  }, []);
+  // Auto-refresh data when navigating to this page
+  const { manualRefresh } = useNavigationRefresh([
+    "stock-stats",
+    "stock-items",
+    "stock-alerts",
+    "stock-transactions",
+  ]);
 
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,6 +43,15 @@ export function AdminIngredientsManagement() {
   });
 
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const decodedToken = apiClient.isAuthenticated();
+
+    if (!decodedToken) {
+      toastHelpers.sessionExpired();
+      router.navigate({ to: "/login" });
+    }
+  }, []);
 
   const { data: stockStats } = useQuery({
     queryKey: ["stock-stats"],
@@ -72,7 +79,7 @@ export function AdminIngredientsManagement() {
       apiClient
         .getStockAlerts()
         .then((res) => {
-          console.log("Fetched stock alerts:", res.data);
+          // console.log("Fetched stock alerts:", res.data);
           return res.data;
         })
         .catch((error) => {
@@ -86,7 +93,7 @@ export function AdminIngredientsManagement() {
     queryKey: ["stock-transactions"],
     queryFn: () =>
       apiClient.getInventoryTransactions().then((res) => {
-        console.log("Fetched stock transactions:", res.data?.transactions);
+        // console.log("Fetched stock transactions:", res.data?.transactions);
         return res.data?.transactions || [];
       }),
   });
@@ -175,25 +182,6 @@ export function AdminIngredientsManagement() {
       toastHelpers.apiError("Stock Update", error);
     },
   });
-
-  // Create transaction mutation
-  //   const createTransactionMutation = useMutation({
-  //     mutationFn: (transaction: Partial<StockTransaction>) => {
-  //       return apiClient.createStockTransaction(transaction);
-  //     },
-  //     onSuccess: () => {
-  //       queryClient.invalidateQueries({ queryKey: ["stock-transactions"] });
-  //       queryClient.invalidateQueries({ queryKey: ["stock-items"] });
-  //       toastHelpers.apiSuccess(
-  //         "Transaction",
-  //         "Transaction recorded successfully"
-  //       );
-  //       setShowTransactionForm(false);
-  //     },
-  //     onError: (error) => {
-  //       toastHelpers.apiError("Transaction", error);
-  //     },
-  //   });
 
   // Resolve alert mutation (use only active/resolved statuses)
   const resolveAlertMutation = useMutation({
@@ -299,13 +287,23 @@ export function AdminIngredientsManagement() {
             equipment, and packaging
           </p>
         </div>
-        <Button
-          onClick={() => setShowCreateForm(true)}
-          className="flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Add Stock Item
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={manualRefresh}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </Button>
+          <Button
+            onClick={() => setShowCreateForm(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add Stock Item
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>

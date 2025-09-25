@@ -14,6 +14,7 @@ import {
   Edit,
   Table,
   Users,
+  RefreshCw,
 } from "lucide-react";
 import apiClient from "@/api/client";
 import { toastHelpers } from "@/lib/toast-helpers";
@@ -25,19 +26,20 @@ import { UserListSkeleton } from "@/components/ui/skeletons";
 import { InlineLoading } from "@/components/ui/loading-spinner";
 import type { User } from "@/types";
 import { useRouter } from "node_modules/@tanstack/react-router/dist/esm/useRouter";
+import { useNavigationRefresh } from "@/hooks/useNavigationRefresh";
 
 type DisplayMode = "table" | "cards";
 
 export function AdminStaffManagement() {
   const router = useRouter();
 
+  // Manual refresh functionality
+  const { manualRefresh } = useNavigationRefresh(["users"]);
+
   useEffect(() => {
-    console.log("Loading user from JWT token...");
     const decodedToken = apiClient.isAuthenticated();
 
-    if (decodedToken) {
-      console.log("Decoded token User:", decodedToken);
-    } else {
+    if (!decodedToken) {
       toastHelpers.sessionExpired();
       router.navigate({ to: "/login" });
     }
@@ -231,6 +233,15 @@ export function AdminStaffManagement() {
         </div>
         {!isMobile && (
           <div className="flex items-center space-x-4">
+            {/* Refresh Button */}
+            <Button
+              variant="outline"
+              onClick={manualRefresh}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </Button>
             {/* View Toggle */}
             <div className="flex items-center bg-muted rounded-lg p-1">
               <Button
@@ -286,6 +297,18 @@ export function AdminStaffManagement() {
             <div
               className={`flex ${isMobile ? "gap-2" : "items-center space-x-4"}`}
             >
+              {/* Mobile Refresh Button */}
+              {isMobile && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={manualRefresh}
+                  className="flex items-center gap-1"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  Refresh
+                </Button>
+              )}
               {/* Mobile View Toggle */}
               {isMobile && (
                 <div className="flex items-center bg-muted rounded-lg p-1">

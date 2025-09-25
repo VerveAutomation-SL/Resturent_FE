@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import apiClient from "@/api/client";
+import { useNavigationRefresh } from "@/hooks/useNavigationRefresh";
 import {
   Card,
   CardContent,
@@ -17,6 +18,7 @@ import {
   TrendingUp,
   Plus,
   BarChart3,
+  RefreshCw,
 } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
 import { toastHelpers } from "@/lib/toast-helpers";
@@ -37,13 +39,16 @@ export function AdminDashboard() {
     "today" | "week" | "month"
   >("today");
   const [isMobile, setIsMobile] = useState(false);
+
+  const { manualRefresh } = useNavigationRefresh([
+    "dashboardStats",
+    "incomeReport",
+  ]);
+
   useEffect(() => {
-    console.log("Loading user from JWT token...");
     const decodedToken = apiClient.isAuthenticated();
 
-    if (decodedToken) {
-      console.log("Decoded token User:", decodedToken);
-    } else {
+    if (!decodedToken) {
       toastHelpers.sessionExpired();
       router.navigate({ to: "/login" });
     }
@@ -65,7 +70,7 @@ export function AdminDashboard() {
     queryKey: ["dashboardStats"],
     queryFn: () =>
       apiClient.getDashboardStats().then((res) => {
-        console.log("Dashboard Stats:", res.data);
+        // console.log("Dashboard Stats:", res.data);
         return res.data;
       }),
   });
@@ -76,7 +81,6 @@ export function AdminDashboard() {
     queryFn: () =>
       apiClient.getIncomeReport(selectedPeriod).then((res) => res.data),
   });
-  // use shared formatCurrency (LKR)
 
   if (statsLoading) {
     return (
@@ -106,6 +110,15 @@ export function AdminDashboard() {
               : "Manage your restaurant operations and monitor performance"}
           </p>
         </div>
+        <Button
+          variant="outline"
+          size={isMobile ? "sm" : "default"}
+          onClick={manualRefresh}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className={`${isMobile ? "h-3 w-3" : "h-4 w-4"}`} />
+          {!isMobile && "Refresh"}
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -295,7 +308,7 @@ export function AdminDashboard() {
                 </div>
                 <div className="text-center">
                   <div
-                    className={`font-bold text-orange-600 ${isMobile ? "text-lg" : "text-2xl"}`}
+                    className={`font-bold text-purple-600 ${isMobile ? "text-lg" : "text-2xl"}`}
                   >
                     {formatCurrency(income.summary.serviceChargeCollected)}
                   </div>
@@ -307,7 +320,7 @@ export function AdminDashboard() {
                 </div>
                 <div className="text-center">
                   <div
-                    className={`font-bold text-purple-600 ${isMobile ? "text-lg" : "text-2xl"}`}
+                    className={`font-bold text-orange-600 ${isMobile ? "text-lg" : "text-2xl"}`}
                   >
                     {formatCurrency(income.summary.netIncome)}
                   </div>
@@ -417,7 +430,10 @@ export function AdminDashboard() {
       <div
         className={`grid gap-${isMobile ? "3" : "4"} ${isMobile ? "grid-cols-1 sm:grid-cols-2" : "md:grid-cols-2 lg:grid-cols-4"}`}
       >
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={() => router.navigate({ to: "/admin/menu" })}
+        >
           <CardHeader className={`text-center ${isMobile ? "py-4" : ""}`}>
             <Plus
               className={`mx-auto text-blue-600 ${isMobile ? "h-6 w-6" : "h-8 w-8"}`}
@@ -433,7 +449,10 @@ export function AdminDashboard() {
           </CardHeader>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={() => router.navigate({ to: "/admin/tables" })}
+        >
           <CardHeader className={`text-center ${isMobile ? "py-4" : ""}`}>
             <Table
               className={`mx-auto text-green-600 ${isMobile ? "h-6 w-6" : "h-8 w-8"}`}
@@ -449,7 +468,10 @@ export function AdminDashboard() {
           </CardHeader>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={() => router.navigate({ to: "/admin/staff" })}
+        >
           <CardHeader className={`text-center ${isMobile ? "py-4" : ""}`}>
             <Users
               className={`mx-auto text-purple-600 ${isMobile ? "h-6 w-6" : "h-8 w-8"}`}
@@ -465,7 +487,10 @@ export function AdminDashboard() {
           </CardHeader>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={() => router.navigate({ to: "/admin/reports" })}
+        >
           <CardHeader className={`text-center ${isMobile ? "py-4" : ""}`}>
             <BarChart3
               className={`mx-auto text-orange-600 ${isMobile ? "h-6 w-6" : "h-8 w-8"}`}

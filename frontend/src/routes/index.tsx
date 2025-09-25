@@ -17,7 +17,7 @@ function HomePage() {
     const decodedToken = apiClient.isAuthenticated();
 
     if (decodedToken) {
-      console.log("Decoded token User:", decodedToken);
+      // console.log("Decoded token User:", decodedToken);
       setUser(decodedToken);
 
       // Show user detected toast
@@ -41,13 +41,13 @@ function HomePage() {
 
   // Check authentication - ONLY after Cookies is loaded
   if (!user) {
-    console.log("Not authenticated, redirecting to login");
+    // console.log("Not authenticated, redirecting to login");
     return <Navigate to="/login" />;
   }
 
   // Redirect admin users to admin panel
   if (user.role === "admin") {
-    console.log("Admin user detected, redirecting to admin panel");
+    // console.log("Admin user detected, redirecting to admin panel");
     return <Navigate to="/admin/dashboard" />;
   }
 
