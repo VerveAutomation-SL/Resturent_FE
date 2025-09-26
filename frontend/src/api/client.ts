@@ -16,7 +16,6 @@ import type {
   ProcessPaymentRequest,
   PaymentSummary,
   DashboardStats,
-  SalesReportItem,
   OrdersReportItem,
   Ingredient,
   InventoryIngredient,
@@ -29,6 +28,8 @@ import type {
   InventorySummary,
   Transaction,
   UpdateOrderRequest,
+  AnalyticsResponse,
+  SalesReport,
 } from '@/types';
 import Cookies from 'js-cookie';
 
@@ -229,10 +230,10 @@ class APIClient {
     });
   }
 
-  async getSalesReport(period: 'today' | 'week' | 'month' = 'today'): Promise<APIResponse<SalesReportItem[]>> {
+  async getSalesReport(period: 'today' | 'week' | 'month' = 'today'): Promise<APIResponse<SalesReport>> {
     return this.request({
       method: 'GET',
-      url: '/admin/reports/sales',
+      url: '/reports/sales',
       params: { period },
     });
   }
@@ -240,7 +241,7 @@ class APIClient {
   async getOrdersReport(): Promise<APIResponse<OrdersReportItem[]>> {
     return this.request({
       method: 'GET',
-      url: '/admin/reports/orders',
+      url: '/reports/orders',
     });
   }
 
@@ -249,6 +250,14 @@ class APIClient {
       method: 'GET',
       url: '/admin/dashboard/income-report',
       params: { period },
+    });
+  }
+
+  async getAnalytics(period?: 'today' | 'week' | 'month'): Promise<APIResponse<AnalyticsResponse>> {
+    return this.request({
+      method: 'GET',
+      url: '/reports/analytics',
+      params: period ? { period } : {},
     });
   }
 

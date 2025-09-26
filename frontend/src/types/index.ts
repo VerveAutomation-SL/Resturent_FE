@@ -197,6 +197,7 @@ export interface Order {
   user?: User;
   OrderItems?: OrderItem[];
   payments?: Payment[];
+  Receipt?: { id: string; receipt_number: string; created_at: string; }[];
 }
 export enum OrderStatus {
   PENDING = 'pending',
@@ -311,6 +312,54 @@ export interface SalesReportItem {
   order_count: number;
   revenue: number;
 }
+
+// Sales Report Response Types
+export interface SalesReportDateRange {
+  start: string; // ISO date string
+  end: string;   // ISO date string
+}
+export interface SalesReport {
+  period: string;
+  dateRange: SalesReportDateRange;
+  data: Order[]; // Array of order data with Receipt information
+}
+
+// Analytics / Reports types
+export interface AnalyticsAmountMetric {
+  amount: number;
+  formattedAmount?: string;
+  label?: string;
+  period?: string;
+}
+
+export interface AnalyticsCountMetric {
+  count: number;
+  label?: string;
+  period?: string;
+}
+
+export interface AnalyticsPercentageMetric {
+  percentage: number;
+  formattedPercentage?: string;
+  label?: string;
+  period?: string;
+  isPositive?: boolean;
+}
+
+export interface AnalyticsResponse {
+  // common named metrics (matches the sample response)
+  totalRevenue?: AnalyticsAmountMetric;
+  totalOrders?: AnalyticsCountMetric;
+  averageOrder?: AnalyticsAmountMetric;
+  growthRate?: AnalyticsPercentageMetric;
+
+  // simple numeric stats
+  activeOrders?: number;
+  occupiedTables?: number;
+  completedOrders?: number;
+  cancelledOrders?: number;
+}
+
 
 export interface OrdersReportItem {
   status: string;

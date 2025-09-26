@@ -3,35 +3,33 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatsCardSkeleton } from "@/components/ui/skeletons";
 import {
   BarChart3,
   TrendingUp,
   DollarSign,
   ShoppingCart,
-  Calendar,
-  Download,
-  FileBarChart,
   RefreshCw,
+  FileBarChart,
+  ChevronDown,
+  ChevronRight,
+  Package,
 } from "lucide-react";
 import { useNavigationRefresh } from "@/hooks/useNavigationRefresh";
 import apiClient from "@/api/client";
 import { useRouter } from "@tanstack/react-router";
 import { toastHelpers } from "@/lib/toast-helpers";
 import { formatCurrency } from "@/lib/utils";
-// StatsCardSkeleton removed - inlined detailed skeletons in this component
+import type { Order } from "@/types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 
-interface SalesReportItem {
-  date: string;
-  order_count: number;
-  revenue: number;
-}
-
-interface OrdersReportItem {
-  status: string;
-  count: number;
-  avg_amount: number;
+// Simple loading state component
+function LoadingState() {
+  return (
+    <div className="flex justify-center items-center py-8">
+      <span className="text-muted-foreground">Loading...</span>
+    </div>
+  );
 }
 
 export function AdminReports() {
@@ -42,6 +40,7 @@ export function AdminReports() {
     "salesReport",
     "ordersReport",
     "incomeReport",
+    "analytics",
   ]);
 
   const [activeTab, setActiveTab] = useState<"sales" | "orders" | "analytics">(
@@ -50,6 +49,7 @@ export function AdminReports() {
   const [selectedPeriod, setSelectedPeriod] = useState<
     "today" | "week" | "month"
   >("today");
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const decodedToken = apiClient.isAuthenticated();
@@ -64,65 +64,47 @@ export function AdminReports() {
   const {
     data: salesData,
     isLoading: salesLoading,
-    isFetching: salesFetching,
     error: salesError,
   } = useQuery({
     queryKey: ["salesReport", selectedPeriod],
     queryFn: () =>
-      apiClient.getSalesReport(selectedPeriod).then((res) => res.data),
+      apiClient.getSalesReport(selectedPeriod).then((res) => {
+        console.log("Sales data:", res.data);
+        return res.data;
+      }),
   });
 
-  const {
-    data: ordersData,
-    isLoading: ordersLoading,
-    isFetching: ordersFetching,
-    error: ordersError,
-  } = useQuery({
-    queryKey: ["ordersReport"],
-    queryFn: () => apiClient.getOrdersReport().then((res) => res.data),
+  const { data: analyticsData, isLoading: analyticsLoading } = useQuery({
+    queryKey: ["analytics", selectedPeriod],
+    queryFn: async () => {
+      const res = await apiClient.getAnalytics(selectedPeriod);
+      // console.log("Analytics data:", res.data);
+      return res.data;
+    },
   });
 
-  const {
-    data: incomeData,
-    isLoading: incomeLoading,
-    isFetching: incomeFetching,
-  } = useQuery({
-    queryKey: ["incomeReport", selectedPeriod],
-    queryFn: () =>
-      apiClient.getIncomeReport(selectedPeriod).then((res) => res.data),
-  });
+  const isLoadingAny = isRefreshing || analyticsLoading || salesLoading;
 
-  // Show loading screen when backend is called (not cache fetch) or on initial loading/refresh
-  const isLoadingAny =
-    isRefreshing ||
-    salesLoading ||
-    ordersLoading ||
-    incomeLoading ||
-    salesFetching ||
-    ordersFetching ||
-    incomeFetching;
+  // small helpers for summary display
+  const growthPercentage = analyticsData?.growthRate?.percentage;
+  const growthDisplay =
+    analyticsData?.growthRate?.formattedPercentage ??
+    (growthPercentage != null ? `${growthPercentage}%` : "+0%");
+  const growthClass =
+    growthPercentage != null && growthPercentage >= 0
+      ? "text-green-600"
+      : "text-red-600";
 
-  // Calculate totals from real data
-  const totalRevenue =
-    salesData?.reduce(
-      (sum: number, item: SalesReportItem) => sum + item.revenue,
-      0
-    ) || 0;
-  const totalOrders =
-    salesData?.reduce(
-      (sum: number, item: SalesReportItem) => sum + item.order_count,
-      0
-    ) || 0;
-  const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-
-  const LoadingState = () => (
-    <div className="py-6">
-      <div className="space-y-4">
-        <div className="w-48 h-6 bg-muted/60 rounded animate-pulse" />
-        <div className="w-full h-64 bg-muted/40 rounded animate-pulse" />
-      </div>
-    </div>
-  );
+  // Function to toggle order expansion
+  const toggleOrderExpansion = (orderId: string) => {
+    const newExpanded = new Set(expandedOrders);
+    if (newExpanded.has(orderId)) {
+      newExpanded.delete(orderId);
+    } else {
+      newExpanded.add(orderId);
+    }
+    setExpandedOrders(newExpanded);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -146,14 +128,14 @@ export function AdminReports() {
             <RefreshCw className="w-4 h-4 mr-2" />
             {isRefreshing ? "Refreshing..." : "Refresh"}
           </Button>
-          <Button variant="outline" size="sm">
+          {/* <Button variant="outline" size="sm">
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
           <Button variant="outline" size="sm">
             <Calendar className="w-4 h-4 mr-2" />
             Custom Range
-          </Button>
+          </Button> */}
         </div>
       </div>
 
@@ -184,13 +166,7 @@ export function AdminReports() {
 
       {/* Main Content Area */}
       <div className="relative">
-        <div
-          className={
-            isLoadingAny && !isRefreshing
-              ? "pointer-events-none opacity-50"
-              : ""
-          }
-        >
+        <div className={isLoadingAny ? "pointer-events-none opacity-50" : ""}>
           {/* Summary Stats */}
           {isLoadingAny ? (
             <div className="grid gap-4 md:grid-cols-4">
@@ -209,7 +185,7 @@ export function AdminReports() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {formatCurrency(totalRevenue)}
+                    {formatCurrency(analyticsData?.totalRevenue?.amount || 0)}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {selectedPeriod === "today"
@@ -227,7 +203,9 @@ export function AdminReports() {
                   <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{totalOrders}</div>
+                  <div className="text-2xl font-bold">
+                    {analyticsData?.totalOrders?.count || 0}
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     {selectedPeriod === "today"
                       ? "Today"
@@ -245,7 +223,7 @@ export function AdminReports() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {formatCurrency(averageOrderValue)}
+                    {formatCurrency(analyticsData?.averageOrder?.amount || 0)}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Per order value
@@ -261,8 +239,8 @@ export function AdminReports() {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
-                    +12.5%
+                  <div className={`text-2xl font-bold ${growthClass}`}>
+                    {growthDisplay}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Compared to previous period
@@ -288,8 +266,6 @@ export function AdminReports() {
                 ) : (
                   <>
                     <TabsTrigger value="sales">Sales Report</TabsTrigger>
-                    <TabsTrigger value="orders">Orders Report</TabsTrigger>
-                    <TabsTrigger value="analytics">Analytics</TabsTrigger>
                   </>
                 )}
               </TabsList>
@@ -297,10 +273,7 @@ export function AdminReports() {
               {/* Enhanced spacing and skeleton loading */}
               <div className="mt-6">
                 <div className="mt-6" />
-                {(salesLoading ||
-                  ordersLoading ||
-                  incomeLoading ||
-                  isRefreshing) && (
+                {isLoadingAny && (
                   <div className="space-y-8">
                     {/* Report Card Skeleton */}
                     <div className="bg-white rounded-lg border">
@@ -344,16 +317,7 @@ export function AdminReports() {
                   </div>
                 )}
 
-                <div
-                  className={
-                    salesLoading ||
-                    ordersLoading ||
-                    incomeLoading ||
-                    isRefreshing
-                      ? "hidden"
-                      : ""
-                  }
-                >
+                <div className={isLoadingAny ? "hidden" : ""}>
                   {/* Sales Report Tab */}
                   <TabsContent value="sales" className="space-y-4">
                     <Card>
@@ -371,207 +335,269 @@ export function AdminReports() {
                             Error loading sales data:{" "}
                             {(salesError as any).message}
                           </div>
-                        ) : salesData && salesData.length > 0 ? (
-                          <div className="space-y-4">
-                            <div className="border rounded-lg">
-                              <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 font-medium text-sm">
-                                <div>Date/Period</div>
-                                <div className="text-center">Orders</div>
-                                <div className="text-center">Revenue</div>
+                        ) : salesData && salesData.data.length > 0 ? (
+                          <div className="space-y-6">
+                            {/* Period Information */}
+                            <div className="text-center p-4 bg-muted/30 rounded-lg border">
+                              <div className="text-sm font-medium text-muted-foreground mb-1">
+                                Report Period: {salesData.period}
                               </div>
-                              {salesData.map(
-                                (item: SalesReportItem, index: number) => (
-                                  <div
-                                    key={index}
-                                    className="grid grid-cols-3 gap-4 p-4 border-t text-sm"
-                                  >
-                                    <div className="font-medium">
-                                      {new Date(item.date).toLocaleDateString()}
-                                    </div>
+                              <div className="text-lg font-semibold">
+                                {new Date(
+                                  salesData.dateRange.start
+                                ).toLocaleDateString("en-US", {
+                                  weekday: "short",
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })}{" "}
+                                -{" "}
+                                {new Date(
+                                  salesData.dateRange.end
+                                ).toLocaleDateString("en-US", {
+                                  weekday: "short",
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Detailed Orders Table */}
+                            <div className="border rounded-lg overflow-hidden">
+                              <div className="p-4 bg-muted/50 font-medium text-sm border-b">
+                                <h3 className="text-lg font-semibold flex items-center gap-2">
+                                  <FileBarChart className="w-5 h-5" />
+                                  Order Details ({salesData.data.length} orders)
+                                </h3>
+                              </div>
+                              <div className="relative">
+                                <div className="max-h-[600px] overflow-y-auto">
+                                  <div className="grid grid-cols-7 gap-4 p-3 bg-white border-b font-medium text-sm sticky top-0 z-10 shadow-sm">
+                                    <div className="text-left">Order ID</div>
+                                    <div className="text-center">Type</div>
+                                    <div className="text-center">Status</div>
+                                    <div className="text-center">Items</div>
+                                    <div className="text-center">Amount</div>
                                     <div className="text-center">
-                                      {item.order_count}
+                                      Date & Time
                                     </div>
-                                    <div className="text-center font-medium">
-                                      {formatCurrency(item.revenue)}
-                                    </div>
+                                    <div className="text-center">Actions</div>
                                   </div>
-                                )
-                              )}
+                                  {salesData.data.map(
+                                    (order: Order, index: number) => {
+                                      const orderId =
+                                        order.id || `order-${index}`;
+                                      const isExpanded =
+                                        expandedOrders.has(orderId);
+
+                                      return (
+                                        <div key={orderId}>
+                                          {/* Main Order Row */}
+                                          <div className="grid grid-cols-7 gap-4 p-3 border-b text-sm hover:bg-muted/20 transition-colors bg-white">
+                                            <div className="font-mono text-xs text-left">
+                                              #{(order.id || "N/A").toString()}
+                                            </div>
+                                            <div className="text-center">
+                                              <Badge
+                                                variant={
+                                                  order.order_type === "dine_in"
+                                                    ? "default"
+                                                    : order.order_type ===
+                                                        "delivery"
+                                                      ? "secondary"
+                                                      : "outline"
+                                                }
+                                              >
+                                                {order.order_type?.replace(
+                                                  "_",
+                                                  " "
+                                                ) || "N/A"}
+                                              </Badge>
+                                            </div>
+                                            <div className="text-center">
+                                              <Badge
+                                                variant={
+                                                  order.status === "completed"
+                                                    ? "default"
+                                                    : order.status ===
+                                                        "preparing"
+                                                      ? "secondary"
+                                                      : order.status ===
+                                                          "cancelled"
+                                                        ? "destructive"
+                                                        : "outline"
+                                                }
+                                              >
+                                                {order.status || "N/A"}
+                                              </Badge>
+                                            </div>
+                                            <div className="text-center font-medium">
+                                              {order.OrderItems?.length ||
+                                                "N/A"}
+                                            </div>
+                                            <div className="text-center font-bold">
+                                              {formatCurrency(
+                                                order.price ||
+                                                  order.subtotal ||
+                                                  0
+                                              )}
+                                            </div>
+                                            <div className="text-center text-xs">
+                                              <div>
+                                                {new Date(
+                                                  order.created_at
+                                                ).toLocaleDateString()}
+                                              </div>
+                                              <div className="text-muted-foreground">
+                                                {new Date(
+                                                  order.created_at
+                                                ).toLocaleTimeString([], {
+                                                  hour: "2-digit",
+                                                  minute: "2-digit",
+                                                })}
+                                              </div>
+                                            </div>
+                                            <div className="text-center">
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() =>
+                                                  toggleOrderExpansion(orderId)
+                                                }
+                                                className="h-6 w-6 p-0"
+                                                disabled={
+                                                  !order.OrderItems ||
+                                                  order.OrderItems.length === 0
+                                                }
+                                              >
+                                                {isExpanded ? (
+                                                  <ChevronDown className="h-4 w-4" />
+                                                ) : (
+                                                  <ChevronRight className="h-4 w-4" />
+                                                )}
+                                              </Button>
+                                            </div>
+                                          </div>
+
+                                          {/* Expanded Order Items */}
+                                          {isExpanded &&
+                                            order.OrderItems &&
+                                            order.OrderItems.length > 0 && (
+                                              <div className="bg-muted/10 border-b">
+                                                <div className="p-4">
+                                                  <div className="flex items-center gap-2 mb-3">
+                                                    <Package className="h-4 w-4 text-muted-foreground" />
+                                                    <h5 className="text-sm font-medium">
+                                                      Order Items
+                                                    </h5>
+                                                  </div>
+                                                  <div className="space-y-2">
+                                                    {order.OrderItems.map(
+                                                      (item, itemIndex) => (
+                                                        <div
+                                                          key={
+                                                            item.id || itemIndex
+                                                          }
+                                                          className="grid grid-cols-4 gap-4 text-xs p-2 bg-white rounded border"
+                                                        >
+                                                          <div className="font-medium">
+                                                            {item.Product
+                                                              ?.name ||
+                                                              "Unknown Item"}
+                                                          </div>
+                                                          <div className="text-center">
+                                                            Qty: {item.quantity}
+                                                          </div>
+                                                          <div className="text-center">
+                                                            {formatCurrency(
+                                                              item.unit_price ||
+                                                                item.price ||
+                                                                0
+                                                            )}{" "}
+                                                            each
+                                                          </div>
+                                                          <div className="text-right font-medium">
+                                                            {formatCurrency(
+                                                              (item.unit_price ||
+                                                                item.price ||
+                                                                0) *
+                                                                item.quantity
+                                                            )}
+                                                          </div>
+                                                        </div>
+                                                      )
+                                                    )}
+                                                  </div>
+                                                  {order.notes && (
+                                                    <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                                                      <div className="text-xs">
+                                                        <span className="font-medium text-yellow-800">
+                                                          Notes:{" "}
+                                                        </span>
+                                                        <span className="text-yellow-700">
+                                                          {order.notes}
+                                                        </span>
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            )}
+                                        </div>
+                                      );
+                                    }
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Order Status Summary */}
+                            <div className="border rounded-lg p-4">
+                              <h4 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                                <TrendingUp className="w-5 h-5" />
+                                Order Status Breakdown
+                              </h4>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {(() => {
+                                  const statusCounts = salesData.data.reduce(
+                                    (acc: any, order) => {
+                                      const status = order.status || "unknown";
+                                      acc[status] = (acc[status] || 0) + 1;
+                                      return acc;
+                                    },
+                                    {}
+                                  );
+
+                                  return Object.entries(statusCounts).map(
+                                    ([status, count]: [string, any]) => (
+                                      <div
+                                        key={status}
+                                        className="text-center p-3 bg-muted/30 rounded-lg"
+                                      >
+                                        <div className="text-sm text-muted-foreground capitalize mb-1">
+                                          {status}
+                                        </div>
+                                        <div className="text-2xl font-bold">
+                                          {count}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                          {(
+                                            (count / salesData.data.length) *
+                                            100
+                                          ).toFixed(1)}
+                                          %
+                                        </div>
+                                      </div>
+                                    )
+                                  );
+                                })()}
+                              </div>
                             </div>
                           </div>
                         ) : (
                           <div className="text-center py-8 text-muted-foreground">
                             No sales data available for this period
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  {/* Orders Report Tab */}
-                  <TabsContent value="orders" className="space-y-4">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <ShoppingCart className="h-5 w-5" />
-                          Orders by Status - Today
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {ordersLoading ? (
-                          <LoadingState />
-                        ) : ordersError ? (
-                          <div className="text-center py-8 text-red-600">
-                            Error loading orders data:{" "}
-                            {(ordersError as any).message}
-                          </div>
-                        ) : ordersData && ordersData.length > 0 ? (
-                          <div className="space-y-4">
-                            <div className="border rounded-lg">
-                              <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 font-medium text-sm">
-                                <div>Status</div>
-                                <div className="text-center">Count</div>
-                                <div className="text-center">Avg Amount</div>
-                              </div>
-                              {ordersData.map(
-                                (item: OrdersReportItem, index: number) => (
-                                  <div
-                                    key={index}
-                                    className="grid grid-cols-3 gap-4 p-4 border-t text-sm"
-                                  >
-                                    <div className="font-medium">
-                                      <Badge
-                                        variant={
-                                          item.status === "completed"
-                                            ? "default"
-                                            : "secondary"
-                                        }
-                                      >
-                                        {item.status}
-                                      </Badge>
-                                    </div>
-                                    <div className="text-center">
-                                      {item.count}
-                                    </div>
-                                    <div className="text-center font-medium">
-                                      {formatCurrency(item.avg_amount)}
-                                    </div>
-                                  </div>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-center py-8 text-muted-foreground">
-                            No orders data available
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  {/* Analytics Tab */}
-                  <TabsContent value="analytics" className="space-y-4">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <FileBarChart className="h-5 w-5" />
-                          Income Analysis - {selectedPeriod}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {incomeLoading ? (
-                          <LoadingState />
-                        ) : incomeData ? (
-                          <div className="space-y-6">
-                            {/* Summary */}
-                            <div className="grid gap-4 md:grid-cols-4">
-                              <div className="text-center">
-                                <div className="text-2xl font-bold text-blue-600">
-                                  {incomeData.summary?.total_orders || 0}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  Total Orders
-                                </div>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-2xl font-bold text-green-600">
-                                  {formatCurrency(
-                                    incomeData.summary?.gross_income || 0
-                                  )}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  Gross Income
-                                </div>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-2xl font-bold text-orange-600">
-                                  {formatCurrency(
-                                    incomeData.summary
-                                      ?.service_charge_collected || 0
-                                  )}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  Service Charge Collected
-                                </div>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-2xl font-bold text-purple-600">
-                                  {formatCurrency(
-                                    incomeData.summary?.net_income || 0
-                                  )}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  Net Income
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Breakdown */}
-                            {incomeData.breakdown &&
-                              incomeData.breakdown.length > 0 && (
-                                <div className="border rounded-lg">
-                                  <div className="grid grid-cols-5 gap-4 p-4 bg-muted/50 font-medium text-sm">
-                                    <div>Period</div>
-                                    <div className="text-center">Orders</div>
-                                    <div className="text-center">Gross</div>
-                                    <div className="text-center">
-                                      Service Charge
-                                    </div>
-                                    <div className="text-center">Net</div>
-                                  </div>
-                                  {incomeData.breakdown
-                                    .slice(0, 10)
-                                    .map((item: any, index: number) => (
-                                      <div
-                                        key={index}
-                                        className="grid grid-cols-5 gap-4 p-4 border-t text-sm"
-                                      >
-                                        <div className="font-medium">
-                                          {new Date(
-                                            item.period
-                                          ).toLocaleDateString()}
-                                        </div>
-                                        <div className="text-center">
-                                          {item.orders}
-                                        </div>
-                                        <div className="text-center">
-                                          {formatCurrency(item.gross)}
-                                        </div>
-                                        <div className="text-center">
-                                          {formatCurrency(item.service_charge)}
-                                        </div>
-                                        <div className="text-center font-medium">
-                                          {formatCurrency(item.net)}
-                                        </div>
-                                      </div>
-                                    ))}
-                                </div>
-                              )}
-                          </div>
-                        ) : (
-                          <div className="text-center py-8 text-muted-foreground">
-                            No analytics data available
                           </div>
                         )}
                       </CardContent>
