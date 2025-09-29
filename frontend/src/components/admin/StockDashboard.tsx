@@ -6,7 +6,6 @@ import {
   AlertCircle,
   TrendingUp,
   Package,
-  DollarSign,
   Users,
   Calendar,
 } from "lucide-react";
@@ -99,7 +98,6 @@ export default function StockDashboard({
                   Current inventory
                 </p>
               </div>
-              <DollarSign className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
@@ -385,7 +383,6 @@ export default function StockDashboard({
                   Stock out costs
                 </p>
               </div>
-              <DollarSign className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>

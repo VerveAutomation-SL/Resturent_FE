@@ -198,6 +198,7 @@ export interface Order {
   OrderItems?: OrderItem[];
   payments?: Payment[];
   Receipt?: { id: string; receipt_number: string; created_at: string; }[];
+  orderTotal?: number;
 }
 export enum OrderStatus {
   PENDING = 'pending',
@@ -330,12 +331,15 @@ export interface AnalyticsAmountMetric {
   formattedAmount?: string;
   label?: string;
   period?: string;
+  comparisonText?: string;
+  percentageChange?: number;
 }
 
 export interface AnalyticsCountMetric {
   count: number;
   label?: string;
   period?: string;
+  comparisonText?: string;
 }
 
 export interface AnalyticsPercentageMetric {
@@ -352,14 +356,27 @@ export interface AnalyticsResponse {
   totalOrders?: AnalyticsCountMetric;
   averageOrder?: AnalyticsAmountMetric;
   growthRate?: AnalyticsPercentageMetric;
+  data: Order[];
+  period: string;
+  dateRange: SalesReportDateRange;
 
   // simple numeric stats
-  activeOrders?: number;
-  occupiedTables?: number;
   completedOrders?: number;
   cancelledOrders?: number;
 }
 
+// Report filter parameters interface
+export interface ReportFilterParams {
+  startDate?: string;
+  endDate?: string;
+  orderType?: string;
+  status?: string;
+  minAmount?: number | null;
+  maxAmount?: number | null;
+  searchTerm?: string;
+  page?: number;
+  limit?: number;
+}
 
 export interface OrdersReportItem {
   status: string;

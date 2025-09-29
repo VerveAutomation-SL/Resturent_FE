@@ -29,7 +29,7 @@ import type {
   Transaction,
   UpdateOrderRequest,
   AnalyticsResponse,
-  SalesReport,
+  ReportFilterParams
 } from '@/types';
 import Cookies from 'js-cookie';
 
@@ -230,11 +230,35 @@ class APIClient {
     });
   }
 
-  async getSalesReport(period: 'today' | 'week' | 'month' = 'today'): Promise<APIResponse<SalesReport>> {
+  async getPreviewDetails(params: ReportFilterParams): Promise<APIResponse<{data: Order[], pagination: any}>> {
     return this.request({
       method: 'GET',
-      url: '/reports/sales',
-      params: { period },
+      url: '/reports/sales/preview',
+      params: { ...params },
+    });
+  }
+
+  async exportExcelReport(params: ReportFilterParams): Promise<Blob> {
+    return this.request({
+      method: 'POST',
+      url: '/reports/sales/export/excel',
+      responseType: 'blob',
+      headers: {
+        'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      },
+      data: { ...params },
+    });
+  }
+
+  async exportPdfReport(params: ReportFilterParams): Promise<Blob> {
+    return this.request({
+      method: 'POST',
+      url: '/reports/sales/export/pdf',
+      responseType: 'blob',
+      headers: {
+        'Accept': 'application/pdf'
+      },
+      data: { ...params },
     });
   }
 

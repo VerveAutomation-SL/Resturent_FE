@@ -1,15 +1,16 @@
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 function Skeleton({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: React.HTMLAttributes<HTMLSpanElement>) {
   return (
-    <div
-      className={cn("animate-pulse rounded-md bg-muted", className)}
-      {...props}
+    <span
+      // render as inline element but style as block to preserve layout
+      className={cn("animate-pulse rounded-md bg-muted block", className)}
+      {...(props as React.HTMLAttributes<HTMLSpanElement>)}
     />
-  )
+  );
 }
 
-export { Skeleton }
+export { Skeleton };
