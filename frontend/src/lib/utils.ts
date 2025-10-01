@@ -6,9 +6,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-LK', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'LKR',
+    currencyDisplay: 'symbol',
   }).format(amount)
 }
 
@@ -71,13 +72,13 @@ export function calculateOrderTotals(items: Array<{ quantity: number; unit_price
     return sum + (item.quantity * price)
   }, 0)
   
-  const taxRate = 0.10 // 10% tax
-  const taxAmount = subtotal * taxRate
-  const totalAmount = subtotal + taxAmount
+  const serviceChargeRate = 0.10 // 10% service charge
+  const serviceCharge = subtotal * serviceChargeRate
+  const totalAmount = subtotal + serviceCharge
   
   return {
     subtotal,
-    taxAmount,
+    serviceCharge,
     totalAmount,
   }
 }

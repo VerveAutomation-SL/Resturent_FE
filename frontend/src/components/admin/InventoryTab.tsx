@@ -9,22 +9,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Search,
-  Download,
-  Upload,
-  Plus,
-  Edit,
-  Trash2,
-  Package,
-} from "lucide-react";
+import { Search, Edit, Trash2, Package } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 import type { InventoryIngredient } from "@/types";
 
 type Props = {
   searchTerm: string;
   setSearchTerm: (s: string) => void;
-  typeFilter: string;
-  setTypeFilter: (s: string) => void;
   stockFilter: string;
   setStockFilter: (s: string) => void;
   getFilteredItems: () => InventoryIngredient[];
@@ -37,8 +28,6 @@ type Props = {
 export default function InventoryTab({
   searchTerm,
   setSearchTerm,
-  typeFilter,
-  setTypeFilter,
   stockFilter,
   setStockFilter,
   getFilteredItems,
@@ -66,11 +55,12 @@ export default function InventoryTab({
             onChange={(e) => setStockFilter(e.target.value)}
           >
             <option value="all">All Items</option>
+            <option value="in_stock">In Stock</option>
             <option value="low_stock">Low Stock</option>
-            <option value="critical_stock">Critical Stock</option>
+            <option value="out_of_stock">Out of Stock</option>
           </select>
         </div>
-        <div className="flex gap-2">
+        {/* <div className="flex gap-2">
           <Button
             size="sm"
             variant="outline"
@@ -91,7 +81,7 @@ export default function InventoryTab({
             <Plus className="w-4 h-4 mr-2" />
             Add Ingredient
           </Button>
-        </div>
+        </div> */}
       </div>
 
       <Card>
@@ -103,7 +93,7 @@ export default function InventoryTab({
                 <TableHead>Unit</TableHead>
                 <TableHead>Current Stock</TableHead>
                 <TableHead>Reserved</TableHead>
-                <TableHead>Low/Critical Threshold</TableHead>
+                <TableHead>Low / Out Threshold</TableHead>
                 <TableHead>Cost per Unit</TableHead>
                 <TableHead>Supplier</TableHead>
                 <TableHead>Last Restocked</TableHead>
@@ -140,11 +130,8 @@ export default function InventoryTab({
                     <TableCell>
                       {item.reserved_quantity} {item.unit}
                     </TableCell>
-                    <TableCell>
-                      {item.low_stock_threshold} /{" "}
-                      {item.critical_stock_threshold}
-                    </TableCell>
-                    <TableCell>${item.cost_per_unit}</TableCell>
+                    <TableCell>{item.low_stock_threshold} / 0</TableCell>
+                    <TableCell>{formatCurrency(item.cost_per_unit)}</TableCell>
                     <TableCell>{item.supplier}</TableCell>
                     <TableCell>
                       {item.last_restocked_at

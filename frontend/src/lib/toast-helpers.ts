@@ -1,5 +1,4 @@
 import { toast } from "@/hooks/use-toast"
-import { CheckCircle, XCircle, AlertTriangle, Info } from "lucide-react"
 
 export const toastHelpers = {
   success: (title: string, description?: string) => {
@@ -55,6 +54,39 @@ export const toastHelpers = {
   },
 
   // Common POS operations
+  loginSuccess: (userRole?: string, userName?: string) => {
+    const roleText = userRole ? ` as ${userRole}` : ''
+    const nameText = userName ? ` Welcome, ${userName}!` : ''
+    return toastHelpers.success(
+      "Login Successful",
+      `Successfully logged in${roleText}.${nameText}`
+    )
+  },
+
+  loginFailed: (error?: string) => {
+    const errorMessage = error || 'Invalid credentials. Please check your email and password.'
+    return toastHelpers.error(
+      "Login Failed",
+      errorMessage
+    )
+  },
+
+  userDetected: (userRole?: string, userName?: string) => {
+    const roleText = userRole ? ` (${userRole})` : ''
+    const nameText = userName ? `Welcome back, ${userName}!` : 'Welcome back!'
+    return toastHelpers.info(
+      "Session Restored",
+      `${nameText}${roleText}`
+    )
+  },
+
+  sessionExpired: () => {
+    return toastHelpers.error(
+      "Session Expired",
+      "Your session has expired. Please log in again to continue."
+    )
+  },
+
   orderCreated: (orderNumber?: string) => {
     return toastHelpers.success(
       "Order Created",

@@ -1,168 +1,136 @@
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { AdminLayout } from '@/components/admin/AdminLayout'
-import { ServerInterface } from '@/components/server/ServerInterface'
-import { CounterInterface } from '@/components/counter/CounterInterface'
-import { POSLayout } from '@/components/pos/POSLayout'
-import { NewEnhancedKitchenLayout } from '@/components/kitchen/NewEnhancedKitchenLayout'
-import { 
-  LayoutDashboard, 
-  Users, 
-  CreditCard, 
-  ChefHat,
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { CounterInterface } from "@/components/counter/CounterInterface";
+import {
+  LayoutDashboard,
+  CreditCard,
   ShoppingCart,
   Settings,
   LogOut,
-  User
-} from 'lucide-react'
-import type { User as UserType } from '@/types'
-import apiClient from '@/api/client'
+} from "lucide-react";
+import type { User as UserType } from "@/types";
+import apiClient from "@/api/client";
 
 interface RoleBasedLayoutProps {
-  user: UserType
+  user: UserType;
 }
 
 export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
-  const [currentView, setCurrentView] = useState<string>(getDefaultView(user.role))
+  const [currentView, setCurrentView] = useState<string>(
+    getDefaultView(user.role)
+  );
 
   function getDefaultView(role: string): string {
     switch (role) {
-      case 'admin':
-      case 'manager':
-        return 'dashboard'
-      case 'server':
-        return 'server'
-      case 'counter':
-        return 'counter'
-      case 'kitchen':
-        return 'kitchen'
+      case "admin":
+        return "dashboard";
+      case "manager":
+        return "dashboard";
+      case "counter":
+        return "counter";
       default:
-        return 'pos' // fallback to general POS interface
+        return "counter";
     }
   }
 
   const handleLogout = () => {
-    apiClient.clearAuth()
-    window.location.href = '/login'
-  }
+    apiClient.clearAuth();
+    window.location.href = "/login";
+  };
 
   const getRoleConfig = (role: string) => {
     switch (role) {
-      case 'admin':
+      case "admin":
         return {
-          title: 'Administrator',
-          color: 'bg-red-100 text-red-800',
+          title: "Administrator",
+          color: "bg-red-100 text-red-800",
           icon: <Settings className="w-4 h-4" />,
-          description: 'Full system access and management'
-        }
-      case 'manager':
+          description: "Full system access and management",
+        };
+      case "manager":
         return {
-          title: 'Manager',
-          color: 'bg-purple-100 text-purple-800',
+          title: "Manager",
+          color: "bg-purple-100 text-purple-800",
           icon: <LayoutDashboard className="w-4 h-4" />,
-          description: 'Operations management and reporting'
-        }
-      case 'server':
+          description: "Operations management and reporting",
+        };
+      case "counter":
         return {
-          title: 'Server',
-          color: 'bg-blue-100 text-blue-800',
-          icon: <Users className="w-4 h-4" />,
-          description: 'Dine-in order creation'
-        }
-      case 'counter':
-        return {
-          title: 'Counter/Checkout',
-          color: 'bg-green-100 text-green-800',
+          title: "Counter/Checkout",
+          color: "bg-green-100 text-green-800",
           icon: <CreditCard className="w-4 h-4" />,
-          description: 'Order creation and payment processing'
-        }
-      case 'kitchen':
-        return {
-          title: 'Kitchen Staff',
-          color: 'bg-orange-100 text-orange-800',
-          icon: <ChefHat className="w-4 h-4" />,
-          description: 'Order preparation and status updates'
-        }
+          description: "Order creation and payment processing",
+        };
       default:
         return {
-          title: 'Staff',
-          color: 'bg-gray-100 text-gray-800',
-          icon: <User className="w-4 h-4" />,
-          description: 'General access'
-        }
+          title: "Counter/Checkout",
+          color: "bg-green-100 text-green-800",
+          icon: <CreditCard className="w-4 h-4" />,
+          description: "Order creation and payment processing",
+        };
     }
-  }
+  };
 
-  const roleConfig = getRoleConfig(user.role)
+  const roleConfig = getRoleConfig(user.role);
 
   // Get available views based on user role
   const getAvailableViews = (role: string) => {
-    const views = []
+    const views = [];
 
     // Admin and managers get all views
-    if (role === 'admin' || role === 'manager') {
+    if (role === "admin" || role === "manager") {
       views.push(
-        { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
-        { id: 'pos', label: 'General POS', icon: <ShoppingCart className="w-4 h-4" /> },
-        { id: 'server', label: 'Server Interface', icon: <Users className="w-4 h-4" /> },
-        { id: 'counter', label: 'Counter/Checkout', icon: <CreditCard className="w-4 h-4" /> },
-        { id: 'kitchen', label: 'Kitchen Display', icon: <ChefHat className="w-4 h-4" /> }
-      )
+        {
+          id: "dashboard",
+          label: "Dashboard",
+          icon: <LayoutDashboard className="w-4 h-4" />,
+        },
+        {
+          id: "counter",
+          label: "Counter/Checkout",
+          icon: <CreditCard className="w-4 h-4" />,
+        }
+      );
     }
-    // Server gets server interface and general POS
-    else if (role === 'server') {
-      views.push(
-        { id: 'server', label: 'Server Interface', icon: <Users className="w-4 h-4" /> },
-        { id: 'pos', label: 'General POS', icon: <ShoppingCart className="w-4 h-4" /> }
-      )
-    }
-    // Counter gets counter interface and general POS  
-    else if (role === 'counter') {
-      views.push(
-        { id: 'counter', label: 'Counter/Checkout', icon: <CreditCard className="w-4 h-4" /> },
-        { id: 'pos', label: 'General POS', icon: <ShoppingCart className="w-4 h-4" /> }
-      )
-    }
-    // Kitchen staff gets kitchen display only
-    else if (role === 'kitchen') {
-      views.push(
-        { id: 'kitchen', label: 'Kitchen Display', icon: <ChefHat className="w-4 h-4" /> }
-      )
+    // Counter gets counter interface and general POS
+    else if (role === "counter") {
+      views.push({
+        id: "counter",
+        label: "Counter/Checkout",
+        icon: <CreditCard className="w-4 h-4" />,
+      });
     }
     // Default fallback
     else {
-      views.push(
-        { id: 'pos', label: 'POS System', icon: <ShoppingCart className="w-4 h-4" /> }
-      )
+      views.push({
+        id: "counter",
+        label: "Counter/Checkout",
+        icon: <CreditCard className="w-4 h-4" />,
+      });
     }
 
-    return views
-  }
+    return views;
+  };
 
-  const availableViews = getAvailableViews(user.role)
+  const availableViews = getAvailableViews(user.role);
 
   const renderCurrentView = () => {
     switch (currentView) {
-      case 'dashboard':
-        return <AdminLayout user={user} />
-      case 'server':
-        return <ServerInterface />
-      case 'counter':
-        return <CounterInterface />
-      case 'kitchen':
-        return <NewEnhancedKitchenLayout user={user} />
-      case 'pos':
-        return <POSLayout user={user} />
+      case "dashboard":
+        return <AdminLayout user={user} />;
+      case "counter":
+        return <CounterInterface />;
       default:
-        return <POSLayout user={user} />
+        return <CounterInterface />;
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Top Navigation Bar */}
-      <div className="border-b border-border bg-card px-6 py-3">
+      <div className="border-b border-border bg-card px-6 py-3 h-[8vh]">
         <div className="flex items-center justify-between">
           {/* Left Side - Logo and Navigation */}
           <div className="flex items-center gap-6">
@@ -176,10 +144,10 @@ export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
             {/* Navigation Tabs */}
             {availableViews.length > 1 && (
               <div className="flex items-center gap-2">
-                {availableViews.map(view => (
+                {availableViews.map((view) => (
                   <Button
                     key={view.id}
-                    variant={currentView === view.id ? 'default' : 'ghost'}
+                    variant={currentView === view.id ? "default" : "ghost"}
                     size="sm"
                     onClick={() => setCurrentView(view.id)}
                     className="flex items-center gap-2"
@@ -197,9 +165,7 @@ export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
             {/* User Info */}
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <div className="font-medium text-sm">
-                  {user.first_name} {user.last_name}
-                </div>
+                <div className="font-medium text-sm">{user.name}</div>
                 <div className="text-xs text-muted-foreground">
                   {roleConfig.description}
                 </div>
@@ -225,10 +191,7 @@ export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1">
-        {renderCurrentView()}
-      </div>
+      <div>{renderCurrentView()}</div>
     </div>
-  )
+  );
 }
-

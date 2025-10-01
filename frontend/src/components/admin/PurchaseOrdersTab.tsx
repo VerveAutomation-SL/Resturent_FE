@@ -1,4 +1,3 @@
-import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -8,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatCurrency } from "@/lib/utils";
 import type { InventoryIngredient } from "@/types";
 
 type PO = {
@@ -50,7 +50,7 @@ export default function PurchaseOrdersTab({ purchaseOrders }: Props) {
                   <TableCell>{po.vendor}</TableCell>
                   <TableCell>{po.status}</TableCell>
                   <TableCell>{po.items.length}</TableCell>
-                  <TableCell>${po.total.toFixed(2)}</TableCell>
+                  <TableCell>{formatCurrency(po.total)}</TableCell>
                   <TableCell>
                     {new Date(po.created_at).toLocaleString()}
                   </TableCell>

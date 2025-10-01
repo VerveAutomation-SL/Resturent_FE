@@ -14,6 +14,7 @@ import {
   Edit,
   Table,
   Users,
+  RefreshCw,
 } from "lucide-react";
 import apiClient from "@/api/client";
 import { toastHelpers } from "@/lib/toast-helpers";
@@ -21,21 +22,53 @@ import { UserForm } from "@/components/forms/UserForm";
 import { AdminStaffTable } from "@/components/admin/AdminStaffTable";
 import { PaginationControlsComponent } from "@/components/ui/pagination-controls";
 import { usePagination } from "@/hooks/usePagination";
-import { UserListSkeleton, SearchingSkeleton } from "@/components/ui/skeletons";
-import { PageLoading, InlineLoading } from "@/components/ui/loading-spinner";
+// UserListSkeleton removed — detailed skeletons are rendered inline in this component
+import { InlineLoading } from "@/components/ui/loading-spinner";
 import type { User } from "@/types";
+import { useRouter } from "node_modules/@tanstack/react-router/dist/esm/useRouter";
+import { useNavigationRefresh } from "@/hooks/useNavigationRefresh";
 
 type DisplayMode = "table" | "cards";
 
 export function AdminStaffManagement() {
+  const router = useRouter();
+
+  // Manual refresh functionality
+  const { manualRefresh, isRefreshing } = useNavigationRefresh(["users"]);
+  useEffect(() => {
+    const decodedToken = apiClient.isAuthenticated();
+
+    if (!decodedToken) {
+      toastHelpers.sessionExpired();
+      router.navigate({ to: "/login" });
+    }
+  }, []);
+
   const [displayMode, setDisplayMode] = useState<DisplayMode>("table");
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const queryClient = useQueryClient();
+
+  // Responsive breakpoint detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const isMobileSize = window.innerWidth < 768;
+      setIsMobile(isMobileSize);
+      // Auto switch to cards view on mobile
+      if (isMobileSize && displayMode === "table") {
+        setDisplayMode("cards");
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, [displayMode]);
 
   // Pagination hook
   const pagination = usePagination({
@@ -58,14 +91,13 @@ export function AdminStaffManagement() {
   }, [searchTerm, debouncedSearch]);
 
   // Fetch users with pagination
-  const {
-    data: usersData,
-    isLoading,
-    isFetching,
-  } = useQuery({
+  const { data: usersData, isLoading } = useQuery({
     queryKey: ["users", pagination.page, pagination.pageSize, debouncedSearch],
     queryFn: () => apiClient.getUsers().then((res: any) => res.data),
   });
+
+  // Show loading screen when backend is called (not cache fetch) or refreshing
+  const isLoadingAny = isRefreshing || isLoading;
 
   // Extract data and pagination info
   const users = Array.isArray(usersData)
@@ -129,7 +161,7 @@ export function AdminStaffManagement() {
   // Show form if creating or editing
   if (showCreateForm || editingUser) {
     return (
-      <div className="p-6">
+      <div className={isMobile ? "p-4" : "p-6"}>
         <UserForm
           user={editingUser || undefined}
           mode={editingUser ? "edit" : "create"}
@@ -140,212 +172,418 @@ export function AdminStaffManagement() {
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="p-6 space-y-6">
-        {/* Header Skeleton */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <div className="h-8 w-48 bg-muted animate-pulse rounded-md" />
-            <div className="h-4 w-72 bg-muted animate-pulse rounded-md" />
-          </div>
-          <div className="h-10 w-24 bg-muted animate-pulse rounded-md" />
-        </div>
-
-        {/* Search and Controls Skeleton */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="h-10 w-full max-w-sm bg-muted animate-pulse rounded-md" />
-        </div>
-
-        {/* User List Skeleton */}
-        <UserListSkeleton count={pagination.pageSize} />
-      </div>
-    );
-  }
+  // Always show header and search; content area will show skeletons when loading
 
   return (
-    <div className="p-6 space-y-6">
+    <div
+      className={`${isMobile ? "p-4" : "p-6"} space-y-${isMobile ? "4" : "6"}`}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div
+        className={`${isMobile ? "space-y-3" : "flex items-center justify-between"}`}
+      >
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">
+          <h2
+            className={`font-bold tracking-tight ${isMobile ? "text-2xl" : "text-3xl"}`}
+          >
             Staff Management
           </h2>
-          <p className="text-muted-foreground">
-            Manage your restaurant staff and their permissions
+          <p className={`text-muted-foreground ${isMobile ? "text-sm" : ""}`}>
+            {isMobile
+              ? "Manage staff & permissions"
+              : "Manage your restaurant staff and their permissions"}
           </p>
         </div>
-        <div className="flex items-center space-x-4">
-          {/* View Toggle */}
-          <div className="flex items-center bg-muted rounded-lg p-1">
+        {!isMobile && (
+          <div className="flex items-center space-x-4">
+            {/* Refresh Button */}
             <Button
-              variant={displayMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setDisplayMode("table")}
-              className="px-3"
+              variant="outline"
+              onClick={manualRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-2"
             >
-              <Table className="h-4 w-4 mr-1" />
-              Table
+              <RefreshCw className="w-4 h-4" />
+              {isRefreshing ? "Refreshing..." : "Refresh"}
             </Button>
-            <Button
-              variant={displayMode === "cards" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setDisplayMode("cards")}
-              className="px-3"
-            >
-              <Users className="h-4 w-4 mr-1" />
-              Cards
-            </Button>
-          </div>
-          <Button onClick={() => setShowCreateForm(true)} className="gap-2">
-            <UserPlus className="h-4 w-4" />
-            Add New Staff
-          </Button>
-        </div>
-      </div>
-
-      {/* Search */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search staff by name, email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
-            />
-            {isSearching && (
-              <div className="absolute right-2 top-2.5">
-                <InlineLoading size="sm" />
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Staff List */}
-      <div className="space-y-4">
-        {displayMode === "table" ? (
-          <AdminStaffTable
-            data={filteredUsers}
-            onEdit={setEditingUser}
-            onDelete={handleDeleteUser}
-            isLoading={isLoading}
-          />
-        ) : filteredUsers.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <UserPlus className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
-                  No staff members
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  {searchTerm
-                    ? "No staff members match your search."
-                    : "Get started by adding a new staff member."}
-                </p>
-                {!searchTerm && (
-                  <div className="mt-6">
-                    <Button
-                      onClick={() => setShowCreateForm(true)}
-                      className="gap-2"
-                    >
-                      <UserPlus className="h-4 w-4" />
-                      Add New Staff
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4">
-            {filteredUsers.map((user: User) => (
-              <Card key={user.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0">
-                        <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center">
-                          <span className="text-sm font-semibold text-white">
-                            {user.name[0]}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-3">
-                          <p className="text-lg font-semibold text-gray-900">
-                            {user.name}
-                          </p>
-                          <Badge className={getRoleBadgeColor(user.role)}>
-                            <Shield className="w-3 h-3 mr-1" />
-                            {user.role.toUpperCase()}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center mt-1 text-sm text-gray-500 space-x-4">
-                          <span className="flex items-center gap-1">
-                            <Mail className="h-4 w-4" />
-                            {user.email}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            Joined{" "}
-                            {new Date(user.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setEditingUser(user)}
-                        className="gap-2"
-                      >
-                        <Edit className="h-4 w-4" />
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDeleteUser(user)}
-                        disabled={deleteUserMutation.isPending}
-                        className="gap-2 text-red-600 hover:text-red-700 hover:border-red-300"
-                      >
-                        {deleteUserMutation.isPending ? (
-                          <InlineLoading size="sm" />
-                        ) : (
-                          <>
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {/* View Toggle */}
+            <div className="flex items-center bg-muted rounded-lg p-1">
+              <Button
+                variant={displayMode === "table" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setDisplayMode("table")}
+                className="px-3"
+              >
+                <Table className="h-4 w-4 mr-1" />
+                Table
+              </Button>
+              <Button
+                variant={displayMode === "cards" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setDisplayMode("cards")}
+                className="px-3"
+              >
+                <Users className="h-4 w-4 mr-1" />
+                Cards
+              </Button>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Pagination with loading state */}
-      {filteredUsers.length > 0 && (
-        <div className="mt-6 space-y-4">
-          {isFetching && !isLoading && (
-            <div className="flex justify-center">
-              <InlineLoading text="Updating results..." />
+      {/* Search and Add Staff */}
+      <Card>
+        <CardContent className={isMobile ? "pt-4 pb-4" : "pt-6"}>
+          <div
+            className={`${isMobile ? "space-y-3" : "flex items-center justify-between gap-4"}`}
+          >
+            <div className="relative flex-1">
+              <Search
+                className={`absolute left-2 top-2.5 text-muted-foreground ${isMobile ? "h-3 w-3" : "h-4 w-4"}`}
+              />
+              <Input
+                placeholder={
+                  isMobile
+                    ? "Search staff..."
+                    : "Search by name, email, or role..."
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={isMobile ? "pl-8 text-sm" : "pl-8"}
+              />
+              {isSearching && (
+                <div className="absolute right-2 top-2.5">
+                  <InlineLoading size="sm" />
+                </div>
+              )}
             </div>
-          )}
-          <PaginationControlsComponent
-            pagination={pagination}
-            total={paginationInfo.total || users.length}
-          />
+
+            <div
+              className={`flex ${isMobile ? "gap-2" : "items-center space-x-4"}`}
+            >
+              {/* Mobile Refresh Button */}
+              {isMobile && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={manualRefresh}
+                  disabled={isRefreshing}
+                  className="flex items-center gap-1"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  {isRefreshing ? "Refreshing..." : "Refresh"}
+                </Button>
+              )}
+              {/* Mobile View Toggle */}
+              {isMobile && (
+                <div className="flex items-center bg-muted rounded-lg p-1">
+                  <Button
+                    variant={displayMode === "table" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setDisplayMode("table")}
+                    className="px-3 text-xs"
+                  >
+                    <Table className="h-3 w-3 mr-1" />
+                    Table
+                  </Button>
+                  <Button
+                    variant={displayMode === "cards" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setDisplayMode("cards")}
+                    className="px-3 text-xs"
+                  >
+                    <Users className="h-3 w-3 mr-1" />
+                    Cards
+                  </Button>
+                </div>
+              )}
+
+              <Button
+                onClick={() => setShowCreateForm(true)}
+                className={`gap-2 ${isMobile ? "text-sm" : ""}`}
+                size={isMobile ? "sm" : "default"}
+              >
+                <UserPlus className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
+                {isMobile ? "Add Staff" : "Add Staff"}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="mt-8 relative min-h-[400px]">
+        {/* Enhanced skeleton during loading */}
+        {isLoadingAny && (
+          <div className="space-y-8">
+            {/* Search Bar Skeleton */}
+            <div className="bg-white rounded-lg border p-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="bg-muted animate-pulse rounded-md h-10 flex-1" />
+                <div className="bg-muted animate-pulse rounded-md h-10 w-32" />
+              </div>
+            </div>
+
+            {/* Staff Table/Cards Skeleton */}
+            {displayMode === "table" ? (
+              <div className="bg-white rounded-lg border">
+                {/* Table header */}
+                <div className="grid grid-cols-5 gap-4 p-4 bg-muted/30 border-b">
+                  <div className="bg-muted animate-pulse rounded h-4" />
+                  <div className="bg-muted animate-pulse rounded h-4" />
+                  <div className="bg-muted animate-pulse rounded h-4" />
+                  <div className="bg-muted animate-pulse rounded h-4" />
+                  <div className="bg-muted animate-pulse rounded h-4" />
+                </div>
+
+                {/* Table rows */}
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="grid grid-cols-5 gap-4 p-4 border-b">
+                    <div className="flex items-center space-x-3">
+                      <div className="bg-muted animate-pulse rounded-full h-8 w-8" />
+                      <div className="bg-muted animate-pulse rounded h-4 w-24" />
+                    </div>
+                    <div className="bg-muted animate-pulse rounded h-4 w-32" />
+                    <div className="bg-muted animate-pulse rounded h-6 w-20" />
+                    <div className="bg-muted animate-pulse rounded h-4 w-24" />
+                    <div className="flex gap-2">
+                      <div className="bg-muted animate-pulse rounded h-8 w-16" />
+                      <div className="bg-muted animate-pulse rounded h-8 w-16" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {[...Array(8)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="bg-white rounded-lg border p-6 space-y-4"
+                  >
+                    {/* User avatar and name */}
+                    <div className="flex items-center space-x-3">
+                      <div className="bg-muted animate-pulse rounded-full h-12 w-12" />
+                      <div className="space-y-2">
+                        <div className="bg-muted animate-pulse rounded h-4 w-24" />
+                        <div className="bg-muted animate-pulse rounded h-3 w-32" />
+                      </div>
+                    </div>
+
+                    {/* Role badge */}
+                    <div className="bg-muted animate-pulse rounded-full h-6 w-20" />
+
+                    {/* Contact info */}
+                    <div className="space-y-2">
+                      <div className="bg-muted animate-pulse rounded h-3 w-full" />
+                      <div className="bg-muted animate-pulse rounded h-3 w-28" />
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex gap-2">
+                      <div className="bg-muted animate-pulse rounded h-8 flex-1" />
+                      <div className="bg-muted animate-pulse rounded h-8 w-10" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Pagination Skeleton */}
+            <div className="flex justify-between items-center">
+              <div className="bg-muted animate-pulse rounded h-4 w-32" />
+              <div className="flex gap-2">
+                <div className="bg-muted animate-pulse rounded h-8 w-8" />
+                <div className="bg-muted animate-pulse rounded h-8 w-8" />
+                <div className="bg-muted animate-pulse rounded h-8 w-8" />
+                <div className="bg-muted animate-pulse rounded h-8 w-8" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div
+          className={
+            isLoadingAny && !isRefreshing
+              ? "pointer-events-none opacity-50"
+              : isLoading || isRefreshing
+                ? "hidden"
+                : ""
+          }
+        >
+          {/* Staff List */}
+          <div className="space-y-4">
+            {displayMode === "table" ? (
+              <AdminStaffTable
+                data={filteredUsers}
+                onEdit={setEditingUser}
+                onDelete={handleDeleteUser}
+                isLoading={isLoading}
+              />
+            ) : filteredUsers.length === 0 ? (
+              <Card>
+                <CardContent className={isMobile ? "pt-4" : "pt-6"}>
+                  <div className="text-center py-8">
+                    <UserPlus
+                      className={`mx-auto text-gray-400 ${isMobile ? "h-8 w-8" : "h-12 w-12"}`}
+                    />
+                    <h3
+                      className={`mt-2 font-medium text-gray-900 ${isMobile ? "text-sm" : "text-sm"}`}
+                    >
+                      No staff members
+                    </h3>
+                    <p
+                      className={`mt-1 text-gray-500 ${isMobile ? "text-xs" : "text-sm"}`}
+                    >
+                      {searchTerm
+                        ? "No staff members match your search."
+                        : "Get started by adding a new staff member."}
+                    </p>
+                    {!searchTerm && (
+                      <div className="mt-6">
+                        <Button
+                          onClick={() => setShowCreateForm(true)}
+                          className="gap-2"
+                          size={isMobile ? "sm" : "default"}
+                        >
+                          <UserPlus
+                            className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                          />
+                          Add New Staff
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className={`grid gap-${isMobile ? "3" : "4"}`}>
+                {filteredUsers.map((user: User) => (
+                  <Card
+                    key={user.id}
+                    className="hover:shadow-md transition-shadow"
+                  >
+                    <CardContent className={isMobile ? "pt-4 pb-4" : "pt-6"}>
+                      <div
+                        className={`${isMobile ? "space-y-4" : "flex items-center justify-between"}`}
+                      >
+                        <div
+                          className={`flex items-center space-x-4 ${isMobile ? "justify-center" : ""}`}
+                        >
+                          <div className="flex-shrink-0">
+                            <div
+                              className={`rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center ${isMobile ? "h-10 w-10" : "h-12 w-12"}`}
+                            >
+                              <span
+                                className={`font-semibold text-white ${isMobile ? "text-xs" : "text-sm"}`}
+                              >
+                                {user.name[0]}
+                              </span>
+                            </div>
+                          </div>
+                          <div
+                            className={`min-w-0 flex-1 ${isMobile ? "text-center" : ""}`}
+                          >
+                            <h3
+                              className={`font-medium text-gray-900 ${isMobile ? "text-sm" : ""}`}
+                            >
+                              {user.name}
+                            </h3>
+                            <div
+                              className={`flex items-center gap-2 mt-1 ${isMobile ? "justify-center flex-wrap" : ""}`}
+                            >
+                              <Mail
+                                className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                              />
+                              <p
+                                className={`text-gray-500 ${isMobile ? "text-xs" : "text-sm"}`}
+                              >
+                                {user.email}
+                              </p>
+                            </div>
+                            {user.created_at && (
+                              <div
+                                className={`flex items-center gap-2 mt-1 ${isMobile ? "justify-center" : ""}`}
+                              >
+                                <Calendar
+                                  className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                                />
+                                <p
+                                  className={`text-gray-500 ${isMobile ? "text-xs" : "text-sm"}`}
+                                >
+                                  Joined{" "}
+                                  {new Date(
+                                    user.created_at
+                                  ).toLocaleDateString()}
+                                </p>
+                              </div>
+                            )}
+                            <div
+                              className={`flex items-center gap-2 mt-2 ${isMobile ? "justify-center" : ""}`}
+                            >
+                              <Shield
+                                className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                              />
+                              <Badge
+                                className={`${getRoleBadgeColor(user.role)} ${isMobile ? "text-xs" : ""}`}
+                              >
+                                {user.role}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <div
+                          className={`flex ${isMobile ? "justify-center space-x-2 w-full" : "flex-col space-y-2 ml-4"}`}
+                        >
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingUser(user)}
+                            className={
+                              isMobile ? "flex-1 gap-1 text-xs" : "gap-1"
+                            }
+                          >
+                            <Edit
+                              className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                            />
+                            {isMobile ? "Edit" : "Edit"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteUser(user)}
+                            className={`text-red-600 hover:text-red-700 hover:border-red-300 ${isMobile ? "flex-1 gap-1 text-xs" : "gap-1"}`}
+                          >
+                            <Trash2
+                              className={isMobile ? "h-3 w-3" : "h-4 w-4"}
+                            />
+                            {isMobile ? "Delete" : "Delete"}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {filteredUsers.length > 0 && (
+              <div
+                className={`${isMobile ? "mt-4 space-y-3" : "mt-6 space-y-4"}`}
+              >
+                {isLoadingAny && (
+                  <div className="flex justify-center">
+                    <InlineLoading text="Updating staff..." />
+                  </div>
+                )}
+                <PaginationControlsComponent
+                  pagination={pagination}
+                  total={paginationInfo.total || filteredUsers.length}
+                />
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

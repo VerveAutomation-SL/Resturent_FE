@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react";
-import { Link, useRouter, useLocation } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/ui/user-menu";
 import {
   LayoutDashboard,
-  Users,
   CreditCard,
   ChefHat,
-  Settings,
   Menu,
   BarChart3,
   UserCog,
@@ -29,13 +27,6 @@ const adminSections = [
     href: "/admin/dashboard",
   },
   {
-    id: "server",
-    label: "Server Interface",
-    icon: <Users className="w-5 h-5" />,
-    description: "Server order interface",
-    href: "/admin/server",
-  },
-  {
     id: "counter",
     label: "Counter/Checkout",
     icon: <CreditCard className="w-5 h-5" />,
@@ -48,13 +39,6 @@ const adminSections = [
     icon: <ChefHat className="w-5 h-5" />,
     description: "Comprehensive inventory & stock control",
     href: "/admin/ingredients",
-  },
-  {
-    id: "reports",
-    label: "View Reports",
-    icon: <BarChart3 className="w-5 h-5" />,
-    description: "Analytics and reports",
-    href: "/admin/reports",
   },
   {
     id: "menu",
@@ -78,11 +62,11 @@ const adminSections = [
     href: "/admin/staff",
   },
   {
-    id: "settings",
-    label: "Settings",
-    icon: <Settings className="w-5 h-5" />,
-    description: "System configuration",
-    href: "/admin/settings",
+    id: "reports",
+    label: "View Reports",
+    icon: <BarChart3 className="w-5 h-5" />,
+    description: "Analytics and reports",
+    href: "/admin/reports",
   },
 ];
 
@@ -125,9 +109,9 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
 
       {/* Sidebar */}
       <div
-        className={`bg-card border-r border-border transition-all duration-300 flex flex-col z-50 ${
+        className={`bg-card border-r border-border transition-all duration-300 flex flex-col z-50 h-screen ${
           isMobile || isTablet
-            ? `fixed left-0 top-0 h-full ${sidebarCollapsed ? "-translate-x-full w-0" : "translate-x-0 w-80"}`
+            ? `fixed left-0 top-0 ${sidebarCollapsed ? "-translate-x-full w-0" : "translate-x-0 w-80"}`
             : `relative ${sidebarCollapsed ? "w-16" : "w-64"}`
         }`}
       >

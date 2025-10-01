@@ -87,21 +87,43 @@ export interface InventoryIngredient {
   quantity: number;
   reserved_quantity: number;
   low_stock_threshold: number;
-  critical_stock_threshold: number;
   cost_per_unit: number;
   supplier: string;
   supplier_contact: string;
   last_restocked_at?: string | null;
-  auto_reorder: boolean;
-  reorder_quantity: number;
   created_at: string;
   updated_at: string;
+}
+
+// Inventory transaction record returned by API
+export interface Transaction {
+  id?: number;
+  ingredient_id: number;
+  Ingredient?: {
+    id?: number;
+    name?: string;
+    unit?: string;
+  };
+  User: { id?: number; name?: string };
+  approved_at?: string | null;
+  approved_by?: string | null;
+  created_at: string;
+  updated_at?: string;
+  previous_quantity?: string;
+  new_quantity?: string;
+  quantity?: string;
+  notes?: string;
+  performed_by?: number | string | null;
+  reference_type?: string;
+  status?: string;
+  total_cost?: number | null;
+  transaction_date?: string;
+  transaction_type?: string;
 }
 
 export interface InventorySummary {
   total: number;
   lowStock: number;
-  criticalStock: number;
   outOfStock: number;
   inStock: number;
   totalValue: number;
@@ -157,14 +179,13 @@ export interface AdminTablesResponse {
 // Order Types
 export interface Order {
   id: string;
-  order_number?: string;
   table_id?: string;
   waiter_id?: string;
   customer_name?: string;
   order_type: 'dine_in' | 'takeout' | 'delivery';
   status: 'confirmed' | 'preparing' | 'served' | 'completed' | 'cancelled';
   subtotal?: number;
-  tax_amount?: number;
+  service_charge?: number;
   discount_amount?: number;
   price?: number;
   notes?: string;
@@ -172,10 +193,12 @@ export interface Order {
   updated_at: string;
   served_at?: string;
   completed_at?: string;
-  table?: DiningTable;
+  RestaurantTable?: DiningTable;
   user?: User;
-  items?: OrderItem[];
+  OrderItems?: OrderItem[];
   payments?: Payment[];
+  Receipt?: { id: string; receipt_number: string; created_at: string; }[];
+  orderTotal?: number;
 }
 export enum OrderStatus {
   PENDING = 'pending',
@@ -196,22 +219,25 @@ export interface OrderItem {
   status: OrderStatus;
   created_at: string;
   updated_at: string;
-  product?: Product;
+  Product?: Product;
   notes?: string; // Alternative field name for special instructions
 }
 
 export interface CreateOrderRequest {
   table_id?: string;
-  customer_name?: string;
-  order_type: 'dine_in' | 'takeout' | 'delivery';
+  order_type: 'dine_in' | 'take_away' | 'delivery';
   items: CreateOrderItem[];
   notes?: string;
 }
 
+export interface UpdateOrderRequest {
+  order_id: string;
+  items?: CreateOrderItem[];
+  notes?: string;
+}
 export interface CreateOrderItem {
   product_id: string;
   quantity: number;
-  special_instructions?: string;
 }
 
 export interface UpdateOrderStatusRequest {
@@ -252,17 +278,15 @@ export interface PaymentSummary {
   payment_count: number;
 }
 
-// Cart Types (Frontend Only)
 export interface CartItem {
-  product: Product;
+  Product: Product;
   quantity: number;
-  special_instructions?: string;
 }
 
 export interface Cart {
   items: CartItem[];
   subtotal: number;
-  tax_amount: number;
+  service_charge: number;
   total_amount: number;
 }
 
@@ -288,6 +312,70 @@ export interface SalesReportItem {
   date: string;
   order_count: number;
   revenue: number;
+}
+
+// Sales Report Response Types
+export interface SalesReportDateRange {
+  start: string; // ISO date string
+  end: string;   // ISO date string
+}
+export interface SalesReport {
+  period: string;
+  dateRange: SalesReportDateRange;
+  data: Order[]; // Array of order data with Receipt information
+}
+
+// Analytics / Reports types
+export interface AnalyticsAmountMetric {
+  amount: number;
+  formattedAmount?: string;
+  label?: string;
+  period?: string;
+  comparisonText?: string;
+  percentageChange?: number;
+}
+
+export interface AnalyticsCountMetric {
+  count: number;
+  label?: string;
+  period?: string;
+  comparisonText?: string;
+}
+
+export interface AnalyticsPercentageMetric {
+  percentage: number;
+  formattedPercentage?: string;
+  label?: string;
+  period?: string;
+  isPositive?: boolean;
+}
+
+export interface AnalyticsResponse {
+  // common named metrics (matches the sample response)
+  totalRevenue?: AnalyticsAmountMetric;
+  totalOrders?: AnalyticsCountMetric;
+  averageOrder?: AnalyticsAmountMetric;
+  growthRate?: AnalyticsPercentageMetric;
+  data: Order[];
+  period: string;
+  dateRange: SalesReportDateRange;
+
+  // simple numeric stats
+  completedOrders?: number;
+  cancelledOrders?: number;
+}
+
+// Report filter parameters interface
+export interface ReportFilterParams {
+  startDate?: string;
+  endDate?: string;
+  orderType?: string;
+  status?: string;
+  minAmount?: number | null;
+  maxAmount?: number | null;
+  searchTerm?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface OrdersReportItem {

@@ -57,7 +57,7 @@ export function CategoryForm({
   // Create mutation
   const createMutation = useMutation({
     mutationFn: (data: CreateCategoryData) => apiClient.createCategory(data),
-    onSuccess: (response) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
@@ -74,7 +74,7 @@ export function CategoryForm({
   const updateMutation = useMutation({
     mutationFn: (data: UpdateCategoryData) =>
       apiClient.updateCategory(data.id.toString(), data),
-    onSuccess: (response) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });

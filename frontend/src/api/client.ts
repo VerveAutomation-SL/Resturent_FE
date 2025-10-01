@@ -10,18 +10,15 @@ import type {
   Category,
   DiningTable,
   Order,
-  OrderItem,
   Payment,
   CreateOrderRequest,
   UpdateOrderStatusRequest,
   ProcessPaymentRequest,
   PaymentSummary,
   DashboardStats,
-  SalesReportItem,
   OrdersReportItem,
   Ingredient,
   InventoryIngredient,
-  KitchenOrder,
   TableStatus,
   OrderFilters,
   ProductFilters,
@@ -29,6 +26,10 @@ import type {
   OrderStatus,
   TableStats,
   InventorySummary,
+  Transaction,
+  UpdateOrderRequest,
+  AnalyticsResponse,
+  ReportFilterParams
 } from '@/types';
 import Cookies from 'js-cookie';
 
@@ -36,9 +37,9 @@ class APIClient {
   private client: AxiosInstance;
 
   constructor() {
-    const apiUrl = import.meta.env?.VITE_API_URL || 'http://localhost:3001/api';
-    console.log('🔧 API Client baseURL:', apiUrl);
-    console.log('🔧 Environment VITE_API_URL:', import.meta.env?.VITE_API_URL);
+    const apiUrl = import.meta.env?.VITE_API_URL || 'http://localhost:3000/api';
+    // console.log('🔧 API Client baseURL:', apiUrl);
+    // console.log('🔧 Environment VITE_API_URL:', import.meta.env?.VITE_API_URL);
     
     this.client = axios.create({
       baseURL: apiUrl,
@@ -51,7 +52,7 @@ class APIClient {
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
       (config) => {
-        const token = Cookies.get('pos_token');
+        const token = this.getAuthToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -66,9 +67,8 @@ class APIClient {
     this.client.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response?.status === 401) {
+        if (error.response?.status === 401 || error.response?.status === 403) {
           this.clearAuth();
-          // Redirect to login page
           window.location.href = '/login';
         }
         return Promise.reject(error);
@@ -193,7 +193,7 @@ class APIClient {
   async updateOrderStatus(id: string, status: OrderStatus, notes?: string): Promise<APIResponse<Order>> {
     const statusUpdate: UpdateOrderStatusRequest = { status, notes };
     return this.request({
-      method: 'PATCH',
+      method: 'PUT',
       url: `/orders/${id}/status`,
       data: statusUpdate,
     });
@@ -230,18 +230,42 @@ class APIClient {
     });
   }
 
-  async getSalesReport(period: 'today' | 'week' | 'month' = 'today'): Promise<APIResponse<SalesReportItem[]>> {
+  async getPreviewDetails(params: ReportFilterParams): Promise<APIResponse<{data: Order[], pagination: any}>> {
     return this.request({
       method: 'GET',
-      url: '/admin/reports/sales',
-      params: { period },
+      url: '/reports/sales/preview',
+      params: { ...params },
+    });
+  }
+
+  async exportExcelReport(params: ReportFilterParams): Promise<Blob> {
+    return this.request({
+      method: 'POST',
+      url: '/reports/sales/export/excel',
+      responseType: 'blob',
+      headers: {
+        'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      },
+      params: { ...params },
+    });
+  }
+
+  async exportPdfReport(params: ReportFilterParams): Promise<Blob> {
+    return this.request({
+      method: 'POST',
+      url: '/reports/sales/export/pdf',
+      responseType: 'blob',
+      headers: {
+        'Accept': 'application/pdf'
+      },
+      params: { ...params },
     });
   }
 
   async getOrdersReport(): Promise<APIResponse<OrdersReportItem[]>> {
     return this.request({
       method: 'GET',
-      url: '/admin/reports/orders',
+      url: '/reports/orders',
     });
   }
 
@@ -250,6 +274,14 @@ class APIClient {
       method: 'GET',
       url: '/admin/dashboard/income-report',
       params: { period },
+    });
+  }
+
+  async getAnalytics(period?: 'today' | 'week' | 'month'): Promise<APIResponse<AnalyticsResponse>> {
+    return this.request({
+      method: 'GET',
+      url: '/reports/analytics',
+      params: period ? { period } : {},
     });
   }
 
@@ -282,7 +314,14 @@ class APIClient {
   async createCounterOrder(order: CreateOrderRequest): Promise<APIResponse<Order>> {
     return this.request({
       method: 'POST',
-      url: '/counter/orders',
+      url: '/orders',
+      data: order,
+    });
+  }
+  async updateCounterOrder(order: UpdateOrderRequest): Promise<APIResponse<Order>> {
+    return this.request({
+      method: 'PATCH',
+      url: `/orders/${order.order_id}`,
       data: order,
     });
   }
@@ -291,7 +330,7 @@ class APIClient {
   async processCounterPayment(orderId: string, payment: ProcessPaymentRequest): Promise<APIResponse<Payment>> {
     return this.request({
       method: 'POST',
-      url: `/counter/orders/${orderId}/payments`,
+      url: `/payments/orders/${orderId}/pay`,
       data: payment,
     });
   }
@@ -356,11 +395,6 @@ class APIClient {
   async getLowStock(): Promise<APIResponse<InventoryIngredient[]>> {
     return this.request({ method: 'GET', url: '/low-stock' });
   }
-
-  async getCriticalStockIngredients(): Promise<APIResponse<Ingredient[]>> {
-    return this.request({ method: 'GET', url: '/ingredients/critical-stock' });
-  }
-
   async getOutOfStockIngredients(): Promise<APIResponse<Ingredient[]>> {
     return this.request({ method: 'GET', url: '/ingredients/out-of-stock' });
   }
@@ -386,16 +420,16 @@ class APIClient {
   }
 
   // Stock Management
-  async updateStock(id: number, amount: number): Promise<APIResponse> {
-    return this.request({ method: 'POST', url: `/ingredients/stock/update/${id}`, data: { amount } });
+  async updateStock(id: number, amount: number, notes: string): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: `/ingredients/stock/update/${id}`, data: { amount, notes } });
   }
 
-  async addStock(id: number, amount: number): Promise<APIResponse> {
-    return this.request({ method: 'POST', url: `/ingredients/stock/add/${id}`, data: { amount } });
+  async addStock(id: number, amount: number, notes: string): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: `/ingredients/stock/add/${id}`, data: { amount, notes } });
   }
 
-  async subtractStock(id: number, amount: number): Promise<APIResponse> {
-    return this.request({ method: 'POST', url: `/ingredients/stock/subtract/${id}`, data: { amount } });
+  async subtractStock(id: number, amount: number, notes: string): Promise<APIResponse> {
+    return this.request({ method: 'POST', url: `/ingredients/stock/subtract/${id}`, data: { amount, notes } });
   }
 
   async bulkUpdateStock(updates: any[]): Promise<APIResponse> {
@@ -403,7 +437,7 @@ class APIClient {
   }
 
   // Inventory Management
-  async getInventoryTransactions(): Promise<APIResponse<any[]>> {
+  async getInventoryTransactions(): Promise<APIResponse<{pagination: any; transactions: Transaction[] }>> {
     return this.request({ method: 'GET', url: '/ingredients/inventory/transactions' });
   }
 
@@ -570,7 +604,7 @@ class APIClient {
 
   // Utility methods
   setAuthToken(accessToken: string): void {
-    console.log("Auth token set with JWT expiry, redirecting to home...");
+    console.log("Auth token set with JWT, redirecting to home...");
     Cookies.set('pos_token', accessToken);
   }
 
@@ -583,29 +617,32 @@ class APIClient {
     return token === undefined ? null : token;
   }
 
-  isAuthenticated(): boolean {
+  isAuthenticated(): User & { exp: number; iat: number } | null {
     const token = this.getAuthToken();
     
     if (!token) {
-      return false;
+      console.log("Token missing, clearing auth");
+      this.clearAuth();
+      return null;
     }
     
     try {
       // Decode the JWT token to check expiry
-      const decodedToken = jwtDecode<{ exp: number }>(token);
+      const decodedToken = jwtDecode<User & { exp: number; iat: number }>(token);
       const expiryTime = decodedToken.exp * 1000; // Convert from seconds to milliseconds
       const currentTime = new Date().getTime();
       
       if (currentTime >= expiryTime) {
+        console.log("Token expired (from JWT), clearing auth");
         this.clearAuth();
-        return false;
+        return null;
       }
-      
-      return true;
+
+      return decodedToken;
     } catch (error) {
       console.error('Failed to decode JWT token:', error);
       this.clearAuth();
-      return false;
+      return null;
     }
   }
 }
