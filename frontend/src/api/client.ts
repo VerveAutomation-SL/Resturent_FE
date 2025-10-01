@@ -37,7 +37,7 @@ class APIClient {
   private client: AxiosInstance;
 
   constructor() {
-    const apiUrl = import.meta.env?.VITE_API_URL || 'http://localhost:3001/api';
+    const apiUrl = import.meta.env?.VITE_API_URL || 'http://localhost:3000/api';
     // console.log('🔧 API Client baseURL:', apiUrl);
     // console.log('🔧 Environment VITE_API_URL:', import.meta.env?.VITE_API_URL);
     
@@ -246,7 +246,7 @@ class APIClient {
       headers: {
         'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       },
-      data: { ...params },
+      params: { ...params },
     });
   }
 
@@ -258,7 +258,7 @@ class APIClient {
       headers: {
         'Accept': 'application/pdf'
       },
-      data: { ...params },
+      params: { ...params },
     });
   }
 

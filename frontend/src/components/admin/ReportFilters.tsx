@@ -208,7 +208,7 @@ export function ReportFilters({
           </Label>
           <Input
             id="searchTerm"
-            placeholder="Search by order ID, or product name..."
+            placeholder="Search by product name..."
             value={filters.searchTerm}
             onChange={(e) => handleFilterChange("searchTerm", e.target.value)}
             className="w-full"
@@ -262,14 +262,16 @@ export function ReportFilters({
                 ? "Loading..."
                 : `Preview Data${totalRecords > 0 ? ` (${totalRecords})` : ""}`}
             </Button>
-            <Button
-              variant="outline"
-              onClick={handleRemoveAllFilters}
-              className="flex items-center gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-            >
-              <X className="w-4 h-4" />
-              Remove All Filters
-            </Button>
+            {activeFilters.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={handleRemoveAllFilters}
+                className="flex items-center gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+              >
+                <X className="w-4 h-4" />
+                Remove All Filters
+              </Button>
+            )}
           </div>
           <div className="relative w-full sm:w-auto">
             <button
