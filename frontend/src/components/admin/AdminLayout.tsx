@@ -5,7 +5,6 @@ import { UserMenu } from "@/components/ui/user-menu";
 import {
   LayoutDashboard,
   ShoppingCart,
-  Settings,
   Menu,
   BarChart3,
   UserCog,
@@ -18,7 +17,6 @@ import type { User as UserType } from "@/types";
 import { AdminDashboard } from "./AdminDashboard";
 import { CounterInterface } from "@/components/counter/CounterInterface";
 import { AdminStaffManagement } from "./AdminStaffManagement";
-import { AdminSettings } from "./AdminSettings";
 import { AdminMenuManagement } from "./AdminMenuManagement";
 import { AdminTableManagement } from "./AdminTableManagement";
 import { AdminReports } from "./AdminReports";
@@ -39,12 +37,6 @@ const adminSections = [
     label: "Counter/Checkout",
     icon: <CreditCard className="w-5 h-5" />,
     description: "Payment processing",
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    icon: <Settings className="w-5 h-5" />,
-    description: "System configuration",
   },
   {
     id: "staff",
@@ -102,12 +94,6 @@ export function AdminLayout({ user }: AdminLayoutProps) {
         return <AdminDashboard />;
       case "counter":
         return <CounterInterface />;
-      case "settings":
-        return (
-          <div className="space-y-8">
-            <AdminSettings />
-          </div>
-        );
       case "staff":
         return <AdminStaffManagement />;
       case "menu":
